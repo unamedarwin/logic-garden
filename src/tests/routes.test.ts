@@ -4,11 +4,16 @@ import { seed } from '../domain/types'
 
 describe('shared routes', () => {
   it('uses the GitHub Pages base path for share links', () => {
-    const url = shareUrl({ difficulty: 'medium', seed: seed('ABCD-1234') })
-    const expected = new URL(import.meta.env.BASE_URL, window.location.origin)
-    expected.search = 'v=1&difficulty=medium&seed=ABCD-1234'
+    const url = shareUrl({ difficulty: 'medium', seed: seed('ABCD-1234') }, 'teens')
+    const shared = new URL(url)
 
-    expect(url).toBe(expected.toString())
+    expect(shared.pathname).toBe(import.meta.env.BASE_URL)
+    expect(shared.searchParams.get('p')).toMatch(/^[A-Za-z0-9_-]+$/u)
+    expect(parseSharedGameRoute(shared as unknown as Location)).toEqual({
+      difficulty: 'medium',
+      seed: 'ABCD-1234',
+      audience: 'teens',
+    })
   })
 
   it('reads a share link from the GitHub Pages base path', () => {
@@ -16,7 +21,11 @@ describe('shared routes', () => {
       `https://unamedarwin.github.io${import.meta.env.BASE_URL}?v=1&difficulty=hard&seed=HOME-42`,
     ) as unknown as Location
 
-    expect(parseSharedGameRoute(location)).toEqual({ difficulty: 'hard', seed: 'HOME-42' })
+    expect(parseSharedGameRoute(location)).toEqual({
+      difficulty: 'hard',
+      seed: 'HOME-42',
+      audience: 'children',
+    })
   })
 
   it('does not treat another path as a shared game', () => {

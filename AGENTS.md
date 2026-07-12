@@ -2,7 +2,7 @@
 
 ## Product
 
-This is an offline-first children's logic puzzle PWA.
+This is an offline-first logic puzzle PWA with child, teen, and adult profile modes.
 
 The game must never include murder, death, weapons, violence, threats, punishment,
 frightening content, advertising, tracking, personal-data collection, or remote generated
@@ -43,17 +43,24 @@ difficulty picker before a player starts another adventure.
 
 ## Visual design
 
-Treat Logic Garden as an illustrated field guide, not a collection of interchangeable
-cards. Keep the map visually dominant, make the current action easy to scan, and preserve
-the warm paper, garden, and hand-drawn-ink direction across responsive layouts.
+Treat the child mode as an illustrated field guide, not a collection of interchangeable cards.
+Keep the map visually dominant, make the current action easy to scan, and preserve the warm
+paper, garden, and hand-drawn-ink direction across responsive layouts. Teen and adult profiles
+must have visibly distinct themes while preserving the same safe, local, accessible game
+mechanics. Use PixiJS only as a decorative grid renderer; keep semantic DOM controls as the
+interaction and accessibility layer.
 On small screens, keep the map and character picker in one compact workspace. Put long clue
 lists behind an accessible local view switcher rather than forcing scrolls between a friend
 and the map location where the player places it.
 
+Profile names and avatars are local-only. Shared URLs may contain a version, audience,
+difficulty, and seeded puzzle identifier, but never a solution or any profile data.
+
 ## Delivery
 
 GitHub Pages serves this app below `/logic-garden/`. Keep Vite's base path, the PWA manifest
-scope, internal navigation, and shared URLs aligned with that path. Deploy only the compiled
+scope, internal navigation, and shared URLs aligned with that path. Share payloads are URL-safe
+Base64 under the `p` query parameter and must be validated before use. Deploy only the compiled
 `dist` directory with `.github/workflows/deploy-pages.yml`; never publish source files as the
 site artifact.
 

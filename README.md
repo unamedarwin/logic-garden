@@ -1,8 +1,10 @@
 # Logic Garden
 
-Logic Garden is an offline-first children's logic puzzle game. Players place friendly
-characters on a map by reading clues. Every visible puzzle is generated locally, has
-exactly one solver-verified answer, and can be reproduced from its seed.
+Logic Garden is an offline-first logic puzzle game for children, teens, and adults. A local
+profile selects the visual direction and age-appropriate themes before play. Children place
+friendly characters on a map; teens and adults use a deduction grid where a placed character
+crosses out its row and column. Every visible puzzle is generated locally, has exactly one
+solver-verified answer, and can be reproduced from its seed.
 
 The game contains no ads, analytics, personal-data collection, remote APIs, user-generated
 content, violence, frightening material, or external game assets.
@@ -41,12 +43,12 @@ only `dist` through GitHub Pages.
 ```text
 src/
   app/          shared-link parsing
-  components/   accessible React UI and drag/drop presentation
+  components/   accessible React UI, PixiJS grid artwork, and drag/drop presentation
   domain/       types, themes, translations, structured clue wording
   generator/    seeded world, solution, clue, and clue-reduction generation
   solver/       framework-independent backtracking constraint solver
   game/         reducer, selectors, validation, solver-based hints
-  storage/      IndexedDB preferences, statistics, and saved game
+  storage/      IndexedDB profile, preferences, statistics, and saved game
   pwa/          manifest and service-worker registration
   tests/        unit, integration, and property tests
 ```
@@ -70,7 +72,20 @@ The solver uses backtracking with partial-constraint pruning, unique positions, 
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
 
-## Difficulty and play
+## Profiles, difficulty, and play
+
+The first screen asks for a local name, a generic avatar, and one of three audiences. The
+profile stays only on the device and can be changed from the home screen. Each audience has
+its own visual language and local themes:
+
+| Audience | Interaction     | Themes                                             |
+| -------- | --------------- | -------------------------------------------------- |
+| Children | Illustrated map | Forests, farms, trips, and gentle discoveries      |
+| Teens    | Deduction grid  | Music studio, sports festival, and creative lab    |
+| Adults   | Deduction grid  | Book club, neighborhood garden, and weekend market |
+
+Children keep the compact map difficulties below. Seeded rectangular boards alternate their
+orientation, so a `2 x 3` board can also appear as `3 x 2`.
 
 | Difficulty | Map   | Friends |
 | ---------- | ----- | ------- |
@@ -79,9 +94,11 @@ limit, normally two for uniqueness checking.
 | Hard       | 2 × 4 | 8       |
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
-focus and activate a character button, then activate a location button. The game provides
-visible focus, ARIA live announcements, 44-pixel touch targets, and reduced-motion support.
-Hints are derived from the solver, never a stored answer.
+focus and activate a character button, then activate a location button. Touching a placed
+character returns it to the waiting tray. In a deduction grid, occupied rows and columns are
+blocked in both the interface and the reducer, so drag interactions cannot bypass the rule.
+The game provides visible focus, ARIA live announcements, 44-pixel touch targets, and
+reduced-motion support. Hints are derived from the solver, never a stored answer.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can
@@ -89,10 +106,11 @@ always choose another difficulty before starting a new adventure.
 
 ## Visual direction
 
-The interface uses an illustrated field-guide direction: warm paper, garden colors, inked
-outlines, a playful title scene, and a map that stays visually dominant during play. Puzzle
-clues read like a small notebook and controls are grouped by intent, so the next action is
-clear on mobile and desktop without relying on color alone.
+Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
+a playful title scene, and a map that stays visually dominant during play. Teen profiles use a
+poster-like, high-contrast scene; adult profiles use a calm editorial layout. The deduction
+grid is painted locally with PixiJS and layered with locally bundled Lucide SVG objects, while
+the real interaction remains semantic HTML buttons.
 
 On narrow screens, the game uses a compact `Tauler` / `Pistes` switcher. The map and friend
 tray stay together in the board view; clues open in their own view, so moving a friend never
@@ -115,17 +133,18 @@ worker. Essential assets are precached. After the first successful visit, the ap
 start a game, generate a puzzle, play, validate, and create another game offline. It shows
 connection status and offers an update when a service-worker version is ready.
 
-Share links never contain the answer:
+Share links never contain the answer. They store only a version, difficulty, seed, and audience
+in a URL-safe Base64 payload:
 
 ```text
-/logic-garden/?v=1&difficulty=medium&seed=ABCD-1234
+/logic-garden/?p=<url-safe-base64-payload>
 ```
 
 ## Persistence
 
-Preferences, local statistics, and the in-progress game are stored in IndexedDB through a
-small safe wrapper. The schema is versioned. If browser storage is unavailable, play still
-works without persistence.
+The local profile, preferences, statistics, and in-progress game are stored in IndexedDB
+through small safe wrappers. The schemas are versioned. If browser storage is unavailable,
+play still works without persistence.
 
 ## Add content
 

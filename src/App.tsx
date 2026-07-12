@@ -13,11 +13,13 @@ import { DifficultySelector } from './components/DifficultySelector'
 import { GameBoard } from './components/GameBoard'
 import { GameHeader } from './components/GameHeader'
 import { InstallPrompt } from './components/InstallPrompt'
+import { ProfileSetup } from './components/ProfileSetup'
 import { ResultDialog } from './components/ResultDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { UpdatePrompt } from './components/UpdatePrompt'
-import { t, themeCopy } from './domain/i18n'
-import type { Difficulty } from './domain/types'
+import { audienceHeroCopy, audienceLabel, boardActionCopy, t, themeCopy } from './domain/i18n'
+import { avatarOptions, type PlayerProfile } from './domain/profile'
+import type { Audience, Difficulty } from './domain/types'
 import {
   gameReducer,
   createGameState,
@@ -27,6 +29,7 @@ import {
 import { progress, unplacedCharacters } from './game/selectors'
 import { generatePuzzle } from './generator/puzzleGenerator'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
+import { loadProfile, saveProfile } from './storage/profile'
 import { clearSavedGame, loadSavedGame, saveGame } from './storage/savedGame'
 import {
   defaultPreferences,
@@ -45,10 +48,52 @@ const emptyStatistics: Statistics = {
 
 type MobileGameView = 'board' | 'clues'
 
+const HomeScene = ({ audience }: { readonly audience: Audience }) => {
+  if (audience === 'teens') {
+    return (
+      <div className="home-hero__scene home-hero__scene--teens" aria-hidden="true">
+        <span className="scene-neon scene-neon--one">✦</span>
+        <span className="scene-neon scene-neon--two">●</span>
+        <span className="scene-sticker scene-sticker--one">🎧</span>
+        <span className="scene-sticker scene-sticker--two">⚽</span>
+        <span className="scene-sticker scene-sticker--three">🎨</span>
+        <span className="scene-grid" />
+      </div>
+    )
+  }
+
+  if (audience === 'adults') {
+    return (
+      <div className="home-hero__scene home-hero__scene--adults" aria-hidden="true">
+        <span className="scene-paper scene-paper--one">📚</span>
+        <span className="scene-paper scene-paper--two">🪴</span>
+        <span className="scene-paper scene-paper--three">☕</span>
+        <span className="scene-line scene-line--one" />
+        <span className="scene-line scene-line--two" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="home-hero__scene" aria-hidden="true">
+      <span className="scene-sun">☀</span>
+      <span className="scene-cloud scene-cloud--one">☁</span>
+      <span className="scene-cloud scene-cloud--two">☁</span>
+      <div className="scene-hill scene-hill--back" />
+      <div className="scene-hill scene-hill--front" />
+      <span className="scene-friend scene-friend--one">🦊</span>
+      <span className="scene-friend scene-friend--two">🐰</span>
+      <span className="scene-flower scene-flower--one">✿</span>
+      <span className="scene-flower scene-flower--two">✿</span>
+    </div>
+  )
+}
+
 const createSeed = () => globalThis.crypto?.randomUUID?.() ?? `adventure-${Date.now()}`
 
 export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences)
+  const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [statistics, setStatistics] = useState<Statistics>(emptyStatistics)
   const [game, setGame] = useState<GameState | null>(null)
   const [ready, setReady] = useState(false)
@@ -59,26 +104,33 @@ export default function App() {
   const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null)
   const [notice, setNotice] = useState('')
   const [mobileGameView, setMobileGameView] = useState<MobileGameView>('board')
+  const [editingProfile, setEditingProfile] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadPreferences(), loadStatistics(), loadSavedGame()]).then(
-      ([storedPreferences, storedStatistics, savedGame]) => {
-        if (!active) return
-        setPreferences(storedPreferences)
-        setStatistics(storedStatistics)
-        const shared = parseSharedGameRoute(window.location)
-        if (shared) {
-          setGame(createGameState(generatePuzzle(shared.difficulty, shared.seed)))
-        } else if (savedGame?.status === 'playing') {
-          setGame(savedGame)
-        }
-        setReady(true)
-      },
-    )
+    void Promise.all([
+      loadPreferences(),
+      loadStatistics(),
+      loadSavedGame(),
+      loadProfile(),
+    ]).then(([storedPreferences, storedStatistics, savedGame, storedProfile]) => {
+      if (!active) return
+      setPreferences(storedPreferences)
+      setStatistics(storedStatistics)
+      setProfile(storedProfile)
+      const shared = parseSharedGameRoute(window.location)
+      if (storedProfile && shared) {
+        setGame(
+          createGameState(generatePuzzle(shared.difficulty, shared.seed, shared.audience)),
+        )
+      } else if (storedProfile && savedGame?.status === 'playing') {
+        setGame(savedGame)
+      }
+      setReady(true)
+    })
     return () => {
       active = false
     }
@@ -89,7 +141,8 @@ export default function App() {
     void savePreferences(preferences)
     document.documentElement.lang = preferences.locale
     document.documentElement.dataset.reducedMotion = String(preferences.reducedMotion)
-  }, [preferences, ready])
+    document.documentElement.dataset.audience = profile?.audience ?? 'children'
+  }, [preferences, profile, ready])
 
   useEffect(() => {
     if (game?.status === 'playing') void saveGame(game)
@@ -120,9 +173,10 @@ export default function App() {
     difficulty: Difficulty = preferences.difficulty,
     source = createSeed(),
   ) => {
+    if (!profile) return
     setGenerating(true)
     try {
-      const nextGame = createGameState(generatePuzzle(difficulty, source))
+      const nextGame = createGameState(generatePuzzle(difficulty, source, profile.audience))
       setGame(nextGame)
       setMobileGameView('board')
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
@@ -139,6 +193,15 @@ export default function App() {
     void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
     setNotice('')
+  }
+
+  const savePlayerProfile = (nextProfile: PlayerProfile) => {
+    setProfile(nextProfile)
+    void saveProfile(nextProfile)
+    void clearSavedGame()
+    setGame(null)
+    setEditingProfile(false)
+    window.history.replaceState({}, '', import.meta.env.BASE_URL)
   }
 
   const runGameAction = (action: GameAction) => {
@@ -174,8 +237,8 @@ export default function App() {
   }
 
   const shareCurrentGame = () => {
-    if (!game) return
-    const url = shareUrl(game.puzzle)
+    if (!game || !profile) return
+    const url = shareUrl(game.puzzle, profile.audience)
     const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(url)
@@ -199,9 +262,17 @@ export default function App() {
     return <main className="loading-screen">Preparant el jardí de lògica…</main>
   }
 
-  if (!game) {
+  if (!profile || editingProfile) {
     return (
-      <main className="app-shell home-screen">
+      <ProfileSetup profile={profile} locale={preferences.locale} onSave={savePlayerProfile} />
+    )
+  }
+
+  if (!game) {
+    const heroCopy = audienceHeroCopy(preferences.locale, profile.audience)
+    const avatar = avatarOptions.find((option) => option.id === profile.avatar)
+    return (
+      <main className={`app-shell home-screen audience--${profile.audience}`}>
         <GameHeader
           online={online}
           connectionLabel={connectionLabel}
@@ -211,12 +282,25 @@ export default function App() {
         />
         <section className="home-hero">
           <div className="home-hero__copy">
-            <p className="eyebrow">{t(preferences.locale, 'heroEyebrow')}</p>
-            <h1>{t(preferences.locale, 'heroTitle')}</h1>
-            <p className="home-hero__description">{t(preferences.locale, 'heroDescription')}</p>
+            <p className="eyebrow">{heroCopy.eyebrow}</p>
+            <h1>{heroCopy.title}</h1>
+            <p className="home-hero__description">{heroCopy.description}</p>
+            <section className="profile-summary" aria-label={profile.name}>
+              <span className="profile-summary__avatar" aria-hidden="true">
+                {avatar?.emoji}
+              </span>
+              <div>
+                <strong>{profile.name}</strong>
+                <span>{audienceLabel(preferences.locale, profile.audience)}</span>
+              </div>
+              <button type="button" onClick={() => setEditingProfile(true)}>
+                {t(preferences.locale, 'editProfile')}
+              </button>
+            </section>
             <DifficultySelector
               value={preferences.difficulty}
               locale={preferences.locale}
+              audience={profile.audience}
               label={t(preferences.locale, 'difficulty')}
               onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
             />
@@ -240,17 +324,7 @@ export default function App() {
               <p>{t(preferences.locale, 'howToPlayText')}</p>
             </details>
           </div>
-          <div className="home-hero__scene" aria-hidden="true">
-            <span className="scene-sun">☀</span>
-            <span className="scene-cloud scene-cloud--one">☁</span>
-            <span className="scene-cloud scene-cloud--two">☁</span>
-            <div className="scene-hill scene-hill--back" />
-            <div className="scene-hill scene-hill--front" />
-            <span className="scene-friend scene-friend--one">🦊</span>
-            <span className="scene-friend scene-friend--two">🐰</span>
-            <span className="scene-flower scene-flower--one">✿</span>
-            <span className="scene-flower scene-flower--two">✿</span>
-          </div>
+          <HomeScene audience={profile.audience} />
         </section>
         <InstallPrompt label={t(preferences.locale, 'install')} />
         {showSettings && (
@@ -267,11 +341,22 @@ export default function App() {
   }
 
   const copy = themeCopy(preferences.locale, game.puzzle.theme)
+  const boardActions = boardActionCopy(preferences.locale)
+  const boardTitle = t(
+    preferences.locale,
+    game.puzzle.boardMode === 'logic-grid' ? 'logicGrid' : 'map',
+  )
+  const boardInstruction = t(
+    preferences.locale,
+    game.puzzle.boardMode === 'logic-grid' ? 'logicGridInstruction' : 'mapInstruction',
+  )
   const gameProgress = progress(game)
   const availableCharacters = unplacedCharacters(game)
 
   return (
-    <main className={`app-shell game-screen theme--${game.puzzle.theme}`}>
+    <main
+      className={`app-shell game-screen audience--${profile.audience} theme--${game.puzzle.theme}`}
+    >
       <GameHeader
         online={online}
         connectionLabel={connectionLabel}
@@ -332,26 +417,29 @@ export default function App() {
           <section className="map-area">
             <div className="map-area__heading">
               <div>
-                <p className="eyebrow">{t(preferences.locale, 'map')}</p>
+                <p className="eyebrow">{boardTitle}</p>
                 <h2>
                   {game.selectedCharacterId
                     ? game.puzzle.characters.find(
                         (character) => character.id === game.selectedCharacterId,
                       )?.name
-                    : t(preferences.locale, 'mapInstruction')}
+                    : boardInstruction}
                 </h2>
               </div>
-              <span className="map-area__prompt">
-                {t(preferences.locale, 'mapInstruction')}
-              </span>
+              <span className="map-area__prompt">{boardInstruction}</span>
             </div>
             <GameBoard
               positions={game.puzzle.positions}
               characters={game.puzzle.characters}
               assignments={game.assignments}
               selectedCharacterId={game.selectedCharacterId}
-              boardLabel={t(preferences.locale, 'map')}
+              boardLabel={boardTitle}
               emptyLabel={t(preferences.locale, 'emptyPlace')}
+              returnLabel={t(preferences.locale, 'returnToTray')}
+              moveToPositionLabel={boardActions.moveToPosition}
+              selectPositionLabel={boardActions.selectPosition}
+              boardMode={game.puzzle.boardMode}
+              audience={profile.audience}
               onMoveToPosition={(positionId) => {
                 if (game.selectedCharacterId) {
                   runGameAction({
@@ -363,8 +451,8 @@ export default function App() {
                   setNotice('Primer tria un amic de la safata o del mapa.')
                 }
               }}
-              onSelectCharacter={(character) =>
-                runGameAction({ type: 'select-character', characterId: character.id })
+              onRemoveCharacter={(characterId) =>
+                runGameAction({ type: 'remove-character', characterId })
               }
             />
             <div className="tray-wrap">

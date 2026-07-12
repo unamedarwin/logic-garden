@@ -15,7 +15,10 @@ export const itemId = (value: string) => value as ItemId
 export const seed = (value: string) => value as Seed
 
 export type Difficulty = 'easy' | 'medium' | 'hard'
+export type BoardMode = 'map' | 'logic-grid'
 export type Locale = 'ca' | 'es' | 'en'
+export type Audience = 'children' | 'teens' | 'adults'
+export type AvatarId = 'leaf' | 'kite' | 'music' | 'puzzle' | 'moon' | 'ball' | 'paint' | 'book'
 export type ThemeId =
   | 'forest-party'
   | 'treasure-island'
@@ -27,6 +30,12 @@ export type ThemeId =
   | 'friendly-monster-town'
   | 'color-fair'
   | 'mountain-trip'
+  | 'music-studio'
+  | 'sports-festival'
+  | 'creative-lab'
+  | 'book-club'
+  | 'city-garden'
+  | 'weekend-market'
 
 export interface Character {
   readonly id: CharacterId
@@ -124,6 +133,7 @@ export interface Puzzle {
   readonly id: PuzzleId
   readonly seed: Seed
   readonly difficulty: Difficulty
+  readonly boardMode: BoardMode
   readonly theme: ThemeId
   readonly title: string
   readonly introduction: string

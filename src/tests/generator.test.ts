@@ -1,5 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
+import { getTheme } from '../domain/themes'
 import type { Difficulty } from '../domain/types'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
@@ -50,5 +51,39 @@ describe('seeded puzzle generator', () => {
       }
       expect(countSolutions(withoutClue, { limit: 2 })).not.toBe(1)
     }
+  })
+
+  it('uses profile-specific content and deduction-grid row and column rules', () => {
+    const teenPuzzle = generatePuzzle('medium', 'teen-logic-grid', 'teens')
+    const adultPuzzle = generatePuzzle('medium', 'adult-logic-grid', 'adults')
+    const solution = solve(teenPuzzle)
+    if (!solution) throw new Error('Expected a solvable deduction grid')
+
+    expect(teenPuzzle.boardMode).toBe('logic-grid')
+    expect(teenPuzzle.characters).toHaveLength(5)
+    expect(teenPuzzle.positions).toHaveLength(25)
+    expect(getTheme(teenPuzzle.theme).audience).toBe('teens')
+    expect(getTheme(adultPuzzle.theme).audience).toBe('adults')
+
+    const occupied = Object.values(solution).map((positionId) =>
+      teenPuzzle.positions.find((position) => position.id === positionId),
+    )
+    expect(new Set(occupied.map((position) => position?.row)).size).toBe(5)
+    expect(new Set(occupied.map((position) => position?.column)).size).toBe(5)
+    expect(countSolutions(teenPuzzle, { limit: 2 })).toBe(1)
+  })
+
+  it('varies rectangular children maps between both seeded orientations', () => {
+    const shapes = new Set(
+      Array.from({ length: 24 }, (_, index) => {
+        const puzzle = generatePuzzle('medium', `orientation-${index}`, 'children')
+        const rows = Math.max(...puzzle.positions.map((position) => position.row)) + 1
+        const columns = Math.max(...puzzle.positions.map((position) => position.column)) + 1
+        return `${rows}x${columns}`
+      }),
+    )
+
+    expect(shapes).toContain('2x3')
+    expect(shapes).toContain('3x2')
   })
 })

@@ -35,6 +35,7 @@ export const createPuzzle = (clues: readonly Clue[] = []): Puzzle => ({
   id: puzzleId('fixture'),
   seed: seed('fixture'),
   difficulty: 'easy',
+  boardMode: 'map',
   theme: 'forest-party',
   title: 'Fixture',
   introduction: 'A friendly fixture.',

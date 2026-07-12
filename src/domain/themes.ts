@@ -1,4 +1,4 @@
-import type { ThemeId } from './types'
+import type { Audience, ThemeId } from './types'
 
 export interface ThemeCharacter {
   readonly name: string
@@ -13,6 +13,7 @@ export interface ThemeItem {
 
 export interface Theme {
   readonly id: ThemeId
+  readonly audience?: Audience
   readonly title: string
   readonly introductions: readonly string[]
   readonly objectives: readonly string[]
@@ -39,6 +40,14 @@ const makeCharacters = (emojiOverrides: readonly string[]): readonly ThemeCharac
     emoji: emojiOverrides[index] ?? emoji,
     description,
   }))
+
+const makePeople = (
+  entries: readonly (readonly [string, string])[],
+): readonly ThemeCharacter[] =>
+  entries.map(([name, emoji]) => ({ name, emoji, description: 'una persona del grup' }))
+
+const makeItems = (entries: readonly (readonly [string, string])[]): readonly ThemeItem[] =>
+  entries.map(([label, emoji]) => ({ label, emoji }))
 
 export const themes: readonly Theme[] = [
   {
@@ -321,7 +330,238 @@ export const themes: readonly Theme[] = [
     ].map(([label, emoji]) => ({ label, emoji })),
     victories: ['Quina excursió tan ben pensada!'],
   },
+  {
+    id: 'music-studio',
+    audience: 'teens',
+    title: 'L’estudi de música',
+    introductions: ['L’estudi té llums, ritmes i idees per ordenar.'],
+    objectives: ['Troba l’espai de cada persona abans de la sessió.'],
+    places: [
+      'La cabina 1',
+      'La cabina 2',
+      'La taula de mescles',
+      'El teclat',
+      'El mural de pòsters',
+      'La sala d’assaig',
+      'El racó del baix',
+      'El sofà blau',
+    ],
+    characters: makePeople([
+      ['Alex', '🎧'],
+      ['Berta', '🎤'],
+      ['Casey', '🎸'],
+      ['Dani', '🥁'],
+      ['Eli', '🎹'],
+      ['Fran', '🎷'],
+      ['Gina', '🎼'],
+      ['Kai', '🔊'],
+    ]),
+    items: makeItems([
+      ['auriculars', '🎧'],
+      ['micròfon', '🎤'],
+      ['pua', '🎸'],
+      ['baqueta', '🥁'],
+      ['tecla', '🎹'],
+      ['nota', '🎼'],
+      ['cable', '🎛️'],
+      ['entrada', '🎟️'],
+    ]),
+    victories: ['La sessió ja està a punt!'],
+  },
+  {
+    id: 'sports-festival',
+    audience: 'teens',
+    title: 'El festival d’esports',
+    introductions: ['El recinte obre amb proves, equips i molt bon ambient.'],
+    objectives: ['Organitza les persones als espais del festival.'],
+    places: [
+      'La pista verda',
+      'La pista blava',
+      'El mur d’escalada',
+      'La zona d’estiraments',
+      'La taula de marques',
+      'El circuit',
+      'La grada',
+      'El punt d’aigua',
+    ],
+    characters: makePeople([
+      ['Ari', '🏀'],
+      ['Blai', '🏃'],
+      ['Clara', '🛹'],
+      ['Dídac', '🏐'],
+      ['Emma', '🚲'],
+      ['Fèlix', '🥏'],
+      ['Gala', '🧗'],
+      ['Nil', '⚽'],
+    ]),
+    items: makeItems([
+      ['pilota', '🏀'],
+      ['ampolla', '💧'],
+      ['dorsal', '🔢'],
+      ['patí', '🛹'],
+      ['casc', '⛑️'],
+      ['polsera', '🎽'],
+      ['disc', '🥏'],
+      ['xiulet', '📣'],
+    ]),
+    victories: ['El festival funciona de meravella!'],
+  },
+  {
+    id: 'creative-lab',
+    audience: 'teens',
+    title: 'El laboratori creatiu',
+    introductions: ['Al laboratori, cada idea troba una forma nova.'],
+    objectives: ['Relaciona cada creador amb el seu espai.'],
+    places: [
+      'La taula de disseny',
+      'La paret d’idees',
+      'L’estació de color',
+      'El racó de vídeo',
+      'La impressora',
+      'La taula de maquetes',
+      'El sofà de prova',
+      'La finestra gran',
+    ],
+    characters: makePeople([
+      ['Aina', '🖍️'],
+      ['Biel', '📷'],
+      ['Cora', '🧵'],
+      ['Duna', '🖥️'],
+      ['Èric', '📐'],
+      ['Fina', '🧶'],
+      ['Hugo', '🪩'],
+      ['Iris', '🧩'],
+    ]),
+    items: makeItems([
+      ['esbós', '📝'],
+      ['càmera', '📷'],
+      ['fil', '🧵'],
+      ['pantalla', '🖥️'],
+      ['regle', '📏'],
+      ['mostra', '🎨'],
+      ['cartell', '🪧'],
+      ['peca', '🧩'],
+    ]),
+    victories: ['Totes les idees tenen el seu lloc!'],
+  },
+  {
+    id: 'book-club',
+    audience: 'adults',
+    title: 'El club de lectures',
+    introductions: ['El club prepara una trobada amb llibres i converses.'],
+    objectives: ['Troba la cadira de cada participant.'],
+    places: [
+      'La taula rodona',
+      'La butaca verda',
+      'El finestral',
+      'La prestatgeria',
+      'La taula petita',
+      'El racó tranquil',
+      'La llum de peu',
+      'La cafetera',
+    ],
+    characters: makePeople([
+      ['Alba', '📚'],
+      ['Bruno', '☕'],
+      ['Carme', '🪴'],
+      ['Dídac', '📰'],
+      ['Elena', '🖋️'],
+      ['Ferran', '🧶'],
+      ['Gemma', '🗂️'],
+      ['Joan', '🔖'],
+    ]),
+    items: makeItems([
+      ['llibre', '📘'],
+      ['marcador', '🔖'],
+      ['tassa', '☕'],
+      ['quadern', '📓'],
+      ['ploma', '🖋️'],
+      ['ulleres', '👓'],
+      ['fullet', '🗒️'],
+      ['planta', '🪴'],
+    ]),
+    victories: ['La trobada ja pot començar!'],
+  },
+  {
+    id: 'city-garden',
+    audience: 'adults',
+    title: 'El jardí de barri',
+    introductions: ['El jardí compartit s’omple de mans i de colors.'],
+    objectives: ['Situa cada veí al seu espai de feina.'],
+    places: [
+      'L’hort alt',
+      'La taula de llavors',
+      'El banc llarg',
+      'La pèrgola',
+      'La bassa petita',
+      'El compostador',
+      'La taula d’eines',
+      'La porta blava',
+    ],
+    characters: makePeople([
+      ['Anna', '🌱'],
+      ['Berta', '🪴'],
+      ['Cesc', '🧺'],
+      ['Dora', '🌼'],
+      ['Enric', '🍅'],
+      ['Fina', '🫛'],
+      ['Guillem', '🪵'],
+      ['Helena', '🌿'],
+    ]),
+    items: makeItems([
+      ['llavor', '🌱'],
+      ['cistell', '🧺'],
+      ['test', '🪴'],
+      ['flor', '🌼'],
+      ['tomàquet', '🍅'],
+      ['fulla', '🍃'],
+      ['cartell', '🪧'],
+      ['aigua', '💧'],
+    ]),
+    victories: ['El jardí ja està ben organitzat!'],
+  },
+  {
+    id: 'weekend-market',
+    audience: 'adults',
+    title: 'El mercat de dissabte',
+    introductions: ['El mercat obre amb parades, receptes i aromes.'],
+    objectives: ['Organitza les persones a cada parada.'],
+    places: [
+      'La parada de pa',
+      'La parada de fruita',
+      'La parada de flors',
+      'La parada de cafè',
+      'La parada de ceràmica',
+      'La parada de formatges',
+      'La taula central',
+      'L’entrada',
+    ],
+    characters: makePeople([
+      ['Ariadna', '🥖'],
+      ['Biel', '🍐'],
+      ['Clara', '🌷'],
+      ['Dani', '☕'],
+      ['Estel', '🏺'],
+      ['Fèlix', '🧀'],
+      ['Gina', '🧾'],
+      ['Hugo', '🛍️'],
+    ]),
+    items: makeItems([
+      ['pa', '🥖'],
+      ['fruita', '🍐'],
+      ['ram', '💐'],
+      ['tassa', '☕'],
+      ['bol', '🏺'],
+      ['cistella', '🧺'],
+      ['tiquet', '🧾'],
+      ['bossa', '🛍️'],
+    ]),
+    victories: ['El mercat ja funciona amb ordre!'],
+  },
 ] as readonly Theme[]
+
+export const themesForAudience = (audience: Audience) =>
+  themes.filter((theme) => (theme.audience ?? 'children') === audience)
 
 export const getTheme = (id: ThemeId) => {
   const theme = themes.find((candidate) => candidate.id === id)

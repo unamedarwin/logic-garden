@@ -13,3 +13,9 @@ export const difficultyConfigs: Record<Difficulty, DifficultyConfig> = {
   medium: { label: 'Mitjà', characterCount: 6, rows: 2, columns: 3, visualHelp: false },
   hard: { label: 'Difícil', characterCount: 8, rows: 2, columns: 4, visualHelp: false },
 }
+
+export const logicGridDimensions: Record<Difficulty, number> = {
+  easy: 4,
+  medium: 5,
+  hard: 6,
+}

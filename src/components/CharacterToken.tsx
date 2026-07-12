@@ -6,9 +6,15 @@ interface CharacterTokenProps {
   readonly character: Character
   readonly selected: boolean
   readonly onSelect: (character: Character) => void
+  readonly actionLabel?: string
 }
 
-export const CharacterToken = ({ character, selected, onSelect }: CharacterTokenProps) => {
+export const CharacterToken = ({
+  character,
+  selected,
+  onSelect,
+  actionLabel,
+}: CharacterTokenProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: character.id,
   })
@@ -25,7 +31,7 @@ export const CharacterToken = ({ character, selected, onSelect }: CharacterToken
       {...listeners}
       {...attributes}
       aria-pressed={selected}
-      aria-label={`${character.name}, ${character.description}`}
+      aria-label={actionLabel ?? `${character.name}, ${character.description}`}
       data-character-id={character.id}
       onClick={() => onSelect(character)}
     >

@@ -22,6 +22,7 @@ export interface GameState {
 
 export type GameAction =
   | { readonly type: 'select-character'; readonly characterId: CharacterId }
+  | { readonly type: 'remove-character'; readonly characterId: CharacterId }
   | {
       readonly type: 'move-character'
       readonly characterId: CharacterId
@@ -73,7 +74,47 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         selectedCharacterId:
           state.selectedCharacterId === action.characterId ? undefined : action.characterId,
       }
+    case 'remove-character': {
+      if (!state.assignments[action.characterId]) return state
+      const assignments = { ...state.assignments }
+      delete assignments[action.characterId]
+      return {
+        ...state,
+        assignments,
+        past: [...state.past, snapshot(state)],
+        future: [],
+        moves: state.moves + 1,
+        selectedCharacterId: undefined,
+        status: 'playing',
+        feedback: undefined,
+        highlightedClueId: undefined,
+      }
+    }
     case 'move-character': {
+      const targetPosition = state.puzzle.positions.find(
+        (position) => position.id === action.positionId,
+      )
+      const characterExists = state.puzzle.characters.some(
+        (character) => character.id === action.characterId,
+      )
+      if (!targetPosition || !characterExists) return state
+
+      if (state.puzzle.boardMode === 'logic-grid') {
+        const conflictsWithGrid = state.puzzle.characters.some((character) => {
+          if (character.id === action.characterId) return false
+          const assignedPositionId = state.assignments[character.id]
+          const assignedPosition = state.puzzle.positions.find(
+            (position) => position.id === assignedPositionId,
+          )
+          return (
+            assignedPosition !== undefined &&
+            (assignedPosition.row === targetPosition.row ||
+              assignedPosition.column === targetPosition.column)
+          )
+        })
+        if (conflictsWithGrid) return state
+      }
+
       const occupiedBy = state.puzzle.characters.find(
         (character) => state.assignments[character.id] === action.positionId,
       )

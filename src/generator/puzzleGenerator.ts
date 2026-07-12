@@ -1,11 +1,18 @@
-import { puzzleId, seed, type Difficulty, type Puzzle, type Seed } from '../domain/types'
+import {
+  puzzleId,
+  seed,
+  type Audience,
+  type Difficulty,
+  type Puzzle,
+  type Seed,
+} from '../domain/types'
 import { analyzeSolutions } from '../solver/solver'
 import { selectMinimalUniqueClues } from './clueReducer'
 import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
 
-export const GENERATOR_VERSION = 1
+export const GENERATOR_VERSION = 2
 const maximumAttempts = 12
 
 const difficultyScore = (puzzle: Puzzle) => {
@@ -39,16 +46,21 @@ const difficultyScore = (puzzle: Puzzle) => {
   )
 }
 
-export const generatePuzzle = (difficulty: Difficulty, source: Seed | string): Puzzle => {
+export const generatePuzzle = (
+  difficulty: Difficulty,
+  source: Seed | string,
+  audience: Audience = 'children',
+): Puzzle => {
   const originalSeed = seed(source)
 
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     const random = new SeededRandom(deriveSeed(originalSeed, attempt))
-    const world = generateWorld(difficulty, random)
+    const world = generateWorld(difficulty, random, audience)
     const basePuzzle: Puzzle = {
       id: puzzleId(`puzzle-${originalSeed}`),
       seed: originalSeed,
       difficulty,
+      boardMode: world.boardMode,
       theme: world.theme.id,
       title: world.theme.title,
       introduction: random.pick(world.theme.introductions),

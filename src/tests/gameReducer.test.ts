@@ -44,4 +44,49 @@ describe('game reducer', () => {
     expect(state.hintsUsed).toBe(1)
     expect(state.feedback).toBeTruthy()
   })
+
+  it('returns a placed character to the waiting tray and records the move', () => {
+    const puzzle = generatePuzzle('easy', 'return-to-tray')
+    const character = puzzle.characters[0]!
+    const position = puzzle.positions[0]!
+    let state = createGameState(puzzle)
+    state = gameReducer(state, {
+      type: 'move-character',
+      characterId: character.id,
+      positionId: position.id,
+    })
+    state = gameReducer(state, { type: 'remove-character', characterId: character.id })
+
+    expect(state.assignments[character.id]).toBeUndefined()
+    expect(state.moves).toBe(2)
+    expect(state.past).toHaveLength(2)
+  })
+
+  it('rejects deduction-grid moves that reuse an occupied row or column', () => {
+    const puzzle = generatePuzzle('easy', 'logic-grid-guard', 'teens')
+    const [firstCharacter, secondCharacter] = puzzle.characters
+    const firstPosition = puzzle.positions[0]!
+    const blockedPosition = puzzle.positions.find(
+      (position) =>
+        position.id !== firstPosition.id &&
+        (position.row === firstPosition.row || position.column === firstPosition.column),
+    )
+    if (!firstCharacter || !secondCharacter || !blockedPosition) {
+      throw new Error('Expected a deduction grid with two characters and positions')
+    }
+
+    let state = createGameState(puzzle)
+    state = gameReducer(state, {
+      type: 'move-character',
+      characterId: firstCharacter.id,
+      positionId: firstPosition.id,
+    })
+    const guardedState = gameReducer(state, {
+      type: 'move-character',
+      characterId: secondCharacter.id,
+      positionId: blockedPosition.id,
+    })
+
+    expect(guardedState).toBe(state)
+  })
 })

@@ -42,6 +42,17 @@ vi.mock('../storage/preferences', () => ({
   savePreferences: vi.fn(),
 }))
 
+vi.mock('../storage/profile', () => ({
+  loadProfile: () =>
+    Promise.resolve({
+      schemaVersion: 1,
+      name: 'Aina',
+      audience: 'children',
+      avatar: 'leaf',
+    }),
+  saveProfile: vi.fn(),
+}))
+
 vi.mock('../storage/statistics', () => ({
   loadStatistics: () =>
     Promise.resolve({ schemaVersion: 1, completed: 0, hintsUsed: 0, recentSeeds: [] }),
@@ -95,6 +106,24 @@ describe('game interface', () => {
 
     expect(await screen.findByRole('radio', { name: 'Fàcil · 4 amics' })).toBeChecked()
     expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
+  })
+
+  it('returns a placed token to the tray by clicking the token itself', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+
+    const trayToken = container.querySelector('[data-character-id]') as HTMLButtonElement
+    await user.click(trayToken)
+    await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
+
+    const placedToken = screen.getByRole('button', { name: /^Torna a la safata: /u })
+    await user.click(placedToken)
+
+    expect(
+      screen.queryByRole('button', { name: /^Torna a la safata: /u }),
+    ).not.toBeInTheDocument()
+    expect(container.querySelector('[data-character-id]')).toBeInTheDocument()
   })
 
   it('switches between the compact board and clues views', async () => {

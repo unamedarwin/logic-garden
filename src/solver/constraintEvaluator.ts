@@ -96,6 +96,15 @@ export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssi
   const assignedPositions = Object.values(assignment)
   if (new Set(assignedPositions).size !== assignedPositions.length) return false
 
+  if (puzzle.boardMode === 'logic-grid') {
+    const occupied = assignedPositions
+      .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
+      .filter((position): position is Position => Boolean(position))
+    if (new Set(occupied.map((position) => position.row)).size !== occupied.length) return false
+    if (new Set(occupied.map((position) => position.column)).size !== occupied.length)
+      return false
+  }
+
   for (const [characterId, assignedPositionId] of Object.entries(assignment)) {
     const knownCharacter = puzzle.characters.some((character) => character.id === characterId)
     const knownPosition = puzzle.positions.some(
