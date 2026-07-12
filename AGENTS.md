@@ -46,6 +46,9 @@ difficulty picker before a player starts another adventure.
 Treat Logic Garden as an illustrated field guide, not a collection of interchangeable
 cards. Keep the map visually dominant, make the current action easy to scan, and preserve
 the warm paper, garden, and hand-drawn-ink direction across responsive layouts.
+On small screens, keep the map and character picker in one compact workspace. Put long clue
+lists behind an accessible local view switcher rather than forcing scrolls between a friend
+and the map location where the player places it.
 
 ## Delivery
 

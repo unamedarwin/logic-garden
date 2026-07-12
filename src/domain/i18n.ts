@@ -37,6 +37,8 @@ type UiKey =
   | 'sound'
   | 'emptyPlace'
   | 'map'
+  | 'board'
+  | 'gameViews'
   | 'hintsUsed'
   | 'install'
   | 'heroEyebrow'
@@ -77,6 +79,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     sound: 'So suau',
     emptyPlace: 'Espai lliure',
     map: 'Mapa del puzzle',
+    board: 'Tauler',
+    gameViews: 'Vistes del joc',
     hintsUsed: 'pistes',
     install: 'Instal·la Logic Garden',
     heroEyebrow: 'Puzzles tranquils per a ments curioses',
@@ -117,6 +121,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     sound: 'Sonido suave',
     emptyPlace: 'Espacio libre',
     map: 'Mapa del puzzle',
+    board: 'Tablero',
+    gameViews: 'Vistas del juego',
     hintsUsed: 'pistas',
     install: 'Instala Logic Garden',
     heroEyebrow: 'Puzles tranquilos para mentes curiosas',
@@ -157,6 +163,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     sound: 'Gentle sound',
     emptyPlace: 'Empty place',
     map: 'Puzzle map',
+    board: 'Board',
+    gameViews: 'Game views',
     hintsUsed: 'hints',
     install: 'Install Logic Garden',
     heroEyebrow: 'Gentle puzzles for curious minds',

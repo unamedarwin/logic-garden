@@ -43,6 +43,8 @@ const emptyStatistics: Statistics = {
   recentSeeds: [],
 }
 
+type MobileGameView = 'board' | 'clues'
+
 const createSeed = () => globalThis.crypto?.randomUUID?.() ?? `adventure-${Date.now()}`
 
 export default function App() {
@@ -56,6 +58,7 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null)
   const [notice, setNotice] = useState('')
+  const [mobileGameView, setMobileGameView] = useState<MobileGameView>('board')
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
@@ -121,6 +124,7 @@ export default function App() {
     try {
       const nextGame = createGameState(generatePuzzle(difficulty, source))
       setGame(nextGame)
+      setMobileGameView('board')
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
       setNotice('')
     } catch {
@@ -307,8 +311,24 @@ export default function App() {
       <p className="sr-only" aria-live="polite">
         {game.feedback ?? notice}
       </p>
+      <nav className="mobile-game-switcher" aria-label={t(preferences.locale, 'gameViews')}>
+        <button
+          type="button"
+          aria-pressed={mobileGameView === 'board'}
+          onClick={() => setMobileGameView('board')}
+        >
+          {t(preferences.locale, 'board')}
+        </button>
+        <button
+          type="button"
+          aria-pressed={mobileGameView === 'clues'}
+          onClick={() => setMobileGameView('clues')}
+        >
+          {t(preferences.locale, 'clues')}
+        </button>
+      </nav>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="game-layout">
+        <div className={`game-layout game-layout--${mobileGameView}`}>
           <section className="map-area">
             <div className="map-area__heading">
               <div>
@@ -359,12 +379,14 @@ export default function App() {
               />
             </div>
           </section>
-          <CluePanel
-            puzzle={game.puzzle}
-            locale={preferences.locale}
-            highlightedClueId={game.highlightedClueId}
-            label={t(preferences.locale, 'clues')}
-          />
+          <section className="clue-area">
+            <CluePanel
+              puzzle={game.puzzle}
+              locale={preferences.locale}
+              highlightedClueId={game.highlightedClueId}
+              label={t(preferences.locale, 'clues')}
+            />
+          </section>
         </div>
       </DndContext>
       <div className="game-actions" aria-label="Accions de joc">

@@ -94,6 +94,10 @@ outlines, a playful title scene, and a map that stays visually dominant during p
 clues read like a small notebook and controls are grouped by intent, so the next action is
 clear on mobile and desktop without relying on color alone.
 
+On narrow screens, the game uses a compact `Tauler` / `Pistes` switcher. The map and friend
+tray stay together in the board view; clues open in their own view, so moving a friend never
+requires scrolling between the puzzle board and its tray.
+
 ## Languages and wording
 
 Catalan, Spanish, and English are available in settings. Every clue is a discriminated

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -95,5 +95,19 @@ describe('game interface', () => {
 
     expect(await screen.findByRole('radio', { name: 'Fàcil · 4 amics' })).toBeChecked()
     expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
+  })
+
+  it('switches between the compact board and clues views', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+
+    const views = screen.getByRole('navigation', { name: 'Vistes del joc' })
+    const boardButton = within(views).getByRole('button', { name: 'Tauler' })
+    const cluesButton = within(views).getByRole('button', { name: 'Pistes' })
+    await user.click(cluesButton)
+
+    expect(boardButton).toHaveAttribute('aria-pressed', 'false')
+    expect(cluesButton).toHaveAttribute('aria-pressed', 'true')
   })
 })

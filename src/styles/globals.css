@@ -971,6 +971,112 @@ summary:focus-visible {
     grid-column: span 2;
   }
 }
+.mobile-game-switcher {
+  display: none;
+}
+
+@media (max-width: 540px) {
+  .game-screen .game-header {
+    margin-bottom: 10px;
+  }
+  .game-screen .adventure-banner {
+    padding: 10px 12px;
+  }
+  .game-screen .adventure-banner__title {
+    gap: 10px;
+  }
+  .game-screen .adventure-banner__stamp {
+    width: 44px;
+    height: 44px;
+    font-size: 1.55rem;
+  }
+  .game-screen .adventure-banner h1 {
+    margin: 2px 0 0;
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+  .game-screen .adventure-banner__title > div > p:last-child,
+  .game-screen .adventure-banner__metrics,
+  .game-screen .objective-line,
+  .game-screen .map-area__heading .eyebrow,
+  .game-screen .map-area__prompt {
+    display: none;
+  }
+  .mobile-game-switcher {
+    position: sticky;
+    z-index: 5;
+    top: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    margin: 0 0 10px;
+    border: 2px solid var(--ink);
+    border-radius: 13px;
+    padding: 5px;
+    background: var(--paper);
+    box-shadow: 3px 3px 0 var(--ink);
+  }
+  .mobile-game-switcher button {
+    min-height: 38px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-soft);
+    font-weight: 900;
+  }
+  .mobile-game-switcher button[aria-pressed='true'] {
+    background: var(--leaf-dark);
+    color: #fff;
+  }
+  .game-layout {
+    gap: 0;
+  }
+  .game-layout--board .clue-area,
+  .game-layout--clues .map-area {
+    display: none;
+  }
+  .game-screen .map-area__heading {
+    margin: 0 2px 8px;
+  }
+  .game-screen .map-area__heading h2 {
+    font-size: 1.18rem;
+  }
+  .game-screen .location-cell,
+  .game-screen .location-cell__target {
+    min-height: 92px;
+  }
+  .game-screen .location-cell__marker {
+    font-size: 1rem;
+  }
+  .game-screen .location-cell__empty {
+    font-size: 0.66rem;
+  }
+  .game-screen .tray-wrap {
+    position: sticky;
+    z-index: 4;
+    bottom: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+  .game-screen .tray-wrap h2 {
+    margin-bottom: 6px;
+    font-size: 1rem;
+  }
+  .game-screen .character-tray__tokens {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .game-screen .character-token {
+    gap: 4px;
+    padding: 4px;
+    font-size: 0.7rem;
+  }
+  .game-screen .character-token__emoji {
+    font-size: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
