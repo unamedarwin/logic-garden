@@ -16,9 +16,9 @@ const labels: Record<Locale, Record<Difficulty, string>> = {
 }
 
 const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
-  ca: { easy: 'Fàcil · 4x4', medium: 'Mitjà · 5x5', hard: 'Difícil · 6x6' },
-  es: { easy: 'Fácil · 4x4', medium: 'Medio · 5x5', hard: 'Difícil · 6x6' },
-  en: { easy: 'Easy · 4x4', medium: 'Medium · 5x5', hard: 'Hard · 6x6' },
+  ca: { easy: 'Fàcil · 6x6', medium: 'Mitjà · 9x9', hard: 'Difícil · 16x16' },
+  es: { easy: 'Fácil · 6x6', medium: 'Medio · 9x9', hard: 'Difícil · 16x16' },
+  en: { easy: 'Easy · 6x6', medium: 'Medium · 9x9', hard: 'Hard · 16x16' },
 }
 
 export const DifficultySelector = ({

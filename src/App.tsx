@@ -5,6 +5,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
+import { Check, Home, Lightbulb, Redo2, RotateCcw, Shuffle, Undo2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { parseSharedGameRoute, shareUrl } from './app/routes'
 import { CharacterTray } from './components/CharacterTray'
@@ -542,6 +543,7 @@ export default function App() {
             onClick={() => runGameAction({ type: 'undo' })}
             disabled={game.past.length === 0}
           >
+            <Undo2 aria-hidden="true" />
             {t(preferences.locale, 'undo')}
           </button>
           <button
@@ -549,20 +551,25 @@ export default function App() {
             onClick={() => runGameAction({ type: 'redo' })}
             disabled={game.future.length === 0}
           >
+            <Redo2 aria-hidden="true" />
             {t(preferences.locale, 'redo')}
           </button>
           <button type="button" onClick={() => runGameAction({ type: 'reset' })}>
+            <RotateCcw aria-hidden="true" />
             {t(preferences.locale, 'restart')}
           </button>
           <button type="button" onClick={requestHint}>
+            <Lightbulb aria-hidden="true" />
             {t(preferences.locale, 'hint')}
           </button>
         </div>
         <div className="game-actions__primary">
           <button type="button" onClick={returnToHome}>
+            <Home aria-hidden="true" />
             {t(preferences.locale, 'changeDifficulty')}
           </button>
           <button type="button" onClick={() => startGame()}>
+            <Shuffle aria-hidden="true" />
             {t(preferences.locale, 'newGame')}
           </button>
           <button
@@ -570,6 +577,7 @@ export default function App() {
             className="button"
             onClick={() => runGameAction({ type: 'check' })}
           >
+            <Check aria-hidden="true" />
             {t(preferences.locale, 'check')}
           </button>
         </div>

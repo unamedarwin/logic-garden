@@ -70,9 +70,6 @@ const LocationCell = ({
         disabled={unavailable}
       >
         <span className="location-cell__label">{position.label}</span>
-        <span className="location-cell__marker" aria-hidden="true">
-          +
-        </span>
         {!character && !logicGrid && <span className="location-cell__empty">{emptyLabel}</span>}
       </button>
       {character && (
