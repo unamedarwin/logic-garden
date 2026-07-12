@@ -1052,9 +1052,6 @@ summary:focus-visible {
     font-size: 0.66rem;
   }
   .game-screen .tray-wrap {
-    position: sticky;
-    z-index: 4;
-    bottom: 8px;
     margin-top: 8px;
     padding: 8px;
     border-radius: 14px;
