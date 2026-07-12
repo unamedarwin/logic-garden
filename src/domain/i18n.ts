@@ -13,6 +13,8 @@ type UiKey =
   | 'howItWorks'
   | 'settings'
   | 'newGame'
+  | 'changeDifficulty'
+  | 'goHome'
   | 'check'
   | 'hint'
   | 'undo'
@@ -51,6 +53,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     howItWorks: 'Com funciona?',
     settings: 'Configuració',
     newGame: 'Nova partida',
+    changeDifficulty: 'Canvia el nivell',
+    goHome: "Torna a l'inici",
     check: 'Comprovar',
     hint: 'Pista',
     undo: 'Desfer',
@@ -89,6 +93,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     howItWorks: '¿Cómo funciona?',
     settings: 'Configuración',
     newGame: 'Nueva partida',
+    changeDifficulty: 'Cambia el nivel',
+    goHome: 'Vuelve al inicio',
     check: 'Comprobar',
     hint: 'Pista',
     undo: 'Deshacer',
@@ -127,6 +133,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     howItWorks: 'How does it work?',
     settings: 'Settings',
     newGame: 'New game',
+    changeDifficulty: 'Change level',
+    goHome: 'Back to home',
     check: 'Check',
     hint: 'Hint',
     undo: 'Undo',

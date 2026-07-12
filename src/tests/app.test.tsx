@@ -84,4 +84,16 @@ describe('game interface', () => {
     await user.selectOptions(screen.getByRole('combobox'), 'en')
     expect(await screen.findByRole('button', { name: 'Check' })).toBeInTheDocument()
   })
+
+  it('returns to the difficulty selector from an active game', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await screen.findByRole('grid', { name: 'Mapa del puzzle' })
+
+    await user.click(screen.getByRole('button', { name: 'Canvia el nivell' }))
+
+    expect(await screen.findByRole('radio', { name: 'Fàcil · 4 amics' })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
+  })
 })

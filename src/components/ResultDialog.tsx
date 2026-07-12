@@ -4,8 +4,10 @@ interface ResultDialogProps {
   readonly moves: number
   readonly hintsUsed: number
   readonly onNewGame: () => void
+  readonly onChangeDifficulty: () => void
   readonly onShare: () => void
   readonly newGameLabel: string
+  readonly changeDifficultyLabel: string
   readonly shareLabel: string
   readonly movesLabel: string
   readonly hintsLabel: string
@@ -17,8 +19,10 @@ export const ResultDialog = ({
   moves,
   hintsUsed,
   onNewGame,
+  onChangeDifficulty,
   onShare,
   newGameLabel,
+  changeDifficultyLabel,
   shareLabel,
   movesLabel,
   hintsLabel,
@@ -39,6 +43,9 @@ export const ResultDialog = ({
         {moves} {movesLabel} · {hintsUsed} {hintsLabel}
       </p>
       <div className="button-row">
+        <button type="button" className="button button--secondary" onClick={onChangeDifficulty}>
+          {changeDifficultyLabel}
+        </button>
         <button type="button" className="button button--secondary" onClick={onShare}>
           {shareLabel}
         </button>

@@ -38,6 +38,8 @@ changes and add only intentional domain terms to its project dictionary.
 
 Drag-and-drop must always have a click/tap and keyboard alternative. Do not encode
 information using color alone. Respect reduced-motion preferences.
+Keep a visible, keyboard-accessible path from a game and its completion dialog back to the
+difficulty picker before a player starts another adventure.
 
 ## Visual design
 

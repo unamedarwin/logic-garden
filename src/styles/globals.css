@@ -93,12 +93,17 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  border: 0;
+  padding: 0;
+  background: transparent;
   color: var(--ink);
+  cursor: pointer;
   font:
     700 1.18rem Georgia,
     'Times New Roman',
     serif;
   text-decoration: none;
+  text-align: left;
 }
 .game-header__mark {
   display: grid;

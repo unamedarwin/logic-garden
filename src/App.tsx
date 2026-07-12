@@ -130,6 +130,13 @@ export default function App() {
     }
   }
 
+  const returnToHome = () => {
+    setGame(null)
+    void clearSavedGame()
+    window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    setNotice('')
+  }
+
   const runGameAction = (action: GameAction) => {
     if (!game) return
     const nextGame = gameReducer(game, action)
@@ -194,6 +201,7 @@ export default function App() {
         <GameHeader
           online={online}
           connectionLabel={connectionLabel}
+          homeLabel={t(preferences.locale, 'goHome')}
           settingsLabel={t(preferences.locale, 'settings')}
           onOpenSettings={() => setShowSettings(true)}
         />
@@ -263,8 +271,10 @@ export default function App() {
       <GameHeader
         online={online}
         connectionLabel={connectionLabel}
+        homeLabel={t(preferences.locale, 'goHome')}
         settingsLabel={t(preferences.locale, 'settings')}
         onOpenSettings={() => setShowSettings(true)}
+        onGoHome={returnToHome}
       />
       <section className="adventure-banner">
         <div className="adventure-banner__title">
@@ -381,6 +391,9 @@ export default function App() {
           </button>
         </div>
         <div className="game-actions__primary">
+          <button type="button" onClick={returnToHome}>
+            {t(preferences.locale, 'changeDifficulty')}
+          </button>
           <button type="button" onClick={() => startGame()}>
             {t(preferences.locale, 'newGame')}
           </button>
@@ -417,8 +430,10 @@ export default function App() {
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
           hintsLabel={t(preferences.locale, 'hintsUsed')}
           newGameLabel={t(preferences.locale, 'newGame')}
+          changeDifficultyLabel={t(preferences.locale, 'changeDifficulty')}
           shareLabel={t(preferences.locale, 'share')}
           onNewGame={() => startGame()}
+          onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}
         />
       )}

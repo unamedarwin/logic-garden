@@ -83,6 +83,10 @@ focus and activate a character button, then activate a location button. The game
 visible focus, ARIA live announcements, 44-pixel touch targets, and reduced-motion support.
 Hints are derived from the solver, never a stored answer.
 
+During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
+game. The same action is available from the header and the completion dialog, so a player can
+always choose another difficulty before starting a new adventure.
+
 ## Visual direction
 
 The interface uses an illustrated field-guide direction: warm paper, garden colors, inked
