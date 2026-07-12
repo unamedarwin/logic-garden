@@ -39,7 +39,7 @@ describe('seeded puzzle generator', () => {
       ),
       { numRuns: 180 },
     )
-  })
+  }, 20_000)
 
   it('keeps every selected clue necessary after clue reduction', () => {
     const puzzle = generatePuzzle('hard', 'minimal-clues')

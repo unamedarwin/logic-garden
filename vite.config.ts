@@ -5,6 +5,7 @@ import { pwaManifest } from './src/pwa/manifest'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/logic-garden/',
   plugins: [
     react(),
     VitePWA({
@@ -12,7 +13,7 @@ export default defineConfig({
       includeAssets: ['offline.html', 'icon-192.svg', 'icon-512.svg'],
       manifest: pwaManifest,
       workbox: {
-        navigateFallback: '/index.html',
+        navigateFallback: '/logic-garden/index.html',
         globPatterns: ['**/*.{js,css,html,svg,webmanifest}'],
       },
       devOptions: { enabled: false },

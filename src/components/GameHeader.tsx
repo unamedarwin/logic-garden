@@ -12,7 +12,11 @@ export const GameHeader = ({
   onOpenSettings,
 }: GameHeaderProps) => (
   <header className="game-header">
-    <a className="game-header__brand" href="/" aria-label="Logic Garden, inici">
+    <a
+      className="game-header__brand"
+      href={import.meta.env.BASE_URL}
+      aria-label="Logic Garden, inici"
+    >
       <span className="game-header__mark" aria-hidden="true">
         LG
       </span>

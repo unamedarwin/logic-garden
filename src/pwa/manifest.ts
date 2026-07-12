@@ -9,7 +9,8 @@ export const pwaManifest = {
   orientation: 'any',
   theme_color: '#23647c',
   background_color: '#fff8e8',
-  start_url: '/',
+  scope: '/logic-garden/',
+  start_url: '/logic-garden/',
   icons: [
     { src: 'icon-192.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any' },
     {

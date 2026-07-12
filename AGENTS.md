@@ -45,6 +45,13 @@ Treat Logic Garden as an illustrated field guide, not a collection of interchang
 cards. Keep the map visually dominant, make the current action easy to scan, and preserve
 the warm paper, garden, and hand-drawn-ink direction across responsive layouts.
 
+## Delivery
+
+GitHub Pages serves this app below `/logic-garden/`. Keep Vite's base path, the PWA manifest
+scope, internal navigation, and shared URLs aligned with that path. Deploy only the compiled
+`dist` directory with `.github/workflows/deploy-pages.yml`; never publish source files as the
+site artifact.
+
 ## Verification
 
 After meaningful changes, run formatting, lint, type checking, unit tests, and the

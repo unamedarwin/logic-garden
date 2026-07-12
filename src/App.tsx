@@ -121,7 +121,7 @@ export default function App() {
     try {
       const nextGame = createGameState(generatePuzzle(difficulty, source))
       setGame(nextGame)
-      window.history.replaceState({}, '', '/')
+      window.history.replaceState({}, '', import.meta.env.BASE_URL)
       setNotice('')
     } catch {
       setNotice('No hem pogut preparar aquesta aventura. Prova una partida nova.')

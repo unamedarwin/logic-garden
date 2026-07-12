@@ -16,6 +16,10 @@ pnpm dev
 
 Use `pnpm build` and `pnpm preview` to run the production PWA locally.
 
+The published build is available at `https://unamedarwin.github.io/logic-garden/`.
+`main` is deployed with `.github/workflows/deploy-pages.yml`; it builds the app and publishes
+only `dist` through GitHub Pages.
+
 ## Scripts
 
 | Command                        | Purpose                                        |
@@ -106,7 +110,7 @@ connection status and offers an update when a service-worker version is ready.
 Share links never contain the answer:
 
 ```text
-/play?v=1&difficulty=medium&seed=ABCD-1234
+/logic-garden/?v=1&difficulty=medium&seed=ABCD-1234
 ```
 
 ## Persistence
