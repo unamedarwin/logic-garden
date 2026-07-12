@@ -473,6 +473,7 @@ export default function App() {
             <GameBoard
               positions={game.puzzle.positions}
               characters={game.puzzle.characters}
+              items={game.puzzle.items}
               assignments={game.assignments}
               selectedCharacterId={game.selectedCharacterId}
               boardLabel={boardTitle}
@@ -482,6 +483,7 @@ export default function App() {
               selectPositionLabel={boardActions.selectPosition}
               boardMode={game.puzzle.boardMode}
               audience={profile.audience}
+              spatialPlanId={game.puzzle.spatialPlanId}
               onMoveToPosition={(positionId) => {
                 if (game.selectedCharacterId) {
                   runGameAction({

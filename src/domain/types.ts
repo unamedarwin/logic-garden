@@ -57,6 +57,8 @@ export interface Position {
   readonly row: number
   readonly column: number
   readonly label: string
+  /** A visible piece of scenery occupies this grid position. */
+  readonly blocked?: boolean
 }
 
 interface ClueBase {
@@ -134,6 +136,8 @@ export interface Puzzle {
   readonly seed: Seed
   readonly difficulty: Difficulty
   readonly boardMode: BoardMode
+  /** The seeded visual plan used by adult and teen spatial boards. */
+  readonly spatialPlanId?: string
   readonly theme: ThemeId
   readonly title: string
   readonly introduction: string

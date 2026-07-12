@@ -8,10 +8,15 @@ const hasExactlyOneSolution = (puzzle: Puzzle, clues: readonly Clue[]) => {
   return result.count === 1 && !result.reachedNodeLimit
 }
 
-export const selectMinimalUniqueClues = (puzzle: Puzzle, candidates: readonly Clue[]) => {
-  const selected: Clue[] = []
+export const selectMinimalUniqueClues = (
+  puzzle: Puzzle,
+  candidates: readonly Clue[],
+  initialClues: readonly Clue[] = [],
+) => {
+  const selected: Clue[] = [...initialClues]
 
   for (const clue of candidates) {
+    if (selected.some((selectedClue) => selectedClue.id === clue.id)) continue
     selected.push(clue)
     if (hasExactlyOneSolution(puzzle, selected)) break
   }

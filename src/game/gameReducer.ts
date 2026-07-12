@@ -101,7 +101,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       const characterExists = state.puzzle.characters.some(
         (character) => character.id === action.characterId,
       )
-      if (!targetPosition || !characterExists) return state
+      if (!targetPosition || targetPosition.blocked || !characterExists) return state
 
       if (state.puzzle.boardMode === 'logic-grid') {
         const conflictsWithGrid = state.puzzle.characters.some((character) => {

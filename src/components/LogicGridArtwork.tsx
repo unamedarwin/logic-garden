@@ -1,133 +1,52 @@
 import { useEffect, useRef } from 'react'
+import type { SpatialPlan } from '../domain/spatialPlan'
 import type { Audience, CharacterId, Position, PositionId } from '../domain/types'
 
 interface LogicGridArtworkProps {
   readonly audience: Audience
+  readonly plan?: SpatialPlan
   readonly positions: readonly Position[]
   readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
 }
 
 interface FloorPlanStyle {
-  readonly floor: number
+  readonly corridor: number
   readonly wall: number
   readonly ink: number
-  readonly blocked: number
+  readonly crossed: number
+  readonly obstacle: number
   readonly rooms: readonly number[]
 }
 
 const floorPlans: Record<Exclude<Audience, 'children'>, FloorPlanStyle> = {
   teens: {
-    floor: 0x18162c,
-    wall: 0xf8f0dd,
-    ink: 0x121522,
-    blocked: 0xf8f0dd,
-    rooms: [0x6437a5, 0x2867c7, 0xdc4f91, 0xe78b30, 0x1d9b83, 0xc94657],
+    corridor: 0x19152b,
+    wall: 0xf9f0dc,
+    ink: 0x120f20,
+    crossed: 0xf05287,
+    obstacle: 0x1e2138,
+    rooms: [0x5b39a8, 0x2271c9, 0xe15a91, 0xe98730, 0x198f7d, 0xc74457],
   },
   adults: {
-    floor: 0xf7f3ea,
-    wall: 0xfffcf5,
-    ink: 0x59645f,
-    blocked: 0xb36453,
-    rooms: [0xe1cfac, 0xc9d9d1, 0xd9c5b2, 0xd5dcc4, 0xddc9cf, 0xc9d9c7],
+    corridor: 0xe7dfd0,
+    wall: 0xfff9ee,
+    ink: 0x5e6760,
+    crossed: 0xb06455,
+    obstacle: 0x65766b,
+    rooms: [0xe3cfab, 0xc4d7cf, 0xdac6b1, 0xd5dec2, 0xdec7ce, 0xc6d7c6],
   },
 }
 
-const irregularRoom = (
-  x: number,
-  y: number,
+const pathPoints = (
+  zones: SpatialPlan['zones'],
   width: number,
   height: number,
-  inset: number,
-  variant: number,
-) => {
-  const left = x + inset
-  const top = y + inset
-  const right = x + width - inset
-  const bottom = y + height - inset
-  const corner = Math.min(width, height) * 0.13
-
-  switch (variant % 4) {
-    case 0:
-      return [
-        left + corner,
-        top,
-        right - corner * 0.35,
-        top,
-        right,
-        top + corner,
-        right - corner * 0.18,
-        bottom - corner,
-        right - corner,
-        bottom,
-        left + corner * 0.45,
-        bottom - corner * 0.15,
-        left,
-        bottom - corner,
-        left,
-        top + corner * 0.7,
-      ]
-    case 1:
-      return [
-        left,
-        top + corner * 0.65,
-        left + corner,
-        top,
-        right - corner * 0.6,
-        top + corner * 0.12,
-        right,
-        top + corner,
-        right - corner * 0.1,
-        bottom - corner * 0.5,
-        right - corner,
-        bottom,
-        left + corner * 0.2,
-        bottom,
-        left + corner * 0.28,
-        bottom - corner,
-      ]
-    case 2:
-      return [
-        left + corner * 0.55,
-        top,
-        right - corner,
-        top,
-        right,
-        top + corner * 0.72,
-        right - corner * 0.12,
-        bottom - corner * 0.25,
-        right - corner * 0.7,
-        bottom,
-        left + corner,
-        bottom - corner * 0.2,
-        left,
-        bottom - corner,
-        left + corner * 0.12,
-        top + corner,
-      ]
-    default:
-      return [
-        left + corner,
-        top + corner * 0.1,
-        right - corner * 0.25,
-        top,
-        right,
-        top + corner * 0.75,
-        right - corner,
-        bottom - corner * 0.1,
-        right - corner * 0.28,
-        bottom,
-        left + corner * 0.52,
-        bottom - corner * 0.12,
-        left,
-        bottom - corner,
-        left + corner * 0.15,
-        top + corner,
-      ]
-  }
-}
+  index: number,
+) => zones[index]!.path.flatMap((point) => [point.x * width, point.y * height])
 
 export const LogicGridArtwork = ({
   audience,
+  plan,
   positions,
   assignments,
 }: LogicGridArtworkProps) => {
@@ -135,7 +54,7 @@ export const LogicGridArtwork = ({
 
   useEffect(() => {
     const host = hostRef.current
-    if (!host || audience === 'children') return
+    if (!host || audience === 'children' || !plan) return
 
     let active = true
     let destroy = () => undefined
@@ -149,12 +68,11 @@ export const LogicGridArtwork = ({
       const height = Math.max(1, Math.round(bounds.height))
       const columns = Math.max(...positions.map((position) => position.column)) + 1
       const rows = Math.max(...positions.map((position) => position.row)) + 1
-      const placed = positions.filter((position) =>
-        Object.values(assignments).includes(position.id),
-      )
-      const occupiedRows = new Set(placed.map((position) => position.row))
-      const occupiedColumns = new Set(placed.map((position) => position.column))
-      const floorPlan = floorPlans[audience]
+      const assigned = new Set(Object.values(assignments))
+      const occupied = positions.filter((position) => assigned.has(position.id))
+      const occupiedRows = new Set(occupied.map((position) => position.row))
+      const occupiedColumns = new Set(occupied.map((position) => position.column))
+      const visual = floorPlans[audience]
       const app = new Application()
 
       await app.init({
@@ -174,78 +92,127 @@ export const LogicGridArtwork = ({
       app.stage.addChild(graphic)
       const cellWidth = width / columns
       const cellHeight = height / rows
-      const inset = audience === 'adults' ? 3 : 2
-      const roomRadius = audience === 'adults' ? 9 : 5
+      const wallWidth = audience === 'adults' ? 2.7 : 3
 
-      graphic.roundRect(0, 0, width, height, roomRadius + 4).fill({ color: floorPlan.floor })
+      graphic
+        .roundRect(0, 0, width, height, Math.max(9, width * 0.025))
+        .fill({ color: visual.corridor })
+        .stroke({ color: visual.ink, width: wallWidth + 1, alpha: 0.92 })
+
+      plan.zones.forEach((_, index) => {
+        graphic
+          .poly(pathPoints(plan.zones, width, height, index), true)
+          .fill({ color: visual.rooms[index % visual.rooms.length]!, alpha: 0.96 })
+          .stroke({
+            color: visual.ink,
+            width: wallWidth,
+            alpha: 0.9,
+            pixelLine: audience === 'teens',
+          })
+      })
+
+      // A subtle movement grid is retained, but it is no longer the visual plan.
+      for (let column = 1; column < columns; column += 1) {
+        const x = column * cellWidth
+        graphic
+          .moveTo(x, 0)
+          .lineTo(x, height)
+          .stroke({ color: visual.wall, width: 1, alpha: audience === 'adults' ? 0.24 : 0.18 })
+      }
+      for (let row = 1; row < rows; row += 1) {
+        const y = row * cellHeight
+        graphic
+          .moveTo(0, y)
+          .lineTo(width, y)
+          .stroke({ color: visual.wall, width: 1, alpha: audience === 'adults' ? 0.24 : 0.18 })
+      }
 
       for (const position of positions) {
         const x = position.column * cellWidth
         const y = position.row * cellHeight
-        const color = floorPlan.rooms[position.column % floorPlan.rooms.length]!
-        const crossed =
-          !placed.some((candidate) => candidate.id === position.id) &&
-          (occupiedRows.has(position.row) || occupiedColumns.has(position.column))
-
-        graphic
-          .poly(
-            irregularRoom(
-              x,
-              y,
-              cellWidth,
-              cellHeight,
-              inset,
-              position.row * columns + position.column,
-            ),
-            true,
-          )
-          .fill({ color, alpha: crossed ? 0.18 : audience === 'adults' ? 0.94 : 0.58 })
-          .stroke({
-            color: floorPlan.ink,
-            width: audience === 'adults' ? 1.25 : 2,
-            alpha: audience === 'adults' ? 0.68 : 1,
-            pixelLine: audience === 'teens',
-          })
-
-        // Floor marks make each cell feel like a place rather than a spreadsheet cell.
-        if (!crossed) {
-          const furnishingWidth = Math.max(14, cellWidth * 0.48)
-          const furnishingHeight = Math.max(4, cellHeight * 0.08)
-          const furnishingX = x + (cellWidth - furnishingWidth) / 2
-          const furnishingY = y + cellHeight * (position.row === 0 ? 0.72 : 0.3)
-          graphic
-            .roundRect(
-              furnishingX,
-              furnishingY,
-              furnishingWidth,
-              furnishingHeight,
-              furnishingHeight,
-            )
-            .fill({ color: floorPlan.wall, alpha: audience === 'adults' ? 0.54 : 0.28 })
+        if (position.blocked) {
+          const inset = Math.max(2, Math.min(cellWidth, cellHeight) * 0.14)
+          const kind = (position.row + position.column * 2) % 3
+          const centerX = x + cellWidth / 2
+          const centerY = y + cellHeight / 2
+          if (audience === 'teens' && kind === 0) {
+            graphic
+              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.37)
+              .fill({ color: visual.obstacle, alpha: 0.98 })
+              .stroke({ color: visual.wall, width: 1.5, alpha: 0.96 })
+            graphic
+              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.12)
+              .fill({ color: visual.crossed, alpha: 0.96 })
+          } else if (audience === 'adults' && kind === 0) {
+            graphic
+              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.32)
+              .fill({ color: visual.obstacle, alpha: 0.96 })
+              .stroke({ color: visual.wall, width: 1.3, alpha: 0.95 })
+            graphic
+              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.17)
+              .fill({ color: visual.rooms[3]!, alpha: 1 })
+          } else if (kind === 1) {
+            graphic
+              .roundRect(
+                x + inset,
+                y + inset,
+                cellWidth - inset * 2,
+                cellHeight - inset * 2,
+                inset,
+              )
+              .fill({ color: visual.obstacle, alpha: 0.98 })
+              .stroke({ color: visual.wall, width: 1.5, alpha: 0.96 })
+            graphic
+              .moveTo(x + inset * 1.5, centerY)
+              .lineTo(x + cellWidth - inset * 1.5, centerY)
+              .stroke({ color: visual.wall, width: 1.2, alpha: 0.8 })
+          } else {
+            const radius = Math.min(cellWidth, cellHeight) * 0.38
+            graphic
+              .poly(
+                [
+                  centerX,
+                  centerY - radius,
+                  centerX + radius * 0.86,
+                  centerY - radius * 0.48,
+                  centerX + radius * 0.86,
+                  centerY + radius * 0.48,
+                  centerX,
+                  centerY + radius,
+                  centerX - radius * 0.86,
+                  centerY + radius * 0.48,
+                  centerX - radius * 0.86,
+                  centerY - radius * 0.48,
+                ],
+                true,
+              )
+              .fill({ color: visual.obstacle, alpha: 0.98 })
+              .stroke({ color: visual.wall, width: 1.4, alpha: 0.95 })
+          }
+          continue
         }
-
+        const crossed =
+          !assigned.has(position.id) &&
+          (occupiedRows.has(position.row) || occupiedColumns.has(position.column))
         if (crossed) {
           graphic
-            .poly(
-              irregularRoom(
-                x,
-                y,
-                cellWidth,
-                cellHeight,
-                inset,
-                position.row * columns + position.column,
-              ),
-              true,
+            .roundRect(
+              x + 2,
+              y + 2,
+              cellWidth - 4,
+              cellHeight - 4,
+              Math.max(2, cellWidth * 0.08),
             )
-            .fill({ color: floorPlan.floor, alpha: audience === 'adults' ? 0.66 : 0.56 })
+            .fill({ color: visual.corridor, alpha: audience === 'adults' ? 0.48 : 0.56 })
           graphic
-            .moveTo(x + 7, y + cellHeight - 7)
-            .lineTo(x + cellWidth - 7, y + 7)
+            .moveTo(x + cellWidth * 0.25, y + cellHeight * 0.25)
+            .lineTo(x + cellWidth * 0.75, y + cellHeight * 0.75)
+            .moveTo(x + cellWidth * 0.75, y + cellHeight * 0.25)
+            .lineTo(x + cellWidth * 0.25, y + cellHeight * 0.75)
             .stroke({
-              color: floorPlan.blocked,
-              width: audience === 'adults' ? 2.5 : 2,
-              alpha: audience === 'adults' ? 0.72 : 0.9,
-              pixelLine: audience === 'teens',
+              color: visual.crossed,
+              width: Math.max(1.4, cellWidth * 0.06),
+              alpha: 0.82,
             })
         }
       }
@@ -264,7 +231,7 @@ export const LogicGridArtwork = ({
       active = false
       destroy()
     }
-  }, [assignments, audience, positions])
+  }, [assignments, audience, plan, positions])
 
   return <div ref={hostRef} className="logic-grid-artwork" aria-hidden="true" />
 }

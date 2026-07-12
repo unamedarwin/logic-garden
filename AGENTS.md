@@ -60,6 +60,12 @@ coordinate-heavy distance, step, or row/column clue wording. The game counter an
 records are local-only; history may retain shareable seed metadata and completion statistics, but
 never a solution or profile data.
 
+Spatial boards use the local `spatialPlan` catalog. A plan can define only geometry, decorative
+anchors, and visible blocked cells. The seeded generator must choose the plan, people, item
+emojis, and wording independently; no plan may encode a character, item assignment, phrase,
+solution, or player data. Every blocked cell must be rejected by the generator, solver, reducer,
+and accessible DOM controls, not merely painted as scenery.
+
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, and seeded puzzle identifier, but never a solution or any profile data.
 

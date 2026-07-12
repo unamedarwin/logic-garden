@@ -115,10 +115,8 @@ export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssi
 
   for (const [characterId, assignedPositionId] of Object.entries(assignment)) {
     const knownCharacter = puzzle.characters.some((character) => character.id === characterId)
-    const knownPosition = puzzle.positions.some(
-      (position) => position.id === assignedPositionId,
-    )
-    if (!knownCharacter || !knownPosition) return false
+    const position = puzzle.positions.find((candidate) => candidate.id === assignedPositionId)
+    if (!knownCharacter || !position || position.blocked) return false
   }
 
   return puzzle.clues.every((clue) =>

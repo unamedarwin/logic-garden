@@ -5,9 +5,15 @@ import type {
   BoardMode,
   Character,
   CharacterId,
+  Item,
   Position,
   PositionId,
 } from '../domain/types'
+import {
+  defaultSpatialPlanFor,
+  spatialPlanForId,
+  type SpatialPlanId,
+} from '../domain/spatialPlan'
 import { CharacterToken } from './CharacterToken'
 import { GridObjectIcons } from './GridObjectIcons'
 import { LogicGridArtwork } from './LogicGridArtwork'
@@ -42,36 +48,28 @@ const LocationCell = ({
   logicGrid,
 }: LocationCellProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: `position:${position.id}` })
-  const isZoneHeading = logicGrid && position.row === 0
-  const zoneSuffix = ` · ${position.row + 1}`
-  const displayLabel = isZoneHeading
-    ? position.label.endsWith(zoneSuffix)
-      ? position.label.slice(0, -zoneSuffix.length)
-      : position.label
-    : `${position.row + 1} · ${position.column + 1}`
   const actionLabel = selectedCharacterId
     ? moveToPositionLabel(position.label)
     : selectPositionLabel(position.label)
+  const unavailable = disabled || position.blocked
 
   return (
     <article
       ref={setNodeRef}
-      className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${isZoneHeading ? 'location-cell--zone-heading' : ''} location-cell--row-${position.row} ${isOver ? 'location-cell--over' : ''}`}
+      className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${position.blocked ? 'location-cell--blocked' : ''} ${selectedCharacterId && !unavailable ? 'location-cell--placeable' : ''} location-cell--row-${position.row} ${isOver && !unavailable ? 'location-cell--over' : ''}`}
     >
       <button
         type="button"
         className="location-cell__target"
         onClick={() => onMoveToPosition(position.id)}
-        aria-label={actionLabel}
-        disabled={disabled}
+        aria-label={position.blocked ? position.label : actionLabel}
+        disabled={unavailable}
       >
-        <span className="location-cell__label">
-          {logicGrid ? displayLabel : position.label}
-        </span>
+        <span className="location-cell__label">{position.label}</span>
         <span className="location-cell__marker" aria-hidden="true">
-          ✦
+          +
         </span>
-        {!character && <span className="location-cell__empty">{emptyLabel}</span>}
+        {!character && !logicGrid && <span className="location-cell__empty">{emptyLabel}</span>}
       </button>
       {character && (
         <div className="location-cell__token">
@@ -90,6 +88,7 @@ const LocationCell = ({
 interface GameBoardProps {
   readonly positions: readonly Position[]
   readonly characters: readonly Character[]
+  readonly items: readonly Item[]
   readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
   readonly selectedCharacterId?: CharacterId
   readonly onMoveToPosition: (positionId: PositionId) => void
@@ -101,11 +100,13 @@ interface GameBoardProps {
   readonly selectPositionLabel: (positionLabel: string) => string
   readonly boardMode: BoardMode
   readonly audience: Audience
+  readonly spatialPlanId?: SpatialPlanId
 }
 
 export const GameBoard = ({
   positions,
   characters,
+  items,
   assignments,
   selectedCharacterId,
   onMoveToPosition,
@@ -117,9 +118,14 @@ export const GameBoard = ({
   selectPositionLabel,
   boardMode,
   audience,
+  spatialPlanId,
 }: GameBoardProps) => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
-  const boardStyle = { '--board-columns': columns } as CSSProperties
+  const rows = Math.max(...positions.map((position) => position.row)) + 1
+  const boardStyle = {
+    '--board-columns': columns,
+    '--board-rows': rows,
+  } as CSSProperties
   const assignmentsWithoutSelected = Object.fromEntries(
     Object.entries(assignments).filter(([characterId]) => characterId !== selectedCharacterId),
   ) as Readonly<Partial<Record<CharacterId, PositionId>>>
@@ -128,19 +134,28 @@ export const GameBoard = ({
   )
   const crossedRows = new Set(occupiedGridPositions.map((position) => position.row))
   const crossedColumns = new Set(occupiedGridPositions.map((position) => position.column))
+  const spatialPlan =
+    boardMode === 'logic-grid' && audience !== 'children'
+      ? (spatialPlanForId(spatialPlanId) ?? defaultSpatialPlanFor(audience))
+      : undefined
 
   return (
     <section
-      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''}`}
+      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''} ${selectedCharacterId ? 'game-board--placing' : ''}`}
       style={boardStyle}
       role="grid"
       aria-label={boardLabel}
     >
       {boardMode === 'logic-grid' && (
-        <LogicGridArtwork audience={audience} positions={positions} assignments={assignments} />
+        <LogicGridArtwork
+          audience={audience}
+          plan={spatialPlan}
+          positions={positions}
+          assignments={assignments}
+        />
       )}
-      {boardMode === 'logic-grid' && audience !== 'children' && (
-        <GridObjectIcons audience={audience} positions={positions} />
+      {spatialPlan && (
+        <GridObjectIcons plan={spatialPlan} positions={positions} items={items} />
       )}
       <div className="game-board__cells">
         {positions.map((position) => {

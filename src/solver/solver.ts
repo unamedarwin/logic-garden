@@ -23,6 +23,7 @@ const candidatePositions = (
 ) => {
   const used = new Set(Object.values(assignment))
   return puzzle.positions
+    .filter((position) => !position.blocked)
     .map((position) => position.id)
     .filter((positionId) => !used.has(positionId))
     .filter((positionId) =>

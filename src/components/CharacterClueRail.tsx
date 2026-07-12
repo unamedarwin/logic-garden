@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { renderClue } from '../domain/vocabulary'
 import type { Character, CharacterId, Clue, Locale, PositionId, Puzzle } from '../domain/types'
 
@@ -50,9 +51,20 @@ export const CharacterClueRail = ({
   emptyLabel,
   onSelect,
 }: CharacterClueRailProps) => {
+  const clueRailRef = useRef<HTMLDivElement>(null)
+  const firstCharacterWithClue = puzzle.characters.find((character) =>
+    puzzle.clues.some((clue) => clueReferencesCharacter(clue, character.id)),
+  )
   const activeCharacter =
     puzzle.characters.find((character) => character.id === selectedCharacterId) ??
+    firstCharacterWithClue ??
     puzzle.characters[0]
+
+  useEffect(() => {
+    // A previous person's long clue list must not hide the next person's first clue.
+    clueRailRef.current?.scrollTo({ left: 0, behavior: 'auto' })
+  }, [activeCharacter?.id])
+
   if (!activeCharacter) return null
 
   const clues = puzzle.clues.filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
@@ -63,13 +75,14 @@ export const CharacterClueRail = ({
       <div className="character-clue-rail__people" role="list">
         {puzzle.characters.map((character) => {
           const selected = selectedCharacterId === character.id
+          const previewed = !selectedCharacterId && activeCharacter.id === character.id
           const placed = assignments[character.id] !== undefined
           return (
             <div key={character.id} role="listitem">
               <button
                 type="button"
-                className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
-                aria-pressed={selected}
+                className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${previewed ? 'character-clue-rail__person--previewed' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
+                aria-pressed={selected || previewed}
                 aria-controls={clueRegionId}
                 onClick={() => {
                   if (!selected) onSelect(character)
@@ -90,7 +103,7 @@ export const CharacterClueRail = ({
           <strong>{activeCharacter.name}</strong>
         </p>
         {clues.length > 0 ? (
-          <div className="character-clue-rail__clues">
+          <div ref={clueRailRef} className="character-clue-rail__clues">
             {clues.map((clue) => (
               <p key={clue.id} className="character-clue-rail__clue">
                 {renderClue(puzzle, clue, locale)}

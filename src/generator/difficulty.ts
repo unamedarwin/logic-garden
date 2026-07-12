@@ -15,7 +15,14 @@ export const difficultyConfigs: Record<Difficulty, DifficultyConfig> = {
 }
 
 export const logicGridDimensions: Record<Difficulty, number> = {
+  easy: 6,
+  medium: 9,
+  hard: 16,
+}
+
+// The plan size sets the spatial challenge; it does not dictate party size.
+export const logicGridCharacterCounts: Record<Difficulty, number> = {
   easy: 4,
-  medium: 5,
-  hard: 6,
+  medium: 6,
+  hard: 8,
 }

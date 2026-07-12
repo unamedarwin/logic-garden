@@ -12,7 +12,7 @@ import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
 
-export const GENERATOR_VERSION = 3
+export const GENERATOR_VERSION = 4
 const maximumAttempts = 12
 
 const isNarrativeGridClue = (clue: Puzzle['clues'][number]) =>
@@ -66,6 +66,7 @@ export const generatePuzzle = (
       seed: originalSeed,
       difficulty,
       boardMode: world.boardMode,
+      spatialPlanId: world.spatialPlanId,
       theme: world.theme.id,
       title: world.theme.title,
       introduction: random.pick(world.theme.introductions),
@@ -93,7 +94,14 @@ export const generatePuzzle = (
       )
       return [...earlyNarrative, ...remainingCandidates]
     })()
-    const clues = selectMinimalUniqueClues(basePuzzle, candidates)
+    const largePlanAnchors =
+      world.boardMode === 'logic-grid' && world.positions.length >= 256
+        ? candidates.filter(
+            (clue) =>
+              clue.type === 'character-at-position' || clue.type === 'character-in-place',
+          )
+        : []
+    const clues = selectMinimalUniqueClues(basePuzzle, candidates, largePlanAnchors)
     const candidate: Puzzle = {
       ...basePuzzle,
       clues,

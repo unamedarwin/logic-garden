@@ -1676,6 +1676,10 @@ summary:focus-visible {
   background: var(--sun);
   box-shadow: 2px 2px 0 var(--ink);
 }
+.character-clue-rail__person--previewed {
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 2px rgba(54, 120, 95, 0.18);
+}
 .character-clue-rail__person--placed {
   background: #edf3ed;
 }
@@ -1930,6 +1934,167 @@ summary:focus-visible {
     transition-duration: 1ms !important;
   }
 }
+/* A spatial board is a continuous plan. The grid remains only an interaction layer. */
+.game-board--logic-grid {
+  width: min(100%, 700px);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 14px;
+  padding: 10px;
+}
+.game-board--logic-grid .game-board__cells {
+  height: 100%;
+  grid-template-rows: repeat(var(--board-rows), minmax(0, 1fr));
+  gap: 0;
+}
+.logic-grid-artwork,
+.grid-object-icons {
+  inset: 10px;
+}
+.grid-object-icons {
+  z-index: 2;
+  display: block;
+}
+.grid-object-icons__zone,
+.grid-object-icons__item,
+.grid-object-icons__label {
+  position: absolute;
+}
+.grid-object-icons__item {
+  display: grid;
+  width: clamp(24px, 7vw, 44px);
+  height: clamp(24px, 7vw, 44px);
+  place-items: center;
+  margin: 0;
+  border-width: 2px;
+  transform: translate(-50%, -50%);
+}
+.grid-object-icons__label {
+  max-width: 36%;
+  border: 1px solid rgba(255, 252, 245, 0.92);
+  border-radius: 5px;
+  padding: 3px 5px;
+  background: rgba(255, 252, 245, 0.9);
+  color: #26352f;
+  font-size: clamp(0.5rem, 1.7vw, 0.76rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 1px 2px rgba(23, 50, 65, 0.16);
+}
+.game-board--logic-grid .location-cell,
+.game-screen .game-board--logic-grid .location-cell {
+  z-index: 3;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+}
+.game-board--logic-grid .location-cell__target,
+.game-screen .game-board--logic-grid .location-cell__target {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+}
+.game-board--logic-grid .location-cell__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.game-board--logic-grid .location-cell__marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: none;
+  width: clamp(18px, 5vw, 32px);
+  height: clamp(18px, 5vw, 32px);
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: rgba(255, 252, 245, 0.78);
+  color: #314b40;
+  font:
+    900 clamp(0.85rem, 3vw, 1.2rem)/1 'Trebuchet MS',
+    sans-serif;
+  transform: translate(-50%, -50%);
+}
+.game-board--logic-grid.game-board--placing .location-cell--placeable .location-cell__marker {
+  display: grid;
+  place-items: center;
+}
+.game-board--logic-grid
+  .location-cell--placeable
+  .location-cell__target:hover
+  .location-cell__marker,
+.game-board--logic-grid
+  .location-cell--placeable
+  .location-cell__target:focus-visible
+  .location-cell__marker {
+  background: #fff;
+  color: var(--coral);
+  transform: translate(-50%, -50%) scale(1.14);
+}
+.game-board--logic-grid .location-cell--blocked .location-cell__target {
+  cursor: not-allowed;
+}
+.game-board--logic-grid .location-cell__token {
+  z-index: 4;
+  right: 8%;
+  bottom: 8%;
+  left: 8%;
+  height: 84%;
+}
+.game-board--logic-grid .character-token {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+.game-board--logic-grid .character-token__emoji {
+  font-size: clamp(0.55rem, 3.8vw, 1.35rem);
+}
+.game-board--logic-grid .location-cell__remove {
+  top: -4px;
+  right: -4px;
+  width: 19px;
+  height: 19px;
+}
+.audience--adults .game-board--logic-grid .game-board__cells {
+  gap: 0;
+}
+.audience--adults .grid-object-icons__item {
+  margin: 0;
+}
+.audience--teens .grid-object-icons__label {
+  background: rgba(20, 17, 37, 0.88);
+  color: #fff9eb;
+}
+
+@media (max-width: 540px) {
+  .game-board--logic-grid {
+    padding: 6px;
+  }
+  .logic-grid-artwork,
+  .grid-object-icons {
+    inset: 6px;
+  }
+  .game-board--logic-grid .location-cell,
+  .game-screen .game-board--logic-grid .location-cell,
+  .game-board--logic-grid .location-cell__target,
+  .game-screen .game-board--logic-grid .location-cell__target {
+    min-height: 0;
+  }
+  .grid-object-icons__label {
+    padding: 2px 3px;
+  }
+}
+
 :root[data-reduced-motion='true'] *,
 :root[data-reduced-motion='true'] *::before,
 :root[data-reduced-motion='true'] *::after {

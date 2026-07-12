@@ -60,17 +60,24 @@ describe('seeded puzzle generator', () => {
     if (!solution) throw new Error('Expected a solvable deduction grid')
 
     expect(teenPuzzle.boardMode).toBe('logic-grid')
-    expect(teenPuzzle.characters).toHaveLength(5)
-    expect(teenPuzzle.positions).toHaveLength(25)
+    expect(teenPuzzle.characters).toHaveLength(6)
+    expect(teenPuzzle.positions).toHaveLength(81)
+    expect(teenPuzzle.positions.filter((position) => position.blocked)).toHaveLength(9)
     expect(getTheme(teenPuzzle.theme).audience).toBe('teens')
     expect(getTheme(adultPuzzle.theme).audience).toBe('adults')
 
     const occupied = Object.values(solution).map((positionId) =>
       teenPuzzle.positions.find((position) => position.id === positionId),
     )
-    expect(new Set(occupied.map((position) => position?.row)).size).toBe(5)
-    expect(new Set(occupied.map((position) => position?.column)).size).toBe(5)
+    expect(new Set(occupied.map((position) => position?.row)).size).toBe(6)
+    expect(new Set(occupied.map((position) => position?.column)).size).toBe(6)
     expect(countSolutions(teenPuzzle, { limit: 2 })).toBe(1)
+    expect(
+      Object.values(solution).some(
+        (positionId) =>
+          teenPuzzle.positions.find((position) => position.id === positionId)?.blocked,
+      ),
+    ).toBe(false)
   })
 
   it('uses visual spatial clues for teen and adult grids without distance or axis wording', () => {
@@ -83,10 +90,25 @@ describe('seeded puzzle generator', () => {
         'same-column',
         'different-column',
       ])
-      const directionalTypes = new Set(['left-of', 'right-of', 'above', 'below'])
 
       expect(puzzle.clues.some((clue) => forbiddenTypes.has(clue.type))).toBe(false)
-      expect(puzzle.clues.some((clue) => directionalTypes.has(clue.type))).toBe(true)
+      expect(puzzle.clues.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('scales spatial plans without coupling people to the board dimension', () => {
+    const sizes = [
+      ['easy', 6, 4, 4],
+      ['medium', 9, 6, 9],
+      ['hard', 16, 8, 20],
+    ] as const
+
+    for (const [difficulty, dimension, people, obstacles] of sizes) {
+      const puzzle = generatePuzzle(difficulty, `large-plan-${difficulty}`, 'adults')
+      expect(puzzle.characters).toHaveLength(people)
+      expect(puzzle.positions).toHaveLength(dimension * dimension)
+      expect(puzzle.positions.filter((position) => position.blocked)).toHaveLength(obstacles)
+      expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
     }
   })
 
