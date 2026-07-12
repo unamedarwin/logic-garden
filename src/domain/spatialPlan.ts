@@ -337,4 +337,4 @@ export const planObstacles = (
   return [...found.values()]
 }
 
-export const gridPlaceLabel = (label: string) => label.replace(/\s+·\s+\d+$/u, '')
+export const gridPlaceLabel = (label: string) => label.replace(/\s+·\s+\d+(?:\.\d+)?$/u, '')

@@ -91,7 +91,7 @@ export const generateWorld = (
               placeId: placeId(`place-${zone}`),
               row,
               column,
-              label: `${place} · ${row + 1}`,
+              label: `${place} · ${row + 1}.${column + 1}`,
               blocked: obstacle !== undefined,
               obstacleEmoji: obstacle?.emoji,
               obstacleLabel: obstacle?.label,

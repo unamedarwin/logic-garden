@@ -89,10 +89,12 @@ const mapTemplates: Record<Locale, Templates> = {
 const gridTemplates: Record<Locale, Templates> = {
   ca: {
     'character-at-position': [
-      '{a}, amb {i}, és {d} {o}, dins de {p}.',
-      '{a} ha deixat {i} {d} {o}, a {p}.',
+      'A la zona «{p}», {a} és a la casella {d} del marcador {o}. Porta {i}.',
+      'A la zona «{p}», {a} ha deixat {i} a la casella {d} del marcador {o}.',
     ],
-    'character-not-at-position': ['{a} no és {d} {o}, a {p}.'],
+    'character-not-at-position': [
+      'A la zona «{p}», {a} no és a la casella {d} del marcador {o}.',
+    ],
     'character-in-place': ['{a}, amb {i}, és a {p}.'],
     'character-not-in-place': ['{a} no és a {p}.'],
     adjacent: ['{a} i {b} tenen espais veïns.'],
@@ -112,10 +114,12 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   es: {
     'character-at-position': [
-      '{a}, con {i}, está {d} {o}, en {p}.',
-      '{a} ha dejado {i} {d} {o}, dentro de {p}.',
+      'En la zona «{p}», {a} está en la casilla {d} del marcador {o}. Lleva {i}.',
+      'Dentro de «{p}», {a} ha dejado {i} en la casilla {d} del marcador {o}.',
     ],
-    'character-not-at-position': ['{a} no está {d} {o}, en {p}.'],
+    'character-not-at-position': [
+      'En la zona «{p}», {a} no está en la casilla {d} del marcador {o}.',
+    ],
     'character-in-place': ['{a}, con {i}, está en {p}.'],
     'character-not-in-place': ['{a} no está en {p}.'],
     adjacent: ['{a} y {b} tienen espacios vecinos.'],
@@ -135,10 +139,10 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   en: {
     'character-at-position': [
-      '{a}, with {i}, is {d} {o}, in {p}.',
-      '{a} left {i} {d} {o}, inside {p}.',
+      'In the “{p}” zone, {a} is in the cell {d} the {o} marker. {a} carries {i}.',
+      'In “{p}”, {a} left {i} in the cell {d} the {o} marker.',
     ],
-    'character-not-at-position': ['{a} is not {d} {o}, in {p}.'],
+    'character-not-at-position': ['Inside “{p}”, {a} is not in the cell {d} the {o} marker.'],
     'character-in-place': ['{a}, with {i}, is in {p}.'],
     'character-not-in-place': ['{a} is not in {p}.'],
     adjacent: ['{a} and {b} have neighboring spaces.'],
@@ -169,21 +173,21 @@ const valueOrFallback = <Id extends string>(
 const placeLabel = (puzzle: Puzzle, placeId: PlaceId) =>
   puzzle.positions.find((position) => position.placeId === placeId)?.label ?? 'here'
 
-const gridPlaceLabel = (label: string) => label.replace(/\s·\s\d+$/u, '')
+const gridPlaceLabel = (label: string) => label.replace(/\s·\s\d+(?:\.\d+)?$/u, '')
 
 const landmarkDirection = (position: Position, obstacle: Position, locale: Locale) => {
   const directions = {
     ca: {
-      left: "a l'esquerra de",
-      right: 'a la dreta de',
-      above: 'damunt de',
-      below: 'sota de',
+      left: "a l'esquerra",
+      right: 'a la dreta',
+      above: 'damunt',
+      below: 'sota',
     },
     es: {
-      left: 'a la izquierda de',
-      right: 'a la derecha de',
-      above: 'encima de',
-      below: 'debajo de',
+      left: 'a la izquierda',
+      right: 'a la derecha',
+      above: 'encima',
+      below: 'debajo',
     },
     en: {
       left: 'to the left of',

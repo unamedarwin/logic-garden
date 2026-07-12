@@ -127,6 +127,9 @@ describe('seeded puzzle generator', () => {
       const puzzle = generatePuzzle(difficulty, `large-plan-${difficulty}`, 'adults')
       expect(puzzle.characters).toHaveLength(people)
       expect(puzzle.positions).toHaveLength(dimension * dimension)
+      expect(new Set(puzzle.positions.map((position) => position.label)).size).toBe(
+        puzzle.positions.length,
+      )
       expect(puzzle.positions.filter((position) => position.blocked)).toHaveLength(obstacles)
       expect(
         puzzle.positions
