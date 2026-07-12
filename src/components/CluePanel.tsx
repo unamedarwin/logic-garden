@@ -10,7 +10,12 @@ interface CluePanelProps {
 
 export const CluePanel = ({ puzzle, locale, highlightedClueId, label }: CluePanelProps) => (
   <details className="clue-panel" open>
-    <summary>{label}</summary>
+    <summary>
+      <span>{label}</span>
+      <span className="clue-panel__count" aria-hidden="true">
+        {puzzle.clues.length}
+      </span>
+    </summary>
     <ol>
       {puzzle.clues.map((clue) => (
         <li

@@ -192,38 +192,53 @@ export default function App() {
     return (
       <main className="app-shell home-screen">
         <GameHeader
-          title="Logic Garden"
           online={online}
           connectionLabel={connectionLabel}
           settingsLabel={t(preferences.locale, 'settings')}
           onOpenSettings={() => setShowSettings(true)}
         />
         <section className="home-hero">
-          <p className="eyebrow">PUZZLES DE DEDUCCIÓ · SENSE CONNEXIÓ</p>
-          <h2>Posa cada amic al seu lloc amb pistes i imaginació.</h2>
-          <p>Cada aventura té una única solució i es pot repetir amb la mateixa llavor.</p>
-          <DifficultySelector
-            value={preferences.difficulty}
-            locale={preferences.locale}
-            label={t(preferences.locale, 'difficulty')}
-            onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
-          />
-          <button
-            type="button"
-            className="button button--large"
-            disabled={generating}
-            onClick={() => startGame()}
-          >
-            {generating ? '…' : t(preferences.locale, 'play')}
-          </button>
-          <details className="how-it-works">
-            <summary>{t(preferences.locale, 'howItWorks')}</summary>
-            <p>
-              Tria un amic, toca un lloc del mapa i revisa les pistes. També pots arrossegar les
-              peces.
-            </p>
-          </details>
-          <p className="home-stat">{statistics.completed} aventures completades</p>
+          <div className="home-hero__copy">
+            <p className="eyebrow">{t(preferences.locale, 'heroEyebrow')}</p>
+            <h1>{t(preferences.locale, 'heroTitle')}</h1>
+            <p className="home-hero__description">{t(preferences.locale, 'heroDescription')}</p>
+            <DifficultySelector
+              value={preferences.difficulty}
+              locale={preferences.locale}
+              label={t(preferences.locale, 'difficulty')}
+              onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
+            />
+            <div className="home-hero__actions">
+              <button
+                type="button"
+                className="button button--large"
+                disabled={generating}
+                onClick={() => startGame()}
+              >
+                <span aria-hidden="true">✦</span>{' '}
+                {generating ? '…' : t(preferences.locale, 'play')}
+              </button>
+              <p className="home-stat">
+                <strong>{statistics.completed}</strong>{' '}
+                {t(preferences.locale, 'adventuresCompleted')}
+              </p>
+            </div>
+            <details className="how-it-works">
+              <summary>{t(preferences.locale, 'howItWorks')}</summary>
+              <p>{t(preferences.locale, 'howToPlayText')}</p>
+            </details>
+          </div>
+          <div className="home-hero__scene" aria-hidden="true">
+            <span className="scene-sun">☀</span>
+            <span className="scene-cloud scene-cloud--one">☁</span>
+            <span className="scene-cloud scene-cloud--two">☁</span>
+            <div className="scene-hill scene-hill--back" />
+            <div className="scene-hill scene-hill--front" />
+            <span className="scene-friend scene-friend--one">🦊</span>
+            <span className="scene-friend scene-friend--two">🐰</span>
+            <span className="scene-flower scene-flower--one">✿</span>
+            <span className="scene-flower scene-flower--two">✿</span>
+          </div>
         </section>
         <InstallPrompt label={t(preferences.locale, 'install')} />
         {showSettings && (
@@ -244,28 +259,62 @@ export default function App() {
   const availableCharacters = unplacedCharacters(game)
 
   return (
-    <main className="app-shell game-screen">
+    <main className={`app-shell game-screen theme--${game.puzzle.theme}`}>
       <GameHeader
-        title={copy.title}
         online={online}
         connectionLabel={connectionLabel}
         settingsLabel={t(preferences.locale, 'settings')}
         onOpenSettings={() => setShowSettings(true)}
       />
-      <section className="story-card">
-        <p>{copy.introduction}</p>
-        <strong>{copy.objective}</strong>
+      <section className="adventure-banner">
+        <div className="adventure-banner__title">
+          <span className="adventure-banner__stamp" aria-hidden="true">
+            {game.puzzle.characters[0]?.emoji ?? '✦'}
+          </span>
+          <div>
+            <p className="eyebrow">
+              {t(preferences.locale, 'adventure')} · {t(preferences.locale, 'difficulty')}
+            </p>
+            <h1>{copy.title}</h1>
+            <p>{copy.introduction}</p>
+          </div>
+        </div>
+        <div className="adventure-banner__metrics">
+          <div>
+            <strong>
+              {gameProgress.placed}
+              <small>/{gameProgress.total}</small>
+            </strong>
+            <span>{t(preferences.locale, 'progress')}</span>
+          </div>
+          <div>
+            <strong>{game.moves}</strong>
+            <span>{t(preferences.locale, 'moves')}</span>
+          </div>
+        </div>
       </section>
-      <p className="progress-line">
-        {t(preferences.locale, 'progress')}: {gameProgress.placed}/{gameProgress.total} ·{' '}
-        {t(preferences.locale, 'moves')}: {game.moves}
-      </p>
+      <p className="objective-line">{copy.objective}</p>
       <p className="sr-only" aria-live="polite">
         {game.feedback ?? notice}
       </p>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="game-layout">
           <section className="map-area">
+            <div className="map-area__heading">
+              <div>
+                <p className="eyebrow">{t(preferences.locale, 'map')}</p>
+                <h2>
+                  {game.selectedCharacterId
+                    ? game.puzzle.characters.find(
+                        (character) => character.id === game.selectedCharacterId,
+                      )?.name
+                    : t(preferences.locale, 'mapInstruction')}
+                </h2>
+              </div>
+              <span className="map-area__prompt">
+                {t(preferences.locale, 'mapInstruction')}
+              </span>
+            </div>
             <GameBoard
               positions={game.puzzle.positions}
               characters={game.puzzle.characters}
@@ -309,36 +358,40 @@ export default function App() {
         </div>
       </DndContext>
       <div className="game-actions" aria-label="Accions de joc">
-        <button
-          type="button"
-          onClick={() => runGameAction({ type: 'undo' })}
-          disabled={game.past.length === 0}
-        >
-          {t(preferences.locale, 'undo')}
-        </button>
-        <button
-          type="button"
-          onClick={() => runGameAction({ type: 'redo' })}
-          disabled={game.future.length === 0}
-        >
-          {t(preferences.locale, 'redo')}
-        </button>
-        <button type="button" onClick={() => runGameAction({ type: 'reset' })}>
-          {t(preferences.locale, 'restart')}
-        </button>
-        <button type="button" onClick={() => runGameAction({ type: 'hint' })}>
-          {t(preferences.locale, 'hint')}
-        </button>
-        <button
-          type="button"
-          className="button"
-          onClick={() => runGameAction({ type: 'check' })}
-        >
-          {t(preferences.locale, 'check')}
-        </button>
-        <button type="button" onClick={() => startGame()}>
-          {t(preferences.locale, 'newGame')}
-        </button>
+        <div className="game-actions__secondary">
+          <button
+            type="button"
+            onClick={() => runGameAction({ type: 'undo' })}
+            disabled={game.past.length === 0}
+          >
+            {t(preferences.locale, 'undo')}
+          </button>
+          <button
+            type="button"
+            onClick={() => runGameAction({ type: 'redo' })}
+            disabled={game.future.length === 0}
+          >
+            {t(preferences.locale, 'redo')}
+          </button>
+          <button type="button" onClick={() => runGameAction({ type: 'reset' })}>
+            {t(preferences.locale, 'restart')}
+          </button>
+          <button type="button" onClick={() => runGameAction({ type: 'hint' })}>
+            {t(preferences.locale, 'hint')}
+          </button>
+        </div>
+        <div className="game-actions__primary">
+          <button type="button" onClick={() => startGame()}>
+            {t(preferences.locale, 'newGame')}
+          </button>
+          <button
+            type="button"
+            className="button"
+            onClick={() => runGameAction({ type: 'check' })}
+          >
+            {t(preferences.locale, 'check')}
+          </button>
+        </div>
       </div>
       {(game.feedback || notice) && (
         <p className="feedback" role="status">

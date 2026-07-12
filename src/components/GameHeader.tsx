@@ -1,5 +1,4 @@
 interface GameHeaderProps {
-  readonly title: string
   readonly online: boolean
   readonly connectionLabel: string
   readonly settingsLabel: string
@@ -7,7 +6,6 @@ interface GameHeaderProps {
 }
 
 export const GameHeader = ({
-  title,
   online,
   connectionLabel,
   settingsLabel,
@@ -15,7 +13,10 @@ export const GameHeader = ({
 }: GameHeaderProps) => (
   <header className="game-header">
     <a className="game-header__brand" href="/" aria-label="Logic Garden, inici">
-      <span aria-hidden="true">✦</span> Logic Garden
+      <span className="game-header__mark" aria-hidden="true">
+        LG
+      </span>
+      <span>Logic Garden</span>
     </a>
     <div className="game-header__tools">
       <span className={`connection-pill ${online ? '' : 'connection-pill--offline'}`}>
@@ -30,6 +31,5 @@ export const GameHeader = ({
         ⚙
       </button>
     </div>
-    <h1>{title}</h1>
   </header>
 )

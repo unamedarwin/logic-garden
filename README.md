@@ -79,6 +79,13 @@ focus and activate a character button, then activate a location button. The game
 visible focus, ARIA live announcements, 44-pixel touch targets, and reduced-motion support.
 Hints are derived from the solver, never a stored answer.
 
+## Visual direction
+
+The interface uses an illustrated field-guide direction: warm paper, garden colors, inked
+outlines, a playful title scene, and a map that stays visually dominant during play. Puzzle
+clues read like a small notebook and controls are grouped by intent, so the next action is
+clear on mobile and desktop without relying on color alone.
+
 ## Languages and wording
 
 Catalan, Spanish, and English are available in settings. Every clue is a discriminated

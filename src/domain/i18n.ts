@@ -37,6 +37,13 @@ type UiKey =
   | 'map'
   | 'hintsUsed'
   | 'install'
+  | 'heroEyebrow'
+  | 'heroTitle'
+  | 'heroDescription'
+  | 'howToPlayText'
+  | 'adventuresCompleted'
+  | 'adventure'
+  | 'mapInstruction'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -68,6 +75,14 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     map: 'Mapa del puzzle',
     hintsUsed: 'pistes',
     install: 'Instal·la Logic Garden',
+    heroEyebrow: 'Puzzles tranquils per a ments curioses',
+    heroTitle: 'Les pistes fan créixer idees.',
+    heroDescription:
+      'Col·loca cada amic al seu racó i resol una aventura que només té una resposta.',
+    howToPlayText: 'Tria un amic, toca un lloc del mapa i deixa que les pistes et guiïn.',
+    adventuresCompleted: 'aventures completades',
+    adventure: 'Aventura',
+    mapInstruction: 'Tria un amic i després un lloc del mapa.',
   },
   es: {
     play: 'Jugar',
@@ -98,6 +113,14 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     map: 'Mapa del puzzle',
     hintsUsed: 'pistas',
     install: 'Instala Logic Garden',
+    heroEyebrow: 'Puzles tranquilos para mentes curiosas',
+    heroTitle: 'Las pistas hacen crecer ideas.',
+    heroDescription:
+      'Coloca cada amigo en su rincón y resuelve una aventura con una sola respuesta.',
+    howToPlayText: 'Elige un amigo, toca un lugar del mapa y deja que las pistas te guíen.',
+    adventuresCompleted: 'aventuras completadas',
+    adventure: 'Aventura',
+    mapInstruction: 'Elige un amigo y después un lugar del mapa.',
   },
   en: {
     play: 'Play',
@@ -128,6 +151,14 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     map: 'Puzzle map',
     hintsUsed: 'hints',
     install: 'Install Logic Garden',
+    heroEyebrow: 'Gentle puzzles for curious minds',
+    heroTitle: 'Clues help ideas grow.',
+    heroDescription:
+      'Place every friend in their spot and solve an adventure with one true answer.',
+    howToPlayText: 'Choose a friend, tap a map place, and let the clues guide you.',
+    adventuresCompleted: 'adventures completed',
+    adventure: 'Adventure',
+    mapInstruction: 'Choose a friend, then choose a place on the map.',
   },
 }
 

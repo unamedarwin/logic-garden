@@ -39,6 +39,12 @@ changes and add only intentional domain terms to its project dictionary.
 Drag-and-drop must always have a click/tap and keyboard alternative. Do not encode
 information using color alone. Respect reduced-motion preferences.
 
+## Visual design
+
+Treat Logic Garden as an illustrated field guide, not a collection of interchangeable
+cards. Keep the map visually dominant, make the current action easy to scan, and preserve
+the warm paper, garden, and hand-drawn-ink direction across responsive layouts.
+
 ## Verification
 
 After meaningful changes, run formatting, lint, type checking, unit tests, and the

@@ -28,7 +28,7 @@ const LocationCell = ({
   return (
     <article
       ref={setNodeRef}
-      className={`location-cell ${isOver ? 'location-cell--over' : ''}`}
+      className={`location-cell ${character ? 'location-cell--filled' : ''} location-cell--row-${position.row} ${isOver ? 'location-cell--over' : ''}`}
     >
       <button
         type="button"
@@ -37,6 +37,9 @@ const LocationCell = ({
         aria-label={actionLabel}
       >
         <span className="location-cell__label">{position.label}</span>
+        <span className="location-cell__marker" aria-hidden="true">
+          ✦
+        </span>
         {!character && <span className="location-cell__empty">{emptyLabel}</span>}
       </button>
       {character && (
