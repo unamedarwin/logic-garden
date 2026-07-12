@@ -13,7 +13,9 @@ import {
 } from '../domain/types'
 import {
   planObstacles,
+  spatialPlanForId,
   spatialPlanIdsForAudience,
+  spatialPlanZoneAt,
   type SpatialPlanId,
 } from '../domain/spatialPlan'
 import { difficultyConfigs, logicGridCharacterCounts, logicGridDimensions } from './difficulty'
@@ -69,6 +71,8 @@ export const generateWorld = (
     boardMode === 'logic-grid'
       ? (() => {
           const gridSize = logicGridDimensions[difficulty]
+          const spatialPlan = spatialPlanForId(spatialPlanId)
+          if (!spatialPlan) throw new Error('No s’ha pogut carregar la planta espacial.')
           const obstacleObjects = random.shuffle(theme.items)
           const blocked = new Map(
             planObstacles(spatialPlanId, gridSize, gridSize).map(({ row, column }, index) => [
@@ -79,11 +83,12 @@ export const generateWorld = (
           return Array.from({ length: gridSize * gridSize }, (_, index) => {
             const row = Math.floor(index / gridSize)
             const column = index % gridSize
-            const place = theme.places[column % theme.places.length]!
+            const zone = spatialPlanZoneAt(spatialPlan, column, row, gridSize, gridSize)
+            const place = theme.places[zone % theme.places.length]!
             const obstacle = blocked.get(`${row}:${column}`)
             return {
               id: positionId(`position-${row}-${column}`),
-              placeId: placeId(`place-${row}-${column}`),
+              placeId: placeId(`place-${zone}`),
               row,
               column,
               label: `${place} · ${row + 1}`,
@@ -103,27 +108,33 @@ export const generateWorld = (
   const solution =
     boardMode === 'logic-grid'
       ? (() => {
-          const gridSize = logicGridDimensions[difficulty]
-          const values = Array.from({ length: gridSize }, (_, value) => value)
+          const adjacentToObstacle = positions.filter(
+            (position) =>
+              !position.blocked &&
+              positions.some(
+                (candidate) =>
+                  candidate.blocked &&
+                  Math.abs(candidate.row - position.row) +
+                    Math.abs(candidate.column - position.column) ===
+                    1,
+              ),
+          )
 
           for (let attempt = 0; attempt < 80; attempt += 1) {
-            const rows = random.shuffle(values).slice(0, characterCount)
-            const availableColumns = random.shuffle(values)
+            const candidates = random.shuffle(adjacentToObstacle)
             const selected: Position[] = []
 
-            for (const row of rows) {
-              const column = availableColumns.find((candidate) => {
-                const position = positions.find(
-                  (item) => item.row === row && item.column === candidate,
-                )
-                return position && !position.blocked
-              })
-              if (column === undefined) break
-              availableColumns.splice(availableColumns.indexOf(column), 1)
-              const position = positions.find(
-                (item) => item.row === row && item.column === column,
+            for (let index = 0; index < characterCount; index += 1) {
+              const position = candidates.find(
+                (candidate) =>
+                  !selected.some(
+                    (placed) =>
+                      placed.row === candidate.row || placed.column === candidate.column,
+                  ),
               )
-              if (position) selected.push(position)
+              if (!position) break
+              selected.push(position)
+              candidates.splice(candidates.indexOf(position), 1)
             }
 
             if (selected.length === characterCount) {

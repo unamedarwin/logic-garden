@@ -287,6 +287,33 @@ export const defaultSpatialPlanFor = (audience: SpatialAudience) => {
   return plan
 }
 
+const containsPoint = (path: readonly PlanPoint[], point: PlanPoint) => {
+  let inside = false
+  for (let index = 0, previous = path.length - 1; index < path.length; previous = index++) {
+    const first = path[index]!
+    const second = path[previous]!
+    const crosses =
+      first.y > point.y !== second.y > point.y &&
+      point.x < ((second.x - first.x) * (point.y - first.y)) / (second.y - first.y) + first.x
+    if (crosses) inside = !inside
+  }
+  return inside
+}
+
+export const spatialPlanZoneAt = (
+  plan: SpatialPlan,
+  column: number,
+  row: number,
+  columns: number,
+  rows: number,
+) => {
+  const center = { x: (column + 0.5) / columns, y: (row + 0.5) / rows }
+  return Math.max(
+    0,
+    plan.zones.findIndex((zone) => containsPoint(zone.path, center)),
+  )
+}
+
 const obstacleCount = (size: number) => {
   if (size <= 6) return 4
   if (size <= 9) return 9

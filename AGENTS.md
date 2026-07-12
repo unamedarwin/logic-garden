@@ -68,6 +68,9 @@ and accessible DOM controls, not merely painted as scenery.
 Every floor-plan variant must form one complete partition: rooms touch along shared walls, cover
 the full interior without gaps or overlaps, and contain only horizontal or vertical edges. Keep
 the catalog geometry and obstacle emojis under automated regression tests.
+Every spatial position must inherit its `placeId` from the room polygon that contains its center.
+Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
+obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, and seeded puzzle identifier, but never a solution or any profile data.

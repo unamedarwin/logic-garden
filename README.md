@@ -132,6 +132,9 @@ play.
 Catalan, Spanish, and English are available in settings. Every clue is a discriminated
 union value; `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
+Spatial cells inherit the room that geometrically contains them. Exact spatial clues identify a
+single playable cell by naming its room, a visible adjacent obstacle, and the direction from that
+obstacle; they never expose route, row, column, step, or distance wording.
 
 `cspell.json` loads Catalan and Spanish dictionaries alongside the built-in English one.
 `pnpm spellcheck` is part of `pnpm verify`. Add only intentional names and technical terms

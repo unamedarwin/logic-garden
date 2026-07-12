@@ -28,10 +28,35 @@ export const generateCandidateClues = (
 
   for (const character of puzzle.characters) {
     const position = solutionPosition(puzzle, solution, character.id)
-    const otherPosition = puzzle.positions.find((candidate) => candidate.id !== position.id)
+    const otherPosition = puzzle.positions.find(
+      (candidate) =>
+        candidate.id !== position.id &&
+        !candidate.blocked &&
+        (puzzle.boardMode === 'map' ||
+          puzzle.positions.some(
+            (obstacle) =>
+              obstacle.blocked &&
+              Math.abs(obstacle.row - candidate.row) +
+                Math.abs(obstacle.column - candidate.column) ===
+                1,
+          )),
+    )
     const otherItem = puzzle.items.find((item) => item.id !== character.itemId)
 
-    if (random.next() < 0.5) {
+    if (puzzle.boardMode === 'logic-grid') {
+      add({
+        ...clueBase(random, 'character-at-position', character.id),
+        type: 'character-at-position',
+        characterId: character.id,
+        positionId: position.id,
+      })
+      add({
+        ...clueBase(random, 'character-in-place', character.id),
+        type: 'character-in-place',
+        characterId: character.id,
+        placeId: position.placeId,
+      })
+    } else if (random.next() < 0.5) {
       add({
         ...clueBase(random, 'character-at-position', character.id),
         type: 'character-at-position',

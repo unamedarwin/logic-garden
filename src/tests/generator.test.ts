@@ -2,6 +2,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { getTheme } from '../domain/themes'
 import type { Difficulty } from '../domain/types'
+import { renderClue } from '../domain/vocabulary'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
 import { countSolutions, solve } from '../solver/solver'
@@ -93,6 +94,25 @@ describe('seeded puzzle generator', () => {
 
       expect(puzzle.clues.some((clue) => forbiddenTypes.has(clue.type))).toBe(false)
       expect(puzzle.clues.length).toBeGreaterThan(0)
+      const rendered = (['ca', 'es', 'en'] as const).flatMap((locale) =>
+        puzzle.clues.map((clue) => renderClue(puzzle, clue, locale)),
+      )
+      expect(rendered.join(' ')).not.toMatch(
+        /\b(ruta|rutas|route|routes|fila|filas|row|rows|columna|columnas|column|columns|passos|pasos|steps)\b/iu,
+      )
+      expect(
+        puzzle.clues
+          .filter((clue) => clue.type === 'character-at-position')
+          .every((clue) => {
+            const text = renderClue(puzzle, clue, 'ca')
+            return puzzle.positions.some(
+              (position) =>
+                position.blocked &&
+                position.obstacleLabel &&
+                text.includes(position.obstacleLabel),
+            )
+          }),
+      ).toBe(true)
     }
   })
 

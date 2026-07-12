@@ -1,4 +1,13 @@
-import type { CharacterId, Clue, ItemId, Locale, PlaceId, PositionId, Puzzle } from './types'
+import type {
+  CharacterId,
+  Clue,
+  ItemId,
+  Locale,
+  PlaceId,
+  Position,
+  PositionId,
+  Puzzle,
+} from './types'
 
 type Templates = Record<Clue['type'], readonly string[]>
 
@@ -79,14 +88,17 @@ const mapTemplates: Record<Locale, Templates> = {
 
 const gridTemplates: Record<Locale, Templates> = {
   ca: {
-    'character-at-position': ['{a}, amb {i}, ocupa {p} a la ruta {r}.'],
-    'character-not-at-position': ['{a} no ocupa {p} a la ruta {r}.'],
+    'character-at-position': [
+      '{a}, amb {i}, és {d} {o}, dins de {p}.',
+      '{a} ha deixat {i} {d} {o}, a {p}.',
+    ],
+    'character-not-at-position': ['{a} no és {d} {o}, a {p}.'],
     'character-in-place': ['{a}, amb {i}, és a {p}.'],
     'character-not-in-place': ['{a} no és a {p}.'],
     adjacent: ['{a} i {b} tenen espais veïns.'],
     'not-adjacent': ['{a} i {b} no tenen espais veïns.'],
-    'same-row': ['{a} i {b} segueixen la mateixa ruta.'],
-    'different-row': ['{a} i {b} segueixen rutes diferents.'],
+    'same-row': ['{a} i {b} ocupen la mateixa franja.'],
+    'different-row': ['{a} i {b} ocupen franges diferents.'],
     'same-column': ['{a} i {b} comparteixen zona.'],
     'different-column': ['{a} i {b} no comparteixen zona.'],
     'left-of': ["{a}, amb {i}, és a l'esquerra de {b}."],
@@ -99,14 +111,17 @@ const gridTemplates: Record<Locale, Templates> = {
     'does-not-have-item': ['{i} no acompanya {a}.'],
   },
   es: {
-    'character-at-position': ['{a}, con {i}, ocupa {p} en la ruta {r}.'],
-    'character-not-at-position': ['{a} no ocupa {p} en la ruta {r}.'],
+    'character-at-position': [
+      '{a}, con {i}, está {d} {o}, en {p}.',
+      '{a} ha dejado {i} {d} {o}, dentro de {p}.',
+    ],
+    'character-not-at-position': ['{a} no está {d} {o}, en {p}.'],
     'character-in-place': ['{a}, con {i}, está en {p}.'],
     'character-not-in-place': ['{a} no está en {p}.'],
     adjacent: ['{a} y {b} tienen espacios vecinos.'],
     'not-adjacent': ['{a} y {b} no tienen espacios vecinos.'],
-    'same-row': ['{a} y {b} siguen la misma ruta.'],
-    'different-row': ['{a} y {b} siguen rutas distintas.'],
+    'same-row': ['{a} y {b} ocupan la misma franja.'],
+    'different-row': ['{a} y {b} ocupan franjas distintas.'],
     'same-column': ['{a} y {b} comparten zona.'],
     'different-column': ['{a} y {b} no comparten zona.'],
     'left-of': ['{a}, con {i}, está a la izquierda de {b}.'],
@@ -119,14 +134,17 @@ const gridTemplates: Record<Locale, Templates> = {
     'does-not-have-item': ['{i} no acompaña a {a}.'],
   },
   en: {
-    'character-at-position': ['{a}, with {i}, takes {p} on route {r}.'],
-    'character-not-at-position': ['{a} does not take {p} on route {r}.'],
+    'character-at-position': [
+      '{a}, with {i}, is {d} {o}, in {p}.',
+      '{a} left {i} {d} {o}, inside {p}.',
+    ],
+    'character-not-at-position': ['{a} is not {d} {o}, in {p}.'],
     'character-in-place': ['{a}, with {i}, is in {p}.'],
     'character-not-in-place': ['{a} is not in {p}.'],
     adjacent: ['{a} and {b} have neighboring spaces.'],
     'not-adjacent': ['{a} and {b} do not have neighboring spaces.'],
-    'same-row': ['{a} and {b} follow the same route.'],
-    'different-row': ['{a} and {b} follow different routes.'],
+    'same-row': ['{a} and {b} occupy the same strip.'],
+    'different-row': ['{a} and {b} occupy different strips.'],
     'same-column': ['{a} and {b} share a zone.'],
     'different-column': ['{a} and {b} do not share a zone.'],
     'left-of': ['{a}, with {i}, is left of {b}.'],
@@ -153,6 +171,34 @@ const placeLabel = (puzzle: Puzzle, placeId: PlaceId) =>
 
 const gridPlaceLabel = (label: string) => label.replace(/\s·\s\d+$/u, '')
 
+const landmarkDirection = (position: Position, obstacle: Position, locale: Locale) => {
+  const directions = {
+    ca: {
+      left: "a l'esquerra de",
+      right: 'a la dreta de',
+      above: 'damunt de',
+      below: 'sota de',
+    },
+    es: {
+      left: 'a la izquierda de',
+      right: 'a la derecha de',
+      above: 'encima de',
+      below: 'debajo de',
+    },
+    en: {
+      left: 'to the left of',
+      right: 'to the right of',
+      above: 'above',
+      below: 'below',
+    },
+  } as const
+  const set = directions[locale]
+  if (position.column < obstacle.column) return set.left
+  if (position.column > obstacle.column) return set.right
+  if (position.row < obstacle.row) return set.above
+  return set.below
+}
+
 export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') => {
   const characterName = (id: CharacterId) => valueOrFallback(puzzle.characters, id)
   const positionFor = (id: PositionId) =>
@@ -175,7 +221,21 @@ export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
           ? gridPlaceLabel(position.label)
           : position.label
         : 'here'
-      values.r = position ? String(position.row + 1) : '1'
+      const obstacle = position
+        ? puzzle.positions.find(
+            (candidate) =>
+              candidate.blocked &&
+              Math.abs(candidate.row - position.row) +
+                Math.abs(candidate.column - position.column) ===
+                1,
+          )
+        : undefined
+      const near = { ca: 'prop de', es: 'junto a', en: 'near' } as const
+      values.d =
+        position && obstacle ? landmarkDirection(position, obstacle, locale) : near[locale]
+      values.o = obstacle
+        ? `${obstacle.obstacleEmoji ?? ''} ${obstacle.obstacleLabel ?? values.p}`.trim()
+        : values.p
       break
     }
     case 'character-in-place':

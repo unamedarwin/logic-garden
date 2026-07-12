@@ -10,9 +10,10 @@ interface GridObjectIconsProps {
 export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps) => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
   const rows = Math.max(...positions.map((position) => position.row)) + 1
-  const places = positions
-    .filter((position) => position.row === 0)
-    .map((position) => gridPlaceLabel(position.label))
+  const places = plan.zones.map((_, index) => {
+    const position = positions.find((candidate) => candidate.placeId === `place-${index}`)
+    return position ? gridPlaceLabel(position.label) : ''
+  })
 
   return (
     <div
