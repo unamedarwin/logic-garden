@@ -12,8 +12,13 @@ import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
 
-export const GENERATOR_VERSION = 2
+export const GENERATOR_VERSION = 3
 const maximumAttempts = 12
+
+const isNarrativeGridClue = (clue: Puzzle['clues'][number]) =>
+  ['adjacent', 'not-adjacent', 'left-of', 'right-of', 'above', 'below', 'between'].includes(
+    clue.type,
+  )
 
 const difficultyScore = (puzzle: Puzzle) => {
   const negativeClues = puzzle.clues.filter(
@@ -76,10 +81,19 @@ export const generatePuzzle = (
         exploredNodes: 0,
       },
     }
-    const clues = selectMinimalUniqueClues(
-      basePuzzle,
-      random.shuffle(generateCandidateClues(basePuzzle, world.solution, random)),
+    const shuffledCandidates = random.shuffle(
+      generateCandidateClues(basePuzzle, world.solution, random),
     )
+    const candidates = (() => {
+      if (world.boardMode !== 'logic-grid') return shuffledCandidates
+      const narrativeCandidates = shuffledCandidates.filter(isNarrativeGridClue)
+      const earlyNarrative = narrativeCandidates.slice(0, 2)
+      const remainingCandidates = shuffledCandidates.filter(
+        (clue) => !earlyNarrative.includes(clue),
+      )
+      return [...earlyNarrative, ...remainingCandidates]
+    })()
+    const clues = selectMinimalUniqueClues(basePuzzle, candidates)
     const candidate: Puzzle = {
       ...basePuzzle,
       clues,

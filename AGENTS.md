@@ -49,9 +49,16 @@ paper, garden, and hand-drawn-ink direction across responsive layouts. Teen and 
 must have visibly distinct themes while preserving the same safe, local, accessible game
 mechanics. Use PixiJS only as a decorative grid renderer; keep semantic DOM controls as the
 interaction and accessibility layer.
-On small screens, keep the map and character picker in one compact workspace. Put long clue
-lists behind an accessible local view switcher rather than forcing scrolls between a friend
-and the map location where the player places it.
+On small screens, keep the map, character picker, and the selected person's contextual clues in
+one compact workspace. Use a horizontally scrollable people rail rather than forcing navigation
+between a person, their clues, and the map location where they are placed. Keep the complete clue
+list available as an accessible collapsed support panel.
+
+Teen and adult modes share the same deduction rules, board dimensions, and irregular spatial
+plan geometry. Their visual themes and safe content may differ, but neither mode may fall back to
+coordinate-heavy distance, step, or row/column clue wording. The game counter and solved-history
+records are local-only; history may retain shareable seed metadata and completion statistics, but
+never a solution or profile data.
 
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, and seeded puzzle identifier, but never a solution or any profile data.

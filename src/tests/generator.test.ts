@@ -73,6 +73,23 @@ describe('seeded puzzle generator', () => {
     expect(countSolutions(teenPuzzle, { limit: 2 })).toBe(1)
   })
 
+  it('uses visual spatial clues for teen and adult grids without distance or axis wording', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      const puzzle = generatePuzzle('medium', `spatial-clues-${audience}`, audience)
+      const forbiddenTypes = new Set([
+        'distance',
+        'same-row',
+        'different-row',
+        'same-column',
+        'different-column',
+      ])
+      const directionalTypes = new Set(['left-of', 'right-of', 'above', 'below'])
+
+      expect(puzzle.clues.some((clue) => forbiddenTypes.has(clue.type))).toBe(false)
+      expect(puzzle.clues.some((clue) => directionalTypes.has(clue.type))).toBe(true)
+    }
+  })
+
   it('varies rectangular children maps between both seeded orientations', () => {
     const shapes = new Set(
       Array.from({ length: 24 }, (_, index) => {

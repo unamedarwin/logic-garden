@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -83,7 +83,9 @@ describe('game interface', () => {
     await user.click(screen.getByRole('button', { name: 'Desfer' }))
     expect(screen.getByRole('button', { name: 'Refer' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Pista' }))
-    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(
+      screen.getByRole('dialog', { name: 'De qui necessites una pista?' }),
+    ).toBeInTheDocument()
   })
 
   it('switches the visible interface language without changing the puzzle logic', async () => {
@@ -126,17 +128,18 @@ describe('game interface', () => {
     expect(container.querySelector('[data-character-id]')).toBeInTheDocument()
   })
 
-  it('switches between the compact board and clues views', async () => {
+  it('asks which person needs a hint when no person is selected', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
 
-    const views = screen.getByRole('navigation', { name: 'Vistes del joc' })
-    const boardButton = within(views).getByRole('button', { name: 'Tauler' })
-    const cluesButton = within(views).getByRole('button', { name: 'Pistes' })
-    await user.click(cluesButton)
+    await user.click(screen.getByRole('button', { name: 'Pista' }))
+    const dialog = screen.getByRole('dialog', { name: 'De qui necessites una pista?' })
+    const person = dialog.querySelector('.hint-character-dialog__choices button')
+    if (!person) throw new Error('Expected a person choice in the hint dialog')
+    await user.click(person)
 
-    expect(boardButton).toHaveAttribute('aria-pressed', 'false')
-    expect(cluesButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/Pista aplicada/u)
   })
 })

@@ -1,5 +1,6 @@
 import type { CharacterId, PartialAssignment, PositionId, Puzzle } from '../domain/types'
 import { getSolverHint, validateAssignment } from './validation'
+import { solve } from '../solver/solver'
 
 export interface GameSnapshot {
   readonly assignments: PartialAssignment
@@ -15,6 +16,7 @@ export interface GameState {
   readonly moves: number
   readonly hintsUsed: number
   readonly status: 'playing' | 'won'
+  readonly finishedAt?: number
   readonly feedback?: string
   readonly highlightedClueId?: string
   readonly startedAt: number
@@ -32,7 +34,7 @@ export type GameAction =
   | { readonly type: 'redo' }
   | { readonly type: 'reset' }
   | { readonly type: 'check' }
-  | { readonly type: 'hint' }
+  | { readonly type: 'hint'; readonly characterId?: CharacterId }
 
 const snapshot = (state: GameState): GameSnapshot => ({
   assignments: state.assignments,
@@ -63,6 +65,7 @@ const restore = (
   future,
   selectedCharacterId: undefined,
   status: 'playing' as const,
+  finishedAt: undefined,
   feedback: undefined,
 })
 
@@ -86,6 +89,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         moves: state.moves + 1,
         selectedCharacterId: undefined,
         status: 'playing',
+        finishedAt: undefined,
         feedback: undefined,
         highlightedClueId: undefined,
       }
@@ -155,17 +159,94 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       return {
         ...state,
         status: result.correct ? 'won' : 'playing',
+        finishedAt: result.correct ? Date.now() : undefined,
         feedback: result.message,
         highlightedClueId: undefined,
       }
     }
     case 'hint': {
-      const hint = getSolverHint(state.puzzle, state.assignments, state.hintsUsed)
+      const characterId = action.characterId ?? state.selectedCharacterId
+      if (!characterId) {
+        return {
+          ...state,
+          feedback: 'Tria la persona que necessita una pista.',
+          highlightedClueId: undefined,
+        }
+      }
+
+      const maximumHints = state.puzzle.characters.length - 1
+      if (state.hintsUsed >= maximumHints) {
+        return {
+          ...state,
+          feedback: 'Ja tens prou pistes per trobar l’últim lloc.',
+          highlightedClueId: undefined,
+        }
+      }
+
+      const solution = solve(state.puzzle)
+      const targetPositionId = solution?.[characterId]
+      const targetPosition = state.puzzle.positions.find(
+        (position) => position.id === targetPositionId,
+      )
+      const character = state.puzzle.characters.find(
+        (candidate) => candidate.id === characterId,
+      )
+      if (!solution || !targetPosition || !character) {
+        const hint = getSolverHint(state.puzzle, state.assignments, state.hintsUsed)
+        return {
+          ...state,
+          feedback: hint.message,
+          highlightedClueId: hint.clueId,
+        }
+      }
+
+      const conflictingCharacterIds = state.puzzle.characters
+        .filter((candidate) => candidate.id !== characterId)
+        .filter((candidate) => {
+          const assignedPositionId = state.assignments[candidate.id]
+          const assignedPosition = state.puzzle.positions.find(
+            (position) => position.id === assignedPositionId,
+          )
+          if (!assignedPosition) return false
+          if (assignedPosition.id === targetPosition.id) return true
+          return (
+            state.puzzle.boardMode === 'logic-grid' &&
+            (assignedPosition.row === targetPosition.row ||
+              assignedPosition.column === targetPosition.column)
+          )
+        })
+        .map((candidate) => candidate.id)
+      const isAlreadyCorrect =
+        state.assignments[characterId] === targetPosition.id &&
+        conflictingCharacterIds.length === 0
+      if (isAlreadyCorrect) {
+        return {
+          ...state,
+          selectedCharacterId: undefined,
+          feedback: `${character.name} ja és al lloc correcte.`,
+          highlightedClueId: undefined,
+        }
+      }
+
+      const assignments: Partial<Record<CharacterId, PositionId>> = Object.fromEntries(
+        Object.entries(state.assignments).filter(
+          ([assignedCharacterId]) =>
+            assignedCharacterId !== characterId &&
+            !conflictingCharacterIds.includes(assignedCharacterId as CharacterId),
+        ),
+      ) as Partial<Record<CharacterId, PositionId>>
+      assignments[characterId] = targetPosition.id
+
       return {
         ...state,
+        assignments,
+        past: [...state.past, snapshot(state)],
+        future: [],
+        moves: state.moves + 1,
         hintsUsed: state.hintsUsed + 1,
-        feedback: hint.message,
-        highlightedClueId: hint.clueId,
+        selectedCharacterId: undefined,
+        feedback: `Pista aplicada: ${character.name} ja és al seu espai.`,
+        highlightedClueId: undefined,
       }
     }
   }

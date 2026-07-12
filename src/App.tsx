@@ -8,10 +8,14 @@ import {
 import { useEffect, useState } from 'react'
 import { parseSharedGameRoute, shareUrl } from './app/routes'
 import { CharacterTray } from './components/CharacterTray'
+import { CharacterClueRail } from './components/CharacterClueRail'
 import { CluePanel } from './components/CluePanel'
+import { CompletedGames } from './components/CompletedGames'
 import { DifficultySelector } from './components/DifficultySelector'
 import { GameBoard } from './components/GameBoard'
 import { GameHeader } from './components/GameHeader'
+import { GameTimer } from './components/GameTimer'
+import { HintCharacterDialog } from './components/HintCharacterDialog'
 import { InstallPrompt } from './components/InstallPrompt'
 import { ProfileSetup } from './components/ProfileSetup'
 import { ResultDialog } from './components/ResultDialog'
@@ -19,7 +23,7 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { UpdatePrompt } from './components/UpdatePrompt'
 import { audienceHeroCopy, audienceLabel, boardActionCopy, t, themeCopy } from './domain/i18n'
 import { avatarOptions, type PlayerProfile } from './domain/profile'
-import type { Audience, Difficulty } from './domain/types'
+import { seed, type Audience, type Difficulty } from './domain/types'
 import {
   gameReducer,
   createGameState,
@@ -27,6 +31,7 @@ import {
   type GameState,
 } from './game/gameReducer'
 import { progress, unplacedCharacters } from './game/selectors'
+import { elapsedSeconds, formatCounter } from './game/time'
 import { generatePuzzle } from './generator/puzzleGenerator'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
 import { loadProfile, saveProfile } from './storage/profile'
@@ -37,16 +42,20 @@ import {
   savePreferences,
   type Preferences,
 } from './storage/preferences'
-import { loadStatistics, recordCompletion, type Statistics } from './storage/statistics'
+import {
+  loadStatistics,
+  recordCompletion,
+  type CompletedGame,
+  type Statistics,
+} from './storage/statistics'
 
 const emptyStatistics: Statistics = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   completed: 0,
   hintsUsed: 0,
   recentSeeds: [],
+  history: [],
 }
-
-type MobileGameView = 'board' | 'clues'
 
 const HomeScene = ({ audience }: { readonly audience: Audience }) => {
   if (audience === 'teens') {
@@ -103,8 +112,8 @@ export default function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null)
   const [notice, setNotice] = useState('')
-  const [mobileGameView, setMobileGameView] = useState<MobileGameView>('board')
   const [editingProfile, setEditingProfile] = useState(false)
+  const [showHintPicker, setShowHintPicker] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
@@ -178,7 +187,7 @@ export default function App() {
     try {
       const nextGame = createGameState(generatePuzzle(difficulty, source, profile.audience))
       setGame(nextGame)
-      setMobileGameView('board')
+      setShowHintPicker(false)
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
       setNotice('')
     } catch {
@@ -190,6 +199,7 @@ export default function App() {
 
   const returnToHome = () => {
     setGame(null)
+    setShowHintPicker(false)
     void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
     setNotice('')
@@ -210,12 +220,16 @@ export default function App() {
     setGame(nextGame)
     if (action.type === 'check' && nextGame.status === 'won' && game.status !== 'won') {
       void clearSavedGame()
-      void recordCompletion(nextGame.puzzle.seed, nextGame.hintsUsed)
-      setStatistics((current) => ({
-        ...current,
-        completed: current.completed + 1,
-        hintsUsed: current.hintsUsed + nextGame.hintsUsed,
-      }))
+      const finishedAt = nextGame.finishedAt ?? Date.now()
+      void recordCompletion({
+        seed: nextGame.puzzle.seed,
+        title: themeCopy(preferences.locale, nextGame.puzzle.theme).title,
+        audience: profile?.audience ?? 'children',
+        difficulty: nextGame.puzzle.difficulty,
+        elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
+        moves: nextGame.moves,
+        hintsUsed: nextGame.hintsUsed,
+      }).then(setStatistics)
     }
   }
 
@@ -236,9 +250,7 @@ export default function App() {
     }
   }
 
-  const shareCurrentGame = () => {
-    if (!game || !profile) return
-    const url = shareUrl(game.puzzle, profile.audience)
+  const shareWithSystemMenu = (url: string, title: string) => {
     const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(url)
@@ -248,12 +260,43 @@ export default function App() {
       }
     }
     if (navigator.share) {
-      void navigator.share({ title: 'Logic Garden', url }).catch(() => {
-        void copyLink()
-      })
+      void navigator.share({ title, text: title, url }).then(
+        () => setNotice(t(preferences.locale, 'shared')),
+        (error: unknown) => {
+          if (error instanceof Error && error.name === 'AbortError') return
+          void copyLink()
+        },
+      )
     } else {
       void copyLink()
     }
+  }
+
+  const shareCurrentGame = () => {
+    if (!game || !profile) return
+    shareWithSystemMenu(
+      shareUrl(game.puzzle, profile.audience),
+      `Logic Garden: ${game.puzzle.title}`,
+    )
+  }
+
+  const shareCompletedGame = (completedGame: CompletedGame) => {
+    shareWithSystemMenu(
+      shareUrl(
+        { difficulty: completedGame.difficulty, seed: seed(completedGame.seed) },
+        completedGame.audience,
+      ),
+      `Logic Garden: ${completedGame.title}`,
+    )
+  }
+
+  const requestHint = () => {
+    if (!game) return
+    if (game.selectedCharacterId) {
+      runGameAction({ type: 'hint' })
+      return
+    }
+    setShowHintPicker(true)
   }
 
   const connectionLabel = t(preferences.locale, online ? 'online' : 'offline')
@@ -326,6 +369,14 @@ export default function App() {
           </div>
           <HomeScene audience={profile.audience} />
         </section>
+        <CompletedGames
+          games={statistics.history}
+          locale={preferences.locale}
+          title={t(preferences.locale, 'completedGames')}
+          shareLabel={t(preferences.locale, 'share')}
+          movesLabel={t(preferences.locale, 'moves').toLowerCase()}
+          onShare={shareCompletedGame}
+        />
         <InstallPrompt label={t(preferences.locale, 'install')} />
         {showSettings && (
           <SettingsDialog
@@ -393,27 +444,18 @@ export default function App() {
         </div>
       </section>
       <p className="objective-line">{copy.objective}</p>
+      <div className="game-counter">
+        <GameTimer
+          startedAt={game.startedAt}
+          finishedAt={game.finishedAt}
+          label={t(preferences.locale, 'timer')}
+        />
+      </div>
       <p className="sr-only" aria-live="polite">
         {game.feedback ?? notice}
       </p>
-      <nav className="mobile-game-switcher" aria-label={t(preferences.locale, 'gameViews')}>
-        <button
-          type="button"
-          aria-pressed={mobileGameView === 'board'}
-          onClick={() => setMobileGameView('board')}
-        >
-          {t(preferences.locale, 'board')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={mobileGameView === 'clues'}
-          onClick={() => setMobileGameView('clues')}
-        >
-          {t(preferences.locale, 'clues')}
-        </button>
-      </nav>
       <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className={`game-layout game-layout--${mobileGameView}`}>
+        <div className="game-layout">
           <section className="map-area">
             <div className="map-area__heading">
               <div>
@@ -455,17 +497,31 @@ export default function App() {
                 runGameAction({ type: 'remove-character', characterId })
               }
             />
-            <div className="tray-wrap">
-              <h2>{t(preferences.locale, 'characters')}</h2>
-              <CharacterTray
-                characters={availableCharacters}
+            {game.puzzle.boardMode === 'logic-grid' ? (
+              <CharacterClueRail
+                puzzle={game.puzzle}
+                assignments={game.assignments}
+                locale={preferences.locale}
                 selectedCharacterId={game.selectedCharacterId}
                 label={t(preferences.locale, 'characters')}
+                emptyLabel={t(preferences.locale, 'noCharacterClue')}
                 onSelect={(character) =>
                   runGameAction({ type: 'select-character', characterId: character.id })
                 }
               />
-            </div>
+            ) : (
+              <div className="tray-wrap">
+                <h2>{t(preferences.locale, 'characters')}</h2>
+                <CharacterTray
+                  characters={availableCharacters}
+                  selectedCharacterId={game.selectedCharacterId}
+                  label={t(preferences.locale, 'characters')}
+                  onSelect={(character) =>
+                    runGameAction({ type: 'select-character', characterId: character.id })
+                  }
+                />
+              </div>
+            )}
           </section>
           <section className="clue-area">
             <CluePanel
@@ -496,7 +552,7 @@ export default function App() {
           <button type="button" onClick={() => runGameAction({ type: 'reset' })}>
             {t(preferences.locale, 'restart')}
           </button>
-          <button type="button" onClick={() => runGameAction({ type: 'hint' })}>
+          <button type="button" onClick={requestHint}>
             {t(preferences.locale, 'hint')}
           </button>
         </div>
@@ -531,10 +587,24 @@ export default function App() {
           onClose={() => setShowSettings(false)}
         />
       )}
+      {showHintPicker && (
+        <HintCharacterDialog
+          characters={game.puzzle.characters}
+          title={t(preferences.locale, 'hintPickerTitle')}
+          description={t(preferences.locale, 'hintPickerDescription')}
+          closeLabel={t(preferences.locale, 'close')}
+          onSelect={(character) => {
+            setShowHintPicker(false)
+            runGameAction({ type: 'hint', characterId: character.id })
+          }}
+          onClose={() => setShowHintPicker(false)}
+        />
+      )}
       {game.status === 'won' && (
         <ResultDialog
           title={copy.title}
           message={copy.victory}
+          elapsed={formatCounter(elapsedSeconds(game.startedAt, game.finishedAt))}
           moves={game.moves}
           hintsUsed={game.hintsUsed}
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
@@ -542,6 +612,7 @@ export default function App() {
           newGameLabel={t(preferences.locale, 'newGame')}
           changeDifficultyLabel={t(preferences.locale, 'changeDifficulty')}
           shareLabel={t(preferences.locale, 'share')}
+          timeLabel={t(preferences.locale, 'timer').toLowerCase()}
           onNewGame={() => startGame()}
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}

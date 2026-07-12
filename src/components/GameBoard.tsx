@@ -42,6 +42,13 @@ const LocationCell = ({
   logicGrid,
 }: LocationCellProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: `position:${position.id}` })
+  const isZoneHeading = logicGrid && position.row === 0
+  const zoneSuffix = ` · ${position.row + 1}`
+  const displayLabel = isZoneHeading
+    ? position.label.endsWith(zoneSuffix)
+      ? position.label.slice(0, -zoneSuffix.length)
+      : position.label
+    : `${position.row + 1} · ${position.column + 1}`
   const actionLabel = selectedCharacterId
     ? moveToPositionLabel(position.label)
     : selectPositionLabel(position.label)
@@ -49,7 +56,7 @@ const LocationCell = ({
   return (
     <article
       ref={setNodeRef}
-      className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} location-cell--row-${position.row} ${isOver ? 'location-cell--over' : ''}`}
+      className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${isZoneHeading ? 'location-cell--zone-heading' : ''} location-cell--row-${position.row} ${isOver ? 'location-cell--over' : ''}`}
     >
       <button
         type="button"
@@ -59,7 +66,7 @@ const LocationCell = ({
         disabled={disabled}
       >
         <span className="location-cell__label">
-          {logicGrid ? `${position.row + 1} · ${position.column + 1}` : position.label}
+          {logicGrid ? displayLabel : position.label}
         </span>
         <span className="location-cell__marker" aria-hidden="true">
           ✦

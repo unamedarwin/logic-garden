@@ -9,7 +9,7 @@ interface CluePanelProps {
 }
 
 export const CluePanel = ({ puzzle, locale, highlightedClueId, label }: CluePanelProps) => (
-  <details className="clue-panel" open>
+  <details className="clue-panel">
     <summary>
       <span>{label}</span>
       <span className="clue-panel__count" aria-hidden="true">

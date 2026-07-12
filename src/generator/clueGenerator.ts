@@ -73,19 +73,21 @@ export const generateCandidateClues = (
       }
     }
 
-    add({
-      ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
-      type: 'has-item',
-      characterId: character.id,
-      itemId: character.itemId,
-    })
-    if (otherItem) {
+    if (puzzle.boardMode === 'map') {
       add({
-        ...clueBase(random, 'does-not-have-item', `${character.id}:${otherItem.id}`),
-        type: 'does-not-have-item',
+        ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
+        type: 'has-item',
         characterId: character.id,
-        itemId: otherItem.id,
+        itemId: character.itemId,
       })
+      if (otherItem) {
+        add({
+          ...clueBase(random, 'does-not-have-item', `${character.id}:${otherItem.id}`),
+          type: 'does-not-have-item',
+          characterId: character.id,
+          itemId: otherItem.id,
+        })
+      }
     }
   }
 
@@ -107,47 +109,64 @@ export const generateCandidateClues = (
         firstCharacterId: firstCharacter.id,
         secondCharacterId: secondCharacter.id,
       })
-      add({
-        ...clueBase(random, first.row === second.row ? 'same-row' : 'different-row', pairKey),
-        type: first.row === second.row ? 'same-row' : 'different-row',
-        firstCharacterId: firstCharacter.id,
-        secondCharacterId: secondCharacter.id,
-      })
-      add({
-        ...clueBase(
-          random,
-          first.column === second.column ? 'same-column' : 'different-column',
-          pairKey,
-        ),
-        type: first.column === second.column ? 'same-column' : 'different-column',
-        firstCharacterId: firstCharacter.id,
-        secondCharacterId: secondCharacter.id,
-      })
-      add({
-        ...clueBase(random, 'distance', pairKey),
-        type: 'distance',
-        firstCharacterId: firstCharacter.id,
-        secondCharacterId: secondCharacter.id,
-        distance: manhattanDistance(first, second),
-      })
+      if (puzzle.boardMode === 'logic-grid') {
+        const horizontalType = first.column < second.column ? 'left-of' : 'right-of'
+        add({
+          ...clueBase(random, horizontalType, pairKey),
+          type: horizontalType,
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+        })
+        const verticalType = first.row < second.row ? 'above' : 'below'
+        add({
+          ...clueBase(random, verticalType, pairKey),
+          type: verticalType,
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+        })
+      } else {
+        add({
+          ...clueBase(random, first.row === second.row ? 'same-row' : 'different-row', pairKey),
+          type: first.row === second.row ? 'same-row' : 'different-row',
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+        })
+        add({
+          ...clueBase(
+            random,
+            first.column === second.column ? 'same-column' : 'different-column',
+            pairKey,
+          ),
+          type: first.column === second.column ? 'same-column' : 'different-column',
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+        })
+        add({
+          ...clueBase(random, 'distance', pairKey),
+          type: 'distance',
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+          distance: manhattanDistance(first, second),
+        })
 
-      if (first.row === second.row) {
-        const type = first.column < second.column ? 'left-of' : 'right-of'
-        add({
-          ...clueBase(random, type, pairKey),
-          type,
-          firstCharacterId: firstCharacter.id,
-          secondCharacterId: secondCharacter.id,
-        })
-      }
-      if (first.column === second.column) {
-        const type = first.row < second.row ? 'above' : 'below'
-        add({
-          ...clueBase(random, type, pairKey),
-          type,
-          firstCharacterId: firstCharacter.id,
-          secondCharacterId: secondCharacter.id,
-        })
+        if (first.row === second.row) {
+          const type = first.column < second.column ? 'left-of' : 'right-of'
+          add({
+            ...clueBase(random, type, pairKey),
+            type,
+            firstCharacterId: firstCharacter.id,
+            secondCharacterId: secondCharacter.id,
+          })
+        }
+        if (first.column === second.column) {
+          const type = first.row < second.row ? 'above' : 'below'
+          add({
+            ...clueBase(random, type, pairKey),
+            type,
+            firstCharacterId: firstCharacter.id,
+            secondCharacterId: secondCharacter.id,
+          })
+        }
       }
     }
   }

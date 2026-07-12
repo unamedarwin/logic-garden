@@ -40,9 +40,37 @@ describe('game reducer', () => {
   })
 
   it('derives hints from the solver rather than an exposed solution', () => {
-    const state = gameReducer(createGameState(generatePuzzle('easy', 'hint')), { type: 'hint' })
+    const puzzle = generatePuzzle('easy', 'hint')
+    const character = puzzle.characters[0]!
+    const solution = solve(puzzle)
+    if (!solution) throw new Error('Expected a solvable generated puzzle')
+    let state = createGameState(puzzle)
+    state = gameReducer(state, { type: 'select-character', characterId: character.id })
+    state = gameReducer(state, { type: 'hint' })
+
     expect(state.hintsUsed).toBe(1)
+    expect(state.assignments[character.id]).toBe(solution[character.id])
     expect(state.feedback).toBeTruthy()
+  })
+
+  it('limits automatic person placement to every person except the last one', () => {
+    const puzzle = generatePuzzle('easy', 'hint-limit', 'adults')
+    let state = createGameState(puzzle)
+
+    for (const character of puzzle.characters.slice(0, -1)) {
+      state = gameReducer(state, { type: 'select-character', characterId: character.id })
+      state = gameReducer(state, { type: 'hint' })
+      expect(state.assignments[character.id]).toBeDefined()
+    }
+
+    const lastCharacter = puzzle.characters.at(-1)
+    if (!lastCharacter) throw new Error('Expected a final character')
+    state = gameReducer(state, { type: 'select-character', characterId: lastCharacter.id })
+    const limited = gameReducer(state, { type: 'hint' })
+
+    expect(limited.hintsUsed).toBe(puzzle.characters.length - 1)
+    expect(limited.assignments[lastCharacter.id]).toBeUndefined()
+    expect(limited.feedback).toMatch(/últim lloc/u)
   })
 
   it('returns a placed character to the waiting tray and records the move', () => {

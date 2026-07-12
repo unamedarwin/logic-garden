@@ -1,6 +1,7 @@
 interface ResultDialogProps {
   readonly title: string
   readonly message: string
+  readonly elapsed: string
   readonly moves: number
   readonly hintsUsed: number
   readonly onNewGame: () => void
@@ -9,6 +10,7 @@ interface ResultDialogProps {
   readonly newGameLabel: string
   readonly changeDifficultyLabel: string
   readonly shareLabel: string
+  readonly timeLabel: string
   readonly movesLabel: string
   readonly hintsLabel: string
 }
@@ -16,6 +18,7 @@ interface ResultDialogProps {
 export const ResultDialog = ({
   title,
   message,
+  elapsed,
   moves,
   hintsUsed,
   onNewGame,
@@ -24,6 +27,7 @@ export const ResultDialog = ({
   newGameLabel,
   changeDifficultyLabel,
   shareLabel,
+  timeLabel,
   movesLabel,
   hintsLabel,
 }: ResultDialogProps) => (
@@ -35,12 +39,12 @@ export const ResultDialog = ({
       aria-labelledby="result-title"
     >
       <span className="result-dialog__sparkles" aria-hidden="true">
-        ✦ ✦ ✦
+        * * *
       </span>
       <h2 id="result-title">{title}</h2>
       <p>{message}</p>
       <p className="result-dialog__stats">
-        {moves} {movesLabel} · {hintsUsed} {hintsLabel}
+        {elapsed} {timeLabel} · {moves} {movesLabel} · {hintsUsed} {hintsLabel}
       </p>
       <div className="button-row">
         <button type="button" className="button button--secondary" onClick={onChangeDifficulty}>

@@ -61,6 +61,12 @@ type UiKey =
   | 'saveProfile'
   | 'editProfile'
   | 'returnToTray'
+  | 'noCharacterClue'
+  | 'timer'
+  | 'completedGames'
+  | 'shared'
+  | 'hintPickerTitle'
+  | 'hintPickerDescription'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -118,6 +124,12 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     saveProfile: 'Desa el perfil',
     editProfile: 'Canvia el perfil',
     returnToTray: 'Torna a la safata',
+    noCharacterClue: 'Mira les pistes dels altres personatges.',
+    timer: 'Temps',
+    completedGames: 'Partides resoltes',
+    shared: 'Enllaç preparat per compartir.',
+    hintPickerTitle: 'De qui necessites una pista?',
+    hintPickerDescription: 'Tria una persona per rebre la pista.',
   },
   es: {
     play: 'Jugar',
@@ -174,6 +186,12 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     saveProfile: 'Guardar perfil',
     editProfile: 'Cambiar perfil',
     returnToTray: 'Volver a la bandeja',
+    noCharacterClue: 'Mira las pistas de las otras personas.',
+    timer: 'Tiempo',
+    completedGames: 'Partidas resueltas',
+    shared: 'Enlace preparado para compartir.',
+    hintPickerTitle: '¿De quién necesitas una pista?',
+    hintPickerDescription: 'Elige una persona y la colocaremos en su espacio.',
   },
   en: {
     play: 'Play',
@@ -230,6 +248,12 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     saveProfile: 'Save profile',
     editProfile: 'Change profile',
     returnToTray: 'Return to tray',
+    noCharacterClue: 'Check the clues for the other people.',
+    timer: 'Time',
+    completedGames: 'Completed games',
+    shared: 'Link ready to share.',
+    hintPickerTitle: 'Who needs a hint?',
+    hintPickerDescription: 'Choose a person and we will place them in their space.',
   },
 }
 

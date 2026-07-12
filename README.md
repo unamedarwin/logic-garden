@@ -78,11 +78,11 @@ The first screen asks for a local name, a generic avatar, and one of three audie
 profile stays only on the device and can be changed from the home screen. Each audience has
 its own visual language and local themes:
 
-| Audience | Interaction     | Themes                                             |
-| -------- | --------------- | -------------------------------------------------- |
-| Children | Illustrated map | Forests, farms, trips, and gentle discoveries      |
-| Teens    | Deduction grid  | Music studio, sports festival, and creative lab    |
-| Adults   | Deduction grid  | Book club, neighborhood garden, and weekend market |
+| Audience | Interaction            | Themes                                             |
+| -------- | ---------------------- | -------------------------------------------------- |
+| Children | Illustrated map        | Forests, farms, trips, and gentle discoveries      |
+| Teens    | Spatial deduction plan | Music studio, sports festival, and creative lab    |
+| Adults   | Spatial deduction plan | Book club, neighborhood garden, and weekend market |
 
 Children keep the compact map difficulties below. Seeded rectangular boards alternate their
 orientation, so a `2 x 3` board can also appear as `3 x 2`.
@@ -95,10 +95,13 @@ orientation, so a `2 x 3` board can also appear as `3 x 2`.
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
 focus and activate a character button, then activate a location button. Touching a placed
-character returns it to the waiting tray. In a deduction grid, occupied rows and columns are
-blocked in both the interface and the reducer, so drag interactions cannot bypass the rule.
-The game provides visible focus, ARIA live announcements, 44-pixel touch targets, and
-reduced-motion support. Hints are derived from the solver, never a stored answer.
+character returns it to the waiting tray. Teen and adult modes use the same deduction rules and
+difficulty. Occupied rows and columns are blocked in both the interface and the reducer, so drag
+interactions cannot bypass the rule. The game provides visible focus, ARIA live announcements,
+44-pixel touch targets, and reduced-motion support. A selected person can receive a
+solver-derived placement hint; at most all but one person can be placed this way. When nobody is
+selected, the game asks who needs the hint. Hints are derived from the solver, never a stored
+answer.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can
@@ -108,13 +111,15 @@ always choose another difficulty before starting a new adventure.
 
 Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
 a playful title scene, and a map that stays visually dominant during play. Teen profiles use a
-poster-like, high-contrast scene; adult profiles use a calm editorial layout. The deduction
-grid is painted locally with PixiJS and layered with locally bundled Lucide SVG objects, while
-the real interaction remains semantic HTML buttons.
+poster-like, high-contrast scene; adult profiles use a calm editorial layout. Teen and adult
+plans share the same irregular-room geometry, but use different palettes and themes. PixiJS
+paints floors, boundaries, furnishings, and crossed-out spaces locally; Lucide objects label
+zones, while the real interaction remains semantic HTML buttons.
 
-On narrow screens, the game uses a compact `Tauler` / `Pistes` switcher. The map and friend
-tray stay together in the board view; clues open in their own view, so moving a friend never
-requires scrolling between the puzzle board and its tray.
+On narrow screens, the plan, horizontally scrollable people rail, and the selected person's
+contextual clue stay in one workspace. The full clue list remains an optional collapsed support
+panel rather than a separate view. A visible game counter records elapsed time without blocking
+play.
 
 ## Languages and wording
 
@@ -139,6 +144,11 @@ in a URL-safe Base64 payload:
 ```text
 /logic-garden/?p=<url-safe-base64-payload>
 ```
+
+After a solve, the local history stores the theme, audience, difficulty, elapsed time, moves,
+hint count, and seed. It never stores the answer or profile data. Each saved result exposes the
+same share action, using the platform share sheet on supported Android and Apple devices and
+copying the link as a fallback.
 
 ## Persistence
 

@@ -70,13 +70,21 @@ export const isClueSatisfiedByPartialAssignment = (
         case 'different-column':
           return first.column !== second.column
         case 'left-of':
-          return first.row === second.row && first.column < second.column
+          return puzzle.boardMode === 'logic-grid'
+            ? first.column < second.column
+            : first.row === second.row && first.column < second.column
         case 'right-of':
-          return first.row === second.row && first.column > second.column
+          return puzzle.boardMode === 'logic-grid'
+            ? first.column > second.column
+            : first.row === second.row && first.column > second.column
         case 'above':
-          return first.column === second.column && first.row < second.row
+          return puzzle.boardMode === 'logic-grid'
+            ? first.row < second.row
+            : first.column === second.column && first.row < second.row
         case 'below':
-          return first.column === second.column && first.row > second.row
+          return puzzle.boardMode === 'logic-grid'
+            ? first.row > second.row
+            : first.column === second.column && first.row > second.row
         case 'distance':
           return manhattanDistance(first, second) === clue.distance
         default:
