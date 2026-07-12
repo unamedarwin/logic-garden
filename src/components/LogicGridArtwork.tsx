@@ -131,64 +131,17 @@ export const LogicGridArtwork = ({
         const x = position.column * cellWidth
         const y = position.row * cellHeight
         if (position.blocked) {
-          const inset = Math.max(2, Math.min(cellWidth, cellHeight) * 0.14)
-          const kind = (position.row + position.column * 2) % 3
-          const centerX = x + cellWidth / 2
-          const centerY = y + cellHeight / 2
-          if (audience === 'teens' && kind === 0) {
-            graphic
-              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.37)
-              .fill({ color: visual.obstacle, alpha: 0.98 })
-              .stroke({ color: visual.wall, width: 1.5, alpha: 0.96 })
-            graphic
-              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.12)
-              .fill({ color: visual.crossed, alpha: 0.96 })
-          } else if (audience === 'adults' && kind === 0) {
-            graphic
-              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.32)
-              .fill({ color: visual.obstacle, alpha: 0.96 })
-              .stroke({ color: visual.wall, width: 1.3, alpha: 0.95 })
-            graphic
-              .circle(centerX, centerY, Math.min(cellWidth, cellHeight) * 0.17)
-              .fill({ color: visual.rooms[3]!, alpha: 1 })
-          } else if (kind === 1) {
-            graphic
-              .roundRect(
-                x + inset,
-                y + inset,
-                cellWidth - inset * 2,
-                cellHeight - inset * 2,
-                inset,
-              )
-              .fill({ color: visual.obstacle, alpha: 0.98 })
-              .stroke({ color: visual.wall, width: 1.5, alpha: 0.96 })
-            graphic
-              .moveTo(x + inset * 1.5, centerY)
-              .lineTo(x + cellWidth - inset * 1.5, centerY)
-              .stroke({ color: visual.wall, width: 1.2, alpha: 0.8 })
-          } else {
-            const radius = Math.min(cellWidth, cellHeight) * 0.38
-            graphic
-              .poly(
-                [
-                  centerX,
-                  centerY - radius,
-                  centerX + radius * 0.86,
-                  centerY - radius * 0.48,
-                  centerX + radius * 0.86,
-                  centerY + radius * 0.48,
-                  centerX,
-                  centerY + radius,
-                  centerX - radius * 0.86,
-                  centerY + radius * 0.48,
-                  centerX - radius * 0.86,
-                  centerY - radius * 0.48,
-                ],
-                true,
-              )
-              .fill({ color: visual.obstacle, alpha: 0.98 })
-              .stroke({ color: visual.wall, width: 1.4, alpha: 0.95 })
-          }
+          const inset = Math.max(1, Math.min(cellWidth, cellHeight) * 0.08)
+          graphic
+            .roundRect(
+              x + inset,
+              y + inset,
+              cellWidth - inset * 2,
+              cellHeight - inset * 2,
+              Math.max(2, inset),
+            )
+            .fill({ color: visual.wall, alpha: audience === 'adults' ? 0.38 : 0.22 })
+            .stroke({ color: visual.obstacle, width: 1, alpha: 0.36 })
           continue
         }
         const crossed =

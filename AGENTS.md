@@ -65,6 +65,9 @@ anchors, and visible blocked cells. The seeded generator must choose the plan, p
 emojis, and wording independently; no plan may encode a character, item assignment, phrase,
 solution, or player data. Every blocked cell must be rejected by the generator, solver, reducer,
 and accessible DOM controls, not merely painted as scenery.
+Every floor-plan variant must form one complete partition: rooms touch along shared walls, cover
+the full interior without gaps or overlaps, and contain only horizontal or vertical edges. Keep
+the catalog geometry and obstacle emojis under automated regression tests.
 
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, and seeded puzzle identifier, but never a solution or any profile data.

@@ -69,22 +69,27 @@ export const generateWorld = (
     boardMode === 'logic-grid'
       ? (() => {
           const gridSize = logicGridDimensions[difficulty]
-          const blocked = new Set(
-            planObstacles(spatialPlanId, gridSize, gridSize).map(
-              ({ row, column }) => `${row}:${column}`,
-            ),
+          const obstacleObjects = random.shuffle(theme.items)
+          const blocked = new Map(
+            planObstacles(spatialPlanId, gridSize, gridSize).map(({ row, column }, index) => [
+              `${row}:${column}`,
+              obstacleObjects[index % obstacleObjects.length],
+            ]),
           )
           return Array.from({ length: gridSize * gridSize }, (_, index) => {
             const row = Math.floor(index / gridSize)
             const column = index % gridSize
             const place = theme.places[column % theme.places.length]!
+            const obstacle = blocked.get(`${row}:${column}`)
             return {
               id: positionId(`position-${row}-${column}`),
               placeId: placeId(`place-${row}-${column}`),
               row,
               column,
               label: `${place} · ${row + 1}`,
-              blocked: blocked.has(`${row}:${column}`),
+              blocked: obstacle !== undefined,
+              obstacleEmoji: obstacle?.emoji,
+              obstacleLabel: obstacle?.label,
             }
           })
         })()

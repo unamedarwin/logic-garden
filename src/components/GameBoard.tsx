@@ -62,7 +62,11 @@ const LocationCell = ({
         type="button"
         className="location-cell__target"
         onClick={() => onMoveToPosition(position.id)}
-        aria-label={position.blocked ? position.label : actionLabel}
+        aria-label={
+          position.blocked && position.obstacleLabel
+            ? `${position.label}: ${position.obstacleLabel}`
+            : actionLabel
+        }
         disabled={unavailable}
       >
         <span className="location-cell__label">{position.label}</span>

@@ -117,9 +117,10 @@ poster-like, high-contrast scene; adult profiles use a calm editorial layout. Te
 boards use a local catalog of twelve floor-plan variants per audience. A seeded game selects a
 plan, transform, people, item emojis, obstacle locations, and phrase variants deterministically.
 The catalog only describes architecture: it never encodes a name, object assignment, phrase,
-answer, or player information. PixiJS paints floors, shared walls, obstacles, and crossed-out
-spaces locally; the seed-generated item emojis label zones, while the real interaction remains
-semantic HTML buttons.
+answer, or player information. Every room is part of one complete orthogonal partition: rooms
+share walls, cover the whole plan, and use only 90-degree corners. PixiJS paints floors, shared
+walls, and crossed-out spaces locally; seed-generated item emojis render visible furniture and
+obstacles, while the real interaction remains semantic HTML buttons.
 
 On narrow screens, the plan, horizontally scrollable people rail, and the selected person's
 contextual clue stay in one workspace. The full clue list remains an optional collapsed support

@@ -108,6 +108,11 @@ describe('seeded puzzle generator', () => {
       expect(puzzle.characters).toHaveLength(people)
       expect(puzzle.positions).toHaveLength(dimension * dimension)
       expect(puzzle.positions.filter((position) => position.blocked)).toHaveLength(obstacles)
+      expect(
+        puzzle.positions
+          .filter((position) => position.blocked)
+          .every((position) => position.obstacleEmoji && position.obstacleLabel),
+      ).toBe(true)
       expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
     }
   })

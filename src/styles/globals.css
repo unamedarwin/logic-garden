@@ -1958,8 +1958,12 @@ summary:focus-visible {
 }
 .grid-object-icons__zone,
 .grid-object-icons__item,
-.grid-object-icons__label {
+.grid-object-icons__label,
+.grid-object-icons__obstacle {
   position: absolute;
+}
+.grid-object-icons__zone {
+  position: static;
 }
 .grid-object-icons__item {
   display: grid;
@@ -1967,7 +1971,22 @@ summary:focus-visible {
   height: clamp(24px, 7vw, 44px);
   place-items: center;
   margin: 0;
-  border-width: 2px;
+  border: 0;
+  background: transparent;
+  font-size: clamp(1.5rem, 7vw, 3.15rem);
+  filter: drop-shadow(0 3px 2px rgba(23, 50, 65, 0.22));
+  transform: translate(-50%, -50%);
+}
+.grid-object-icons__obstacle {
+  display: grid;
+  width: calc(82% / var(--grid-columns));
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 22%;
+  background: rgba(255, 252, 245, 0.72);
+  font-size: clamp(0.72rem, calc(65vw / var(--grid-columns)), 2rem);
+  line-height: 1;
+  filter: drop-shadow(0 2px 1px rgba(23, 50, 65, 0.24));
   transform: translate(-50%, -50%);
 }
 .grid-object-icons__label {

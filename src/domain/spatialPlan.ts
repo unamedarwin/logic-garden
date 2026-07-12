@@ -32,471 +32,202 @@ interface PlanTemplate {
   readonly obstacleAnchors: readonly PlanPoint[]
 }
 
+interface GridEdge {
+  readonly start: readonly [number, number]
+  readonly end: readonly [number, number]
+}
+
 type PlanTransform = 'base' | 'mirror-x' | 'mirror-y' | 'turn'
 
 const planTransforms: readonly PlanTransform[] = ['base', 'mirror-x', 'mirror-y', 'turn']
+const planInset = 0.02
+const planSpan = 1 - planInset * 2
 
-const teenPulse: PlanTemplate = {
-  id: 'pulse',
-  zones: [
-    {
-      path: [
-        { x: 0.03, y: 0.05 },
-        { x: 0.35, y: 0.02 },
-        { x: 0.46, y: 0.16 },
-        { x: 0.37, y: 0.36 },
-        { x: 0.03, y: 0.31 },
-      ],
-      label: { x: 0.19, y: 0.2 },
-      object: { x: 0.25, y: 0.12 },
-    },
-    {
-      path: [
-        { x: 0.57, y: 0.03 },
-        { x: 0.97, y: 0.06 },
-        { x: 0.97, y: 0.37 },
-        { x: 0.72, y: 0.37 },
-        { x: 0.72, y: 0.23 },
-        { x: 0.55, y: 0.23 },
-      ],
-      label: { x: 0.79, y: 0.29 },
-      object: { x: 0.84, y: 0.14 },
-    },
-    {
-      path: [
-        { x: 0.03, y: 0.39 },
-        { x: 0.23, y: 0.39 },
-        { x: 0.35, y: 0.58 },
-        { x: 0.27, y: 0.97 },
-        { x: 0.03, y: 0.97 },
-      ],
-      label: { x: 0.15, y: 0.74 },
-      object: { x: 0.1, y: 0.53 },
-    },
-    {
-      path: [
-        { x: 0.38, y: 0.37 },
-        { x: 0.62, y: 0.37 },
-        { x: 0.77, y: 0.53 },
-        { x: 0.62, y: 0.72 },
-        { x: 0.36, y: 0.67 },
-        { x: 0.26, y: 0.5 },
-      ],
-      label: { x: 0.5, y: 0.56 },
-      object: { x: 0.5, y: 0.45 },
-    },
-    {
-      path: [
-        { x: 0.73, y: 0.42 },
-        { x: 0.97, y: 0.42 },
-        { x: 0.97, y: 0.97 },
-        { x: 0.58, y: 0.97 },
-        { x: 0.58, y: 0.77 },
-        { x: 0.73, y: 0.77 },
-      ],
-      label: { x: 0.79, y: 0.82 },
-      object: { x: 0.88, y: 0.9 },
-    },
-    {
-      path: [
-        { x: 0.34, y: 0.73 },
-        { x: 0.57, y: 0.73 },
-        { x: 0.57, y: 0.97 },
-        { x: 0.29, y: 0.97 },
-      ],
-      label: { x: 0.45, y: 0.86 },
-      object: { x: 0.44, y: 0.79 },
-    },
-  ],
-  obstacleAnchors: [
-    { x: 0.1, y: 0.3 },
-    { x: 0.51, y: 0.12 },
-    { x: 0.88, y: 0.29 },
-    { x: 0.19, y: 0.78 },
-    { x: 0.61, y: 0.56 },
-    { x: 0.89, y: 0.82 },
-    { x: 0.32, y: 0.55 },
-    { x: 0.47, y: 0.89 },
-    { x: 0.73, y: 0.64 },
-    { x: 0.12, y: 0.92 },
-    { x: 0.76, y: 0.1 },
-    { x: 0.27, y: 0.15 },
-    { x: 0.57, y: 0.76 },
-    { x: 0.94, y: 0.58 },
-    { x: 0.04, y: 0.54 },
-    { x: 0.38, y: 0.31 },
-    { x: 0.67, y: 0.45 },
-    { x: 0.33, y: 0.96 },
-    { x: 0.94, y: 0.96 },
-    { x: 0.05, y: 0.06 },
-  ],
+const pointKey = ([x, y]: readonly [number, number]) => `${x}:${y}`
+
+const traceRegion = (
+  map: readonly (readonly number[])[],
+  region: number,
+): readonly PlanPoint[] => {
+  const rows = map.length
+  const columns = map[0]?.length ?? 0
+  const edges: GridEdge[] = []
+  const isRegion = (row: number, column: number) => map[row]?.[column] === region
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      if (!isRegion(row, column)) continue
+      if (!isRegion(row - 1, column)) {
+        edges.push({ start: [column, row], end: [column + 1, row] })
+      }
+      if (!isRegion(row, column + 1)) {
+        edges.push({ start: [column + 1, row], end: [column + 1, row + 1] })
+      }
+      if (!isRegion(row + 1, column)) {
+        edges.push({ start: [column + 1, row + 1], end: [column, row + 1] })
+      }
+      if (!isRegion(row, column - 1)) {
+        edges.push({ start: [column, row + 1], end: [column, row] })
+      }
+    }
+  }
+
+  const nextEdge = new Map(edges.map((edge) => [pointKey(edge.start), edge]))
+  const first = edges[0]
+  if (!first || columns === 0 || rows === 0) return []
+
+  const vertices: Array<readonly [number, number]> = []
+  let edge: GridEdge | undefined = first
+  while (edge) {
+    vertices.push(edge.start)
+    nextEdge.delete(pointKey(edge.start))
+    if (pointKey(edge.end) === pointKey(first.start)) break
+    edge = nextEdge.get(pointKey(edge.end))
+  }
+
+  return vertices.map(([x, y]) => ({
+    x: planInset + (x / columns) * planSpan,
+    y: planInset + (y / rows) * planSpan,
+  }))
 }
 
-const teenCircuit: PlanTemplate = {
-  id: 'circuit',
-  zones: [
-    {
-      path: [
-        { x: 0.03, y: 0.04 },
-        { x: 0.46, y: 0.04 },
-        { x: 0.41, y: 0.27 },
-        { x: 0.18, y: 0.31 },
-        { x: 0.03, y: 0.2 },
-      ],
-      label: { x: 0.22, y: 0.18 },
-      object: { x: 0.31, y: 0.1 },
-    },
-    {
-      path: [
-        { x: 0.55, y: 0.04 },
-        { x: 0.97, y: 0.04 },
-        { x: 0.97, y: 0.4 },
-        { x: 0.79, y: 0.4 },
-        { x: 0.7, y: 0.25 },
-        { x: 0.52, y: 0.2 },
-      ],
-      label: { x: 0.77, y: 0.27 },
-      object: { x: 0.87, y: 0.13 },
-    },
-    {
-      path: [
-        { x: 0.04, y: 0.39 },
-        { x: 0.27, y: 0.34 },
-        { x: 0.45, y: 0.5 },
-        { x: 0.34, y: 0.74 },
-        { x: 0.04, y: 0.69 },
-      ],
-      label: { x: 0.2, y: 0.55 },
-      object: { x: 0.12, y: 0.48 },
-    },
-    {
-      path: [
-        { x: 0.48, y: 0.3 },
-        { x: 0.68, y: 0.35 },
-        { x: 0.75, y: 0.54 },
-        { x: 0.62, y: 0.69 },
-        { x: 0.42, y: 0.61 },
-        { x: 0.35, y: 0.45 },
-      ],
-      label: { x: 0.54, y: 0.49 },
-      object: { x: 0.58, y: 0.4 },
-    },
-    {
-      path: [
-        { x: 0.8, y: 0.45 },
-        { x: 0.97, y: 0.47 },
-        { x: 0.97, y: 0.96 },
-        { x: 0.64, y: 0.96 },
-        { x: 0.67, y: 0.72 },
-        { x: 0.81, y: 0.67 },
-      ],
-      label: { x: 0.82, y: 0.77 },
-      object: { x: 0.9, y: 0.9 },
-    },
-    {
-      path: [
-        { x: 0.04, y: 0.76 },
-        { x: 0.36, y: 0.78 },
-        { x: 0.58, y: 0.96 },
-        { x: 0.04, y: 0.96 },
-      ],
-      label: { x: 0.26, y: 0.87 },
-      object: { x: 0.12, y: 0.86 },
-    },
-  ],
-  obstacleAnchors: [
-    { x: 0.14, y: 0.16 },
-    { x: 0.66, y: 0.12 },
-    { x: 0.86, y: 0.32 },
-    { x: 0.2, y: 0.57 },
-    { x: 0.54, y: 0.5 },
-    { x: 0.84, y: 0.77 },
-    { x: 0.35, y: 0.45 },
-    { x: 0.17, y: 0.85 },
-    { x: 0.64, y: 0.84 },
-    { x: 0.95, y: 0.62 },
-    { x: 0.05, y: 0.56 },
-    { x: 0.43, y: 0.11 },
-    { x: 0.74, y: 0.53 },
-    { x: 0.49, y: 0.94 },
-    { x: 0.95, y: 0.94 },
-    { x: 0.06, y: 0.06 },
-    { x: 0.37, y: 0.66 },
-    { x: 0.69, y: 0.29 },
-    { x: 0.27, y: 0.29 },
-    { x: 0.58, y: 0.72 },
-  ],
-}
+const cellCenter = (column: number, row: number, size = 6): PlanPoint => ({
+  x: planInset + ((column + 0.5) / size) * planSpan,
+  y: planInset + ((row + 0.5) / size) * planSpan,
+})
 
-const teenHarbor: PlanTemplate = {
-  id: 'harbor',
-  zones: [
-    {
-      path: [
-        { x: 0.04, y: 0.04 },
-        { x: 0.36, y: 0.04 },
-        { x: 0.47, y: 0.22 },
-        { x: 0.32, y: 0.4 },
-        { x: 0.05, y: 0.31 },
-      ],
-      label: { x: 0.21, y: 0.23 },
-      object: { x: 0.29, y: 0.13 },
-    },
-    {
-      path: [
-        { x: 0.59, y: 0.04 },
-        { x: 0.96, y: 0.04 },
-        { x: 0.96, y: 0.28 },
-        { x: 0.74, y: 0.39 },
-        { x: 0.55, y: 0.23 },
-      ],
-      label: { x: 0.77, y: 0.22 },
-      object: { x: 0.86, y: 0.11 },
-    },
-    {
-      path: [
-        { x: 0.04, y: 0.44 },
-        { x: 0.27, y: 0.4 },
-        { x: 0.38, y: 0.59 },
-        { x: 0.28, y: 0.96 },
-        { x: 0.04, y: 0.96 },
-      ],
-      label: { x: 0.17, y: 0.72 },
-      object: { x: 0.11, y: 0.53 },
-    },
-    {
-      path: [
-        { x: 0.42, y: 0.36 },
-        { x: 0.64, y: 0.31 },
-        { x: 0.79, y: 0.49 },
-        { x: 0.66, y: 0.69 },
-        { x: 0.39, y: 0.67 },
-        { x: 0.31, y: 0.51 },
-      ],
-      label: { x: 0.52, y: 0.55 },
-      object: { x: 0.54, y: 0.43 },
-    },
-    {
-      path: [
-        { x: 0.82, y: 0.4 },
-        { x: 0.96, y: 0.36 },
-        { x: 0.96, y: 0.96 },
-        { x: 0.59, y: 0.96 },
-        { x: 0.6, y: 0.75 },
-        { x: 0.77, y: 0.68 },
-      ],
-      label: { x: 0.8, y: 0.79 },
-      object: { x: 0.89, y: 0.9 },
-    },
-    {
-      path: [
-        { x: 0.35, y: 0.75 },
-        { x: 0.57, y: 0.73 },
-        { x: 0.57, y: 0.96 },
-        { x: 0.31, y: 0.96 },
-      ],
-      label: { x: 0.45, y: 0.86 },
-      object: { x: 0.45, y: 0.79 },
-    },
-  ],
-  obstacleAnchors: teenPulse.obstacleAnchors.map((anchor, index) => ({
-    x: Math.min(0.96, anchor.y + (index % 2) * 0.03),
-    y: Math.min(0.96, anchor.x + (index % 3) * 0.02),
+const sharedObstacleAnchors: readonly PlanPoint[] = [
+  cellCenter(0, 0, 8),
+  cellCenter(5, 0, 8),
+  cellCenter(7, 2, 8),
+  cellCenter(1, 4, 8),
+  cellCenter(4, 3, 8),
+  cellCenter(6, 5, 8),
+  cellCenter(2, 3, 8),
+  cellCenter(3, 7, 8),
+  cellCenter(5, 6, 8),
+  cellCenter(0, 7, 8),
+  cellCenter(7, 0, 8),
+  cellCenter(2, 1, 8),
+  cellCenter(4, 6, 8),
+  cellCenter(7, 4, 8),
+  cellCenter(0, 3, 8),
+  cellCenter(3, 2, 8),
+  cellCenter(5, 3, 8),
+  cellCenter(2, 6, 8),
+  cellCenter(7, 7, 8),
+  cellCenter(0, 5, 8),
+]
+
+const buildTemplate = (
+  id: string,
+  map: readonly (readonly number[])[],
+  labels: readonly PlanPoint[],
+  objects: readonly PlanPoint[],
+  obstacleAnchors: readonly PlanPoint[],
+): PlanTemplate => ({
+  id,
+  zones: Array.from({ length: 6 }, (_, region) => ({
+    path: traceRegion(map, region),
+    label: labels[region]!,
+    object: objects[region]!,
   })),
-}
+  obstacleAnchors,
+})
 
-const adultCourtyard: PlanTemplate = {
-  id: 'courtyard',
-  zones: [
-    {
-      path: [
-        { x: 0.03, y: 0.06 },
-        { x: 0.34, y: 0.02 },
-        { x: 0.43, y: 0.14 },
-        { x: 0.36, y: 0.33 },
-        { x: 0.08, y: 0.36 },
-        { x: 0.02, y: 0.22 },
-      ],
-      label: { x: 0.2, y: 0.26 },
-      object: { x: 0.24, y: 0.12 },
-    },
-    {
-      path: [
-        { x: 0.57, y: 0.03 },
-        { x: 0.96, y: 0.05 },
-        { x: 0.98, y: 0.33 },
-        { x: 0.82, y: 0.43 },
-        { x: 0.62, y: 0.31 },
-        { x: 0.52, y: 0.14 },
-      ],
-      label: { x: 0.78, y: 0.23 },
-      object: { x: 0.82, y: 0.11 },
-    },
-    {
-      path: [
-        { x: 0.38, y: 0.37 },
-        { x: 0.62, y: 0.35 },
-        { x: 0.78, y: 0.51 },
-        { x: 0.64, y: 0.72 },
-        { x: 0.37, y: 0.68 },
-        { x: 0.24, y: 0.51 },
-      ],
-      label: { x: 0.5, y: 0.57 },
-      object: { x: 0.5, y: 0.45 },
-    },
-    {
-      path: [
-        { x: 0.03, y: 0.43 },
-        { x: 0.22, y: 0.4 },
-        { x: 0.34, y: 0.58 },
-        { x: 0.27, y: 0.98 },
-        { x: 0.02, y: 0.98 },
-      ],
-      label: { x: 0.14, y: 0.78 },
-      object: { x: 0.1, y: 0.54 },
-    },
-    {
-      path: [
-        { x: 0.74, y: 0.46 },
-        { x: 0.98, y: 0.39 },
-        { x: 0.98, y: 0.97 },
-        { x: 0.62, y: 0.97 },
-        { x: 0.63, y: 0.75 },
-        { x: 0.79, y: 0.7 },
-      ],
-      label: { x: 0.8, y: 0.82 },
-      object: { x: 0.9, y: 0.91 },
-    },
-    {
-      path: [
-        { x: 0.31, y: 0.75 },
-        { x: 0.59, y: 0.74 },
-        { x: 0.6, y: 0.97 },
-        { x: 0.3, y: 0.97 },
-      ],
-      label: { x: 0.45, y: 0.87 },
-      object: { x: 0.45, y: 0.79 },
-    },
+const courtyard = buildTemplate(
+  'courtyard',
+  [
+    [0, 0, 0, 1, 1, 1],
+    [0, 0, 0, 1, 1, 1],
+    [2, 2, 0, 3, 1, 1],
+    [2, 2, 3, 3, 3, 4],
+    [2, 2, 3, 5, 4, 4],
+    [2, 5, 5, 5, 4, 4],
   ],
-  obstacleAnchors: [
-    { x: 0.13, y: 0.2 },
-    { x: 0.69, y: 0.16 },
-    { x: 0.89, y: 0.32 },
-    { x: 0.18, y: 0.63 },
-    { x: 0.5, y: 0.48 },
-    { x: 0.82, y: 0.74 },
-    { x: 0.35, y: 0.56 },
-    { x: 0.48, y: 0.89 },
-    { x: 0.68, y: 0.57 },
-    { x: 0.1, y: 0.89 },
-    { x: 0.79, y: 0.08 },
-    { x: 0.32, y: 0.14 },
-    { x: 0.57, y: 0.79 },
-    { x: 0.94, y: 0.56 },
-    { x: 0.05, y: 0.51 },
-    { x: 0.39, y: 0.29 },
-    { x: 0.64, y: 0.44 },
-    { x: 0.31, y: 0.96 },
-    { x: 0.94, y: 0.95 },
-    { x: 0.05, y: 0.06 },
+  [
+    cellCenter(1, 1),
+    cellCenter(4, 1),
+    cellCenter(0, 4),
+    cellCenter(2, 3),
+    cellCenter(5, 4),
+    cellCenter(2, 5),
   ],
-}
+  [
+    cellCenter(2, 0),
+    cellCenter(5, 0),
+    cellCenter(1, 3),
+    cellCenter(3, 3),
+    cellCenter(4, 5),
+    cellCenter(3, 5),
+  ],
+  sharedObstacleAnchors,
+)
 
-const adultConservatory: PlanTemplate = {
-  id: 'conservatory',
-  zones: [
-    {
-      path: [
-        { x: 0.04, y: 0.03 },
-        { x: 0.43, y: 0.05 },
-        { x: 0.39, y: 0.29 },
-        { x: 0.18, y: 0.37 },
-        { x: 0.03, y: 0.21 },
-      ],
-      label: { x: 0.22, y: 0.24 },
-      object: { x: 0.29, y: 0.12 },
-    },
-    {
-      path: [
-        { x: 0.56, y: 0.03 },
-        { x: 0.96, y: 0.03 },
-        { x: 0.96, y: 0.36 },
-        { x: 0.75, y: 0.42 },
-        { x: 0.56, y: 0.25 },
-      ],
-      label: { x: 0.77, y: 0.24 },
-      object: { x: 0.86, y: 0.12 },
-    },
-    {
-      path: [
-        { x: 0.41, y: 0.35 },
-        { x: 0.64, y: 0.34 },
-        { x: 0.78, y: 0.52 },
-        { x: 0.63, y: 0.72 },
-        { x: 0.36, y: 0.67 },
-        { x: 0.25, y: 0.5 },
-      ],
-      label: { x: 0.51, y: 0.57 },
-      object: { x: 0.52, y: 0.43 },
-    },
-    {
-      path: [
-        { x: 0.03, y: 0.42 },
-        { x: 0.23, y: 0.39 },
-        { x: 0.35, y: 0.58 },
-        { x: 0.29, y: 0.96 },
-        { x: 0.03, y: 0.96 },
-      ],
-      label: { x: 0.15, y: 0.76 },
-      object: { x: 0.1, y: 0.54 },
-    },
-    {
-      path: [
-        { x: 0.8, y: 0.45 },
-        { x: 0.97, y: 0.43 },
-        { x: 0.97, y: 0.96 },
-        { x: 0.61, y: 0.96 },
-        { x: 0.62, y: 0.75 },
-        { x: 0.79, y: 0.7 },
-      ],
-      label: { x: 0.8, y: 0.8 },
-      object: { x: 0.9, y: 0.9 },
-    },
-    {
-      path: [
-        { x: 0.33, y: 0.75 },
-        { x: 0.58, y: 0.75 },
-        { x: 0.58, y: 0.96 },
-        { x: 0.3, y: 0.96 },
-      ],
-      label: { x: 0.45, y: 0.86 },
-      object: { x: 0.45, y: 0.8 },
-    },
+const gallery = buildTemplate(
+  'gallery',
+  [
+    [0, 0, 0, 0, 1, 1],
+    [0, 0, 2, 2, 1, 1],
+    [0, 2, 2, 3, 1, 1],
+    [4, 2, 3, 3, 3, 1],
+    [4, 4, 3, 5, 5, 5],
+    [4, 4, 5, 5, 5, 5],
   ],
-  obstacleAnchors: adultCourtyard.obstacleAnchors.map((anchor, index) => ({
-    x: Math.min(0.96, anchor.y + (index % 2) * 0.025),
-    y: Math.min(0.96, anchor.x + (index % 3) * 0.02),
-  })),
-}
+  [
+    cellCenter(1, 1),
+    cellCenter(5, 1),
+    cellCenter(2, 2),
+    cellCenter(3, 3),
+    cellCenter(0, 5),
+    cellCenter(4, 5),
+  ],
+  [
+    cellCenter(3, 0),
+    cellCenter(4, 2),
+    cellCenter(1, 2),
+    cellCenter(2, 4),
+    cellCenter(1, 5),
+    cellCenter(5, 4),
+  ],
+  sharedObstacleAnchors.map((anchor) => ({ x: anchor.y, y: anchor.x })),
+)
 
-const adultArcade: PlanTemplate = {
-  id: 'arcade',
-  zones: adultConservatory.zones.map((zone, index) => ({
-    ...zone,
-    label: {
-      x: Math.min(0.94, zone.label.x + (index % 2 ? 0.06 : -0.02)),
-      y: Math.min(0.94, zone.label.y + (index % 3 ? 0.02 : 0)),
-    },
+const pavilion = buildTemplate(
+  'pavilion',
+  [
+    [0, 0, 1, 1, 1, 1],
+    [0, 0, 0, 1, 2, 2],
+    [3, 0, 4, 4, 2, 2],
+    [3, 3, 4, 4, 4, 2],
+    [3, 3, 5, 5, 4, 2],
+    [3, 5, 5, 5, 5, 5],
+  ],
+  [
+    cellCenter(1, 1),
+    cellCenter(3, 0),
+    cellCenter(5, 2),
+    cellCenter(0, 4),
+    cellCenter(3, 3),
+    cellCenter(3, 5),
+  ],
+  [
+    cellCenter(2, 1),
+    cellCenter(5, 0),
+    cellCenter(4, 2),
+    cellCenter(1, 3),
+    cellCenter(4, 4),
+    cellCenter(2, 5),
+  ],
+  sharedObstacleAnchors.map((anchor, index) => ({
+    x: Math.min(0.93, Math.max(0.07, anchor.x + (index % 3) * 0.025 - 0.025)),
+    y: Math.min(0.93, Math.max(0.07, anchor.y + (index % 2) * 0.03 - 0.015)),
   })),
-  obstacleAnchors: adultCourtyard.obstacleAnchors.map((anchor, index) => ({
-    x: Math.min(0.96, Math.max(0.03, anchor.x + (index % 3) * 0.035 - 0.03)),
-    y: Math.min(0.96, Math.max(0.03, anchor.y + (index % 2) * 0.035 - 0.02)),
-  })),
-}
+)
 
 const templates: Record<SpatialAudience, readonly PlanTemplate[]> = {
-  teens: [teenPulse, teenCircuit, teenHarbor],
-  adults: [adultCourtyard, adultConservatory, adultArcade],
+  teens: [gallery, pavilion, courtyard],
+  adults: [courtyard, gallery, pavilion],
 }
 
 const transformPoint = (point: PlanPoint, transform: PlanTransform): PlanPoint => {
@@ -562,7 +293,6 @@ const obstacleCount = (size: number) => {
   return 20
 }
 
-/** Obstacles are visible board elements, never hidden generated rules. */
 export const planObstacles = (
   id: SpatialPlanId | undefined,
   columns: number,

@@ -59,6 +59,8 @@ export interface Position {
   readonly label: string
   /** A visible piece of scenery occupies this grid position. */
   readonly blocked?: boolean
+  readonly obstacleEmoji?: string
+  readonly obstacleLabel?: string
 }
 
 interface ClueBase {

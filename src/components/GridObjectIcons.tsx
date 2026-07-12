@@ -8,12 +8,18 @@ interface GridObjectIconsProps {
 }
 
 export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps) => {
+  const columns = Math.max(...positions.map((position) => position.column)) + 1
+  const rows = Math.max(...positions.map((position) => position.row)) + 1
   const places = positions
     .filter((position) => position.row === 0)
     .map((position) => gridPlaceLabel(position.label))
 
   return (
-    <div className="grid-object-icons" aria-hidden="true">
+    <div
+      className="grid-object-icons"
+      style={{ '--grid-columns': columns } as React.CSSProperties}
+      aria-hidden="true"
+    >
       {plan.zones.map((zone, index) => {
         const label = places[index % places.length]
         const item = items[index % items.length]
@@ -36,6 +42,21 @@ export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps
           </div>
         )
       })}
+      {positions
+        .filter((position) => position.blocked)
+        .map((position) => (
+          <span
+            key={position.id}
+            className="grid-object-icons__obstacle"
+            style={{
+              left: `${((position.column + 0.5) / columns) * 100}%`,
+              top: `${((position.row + 0.5) / rows) * 100}%`,
+            }}
+            title={position.obstacleLabel}
+          >
+            {position.obstacleEmoji}
+          </span>
+        ))}
     </div>
   )
 }

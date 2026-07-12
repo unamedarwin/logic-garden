@@ -93,13 +93,15 @@ describe('game reducer', () => {
   it('rejects deduction-grid moves that reuse an occupied row or column', () => {
     const puzzle = generatePuzzle('easy', 'logic-grid-guard', 'teens')
     const [firstCharacter, secondCharacter] = puzzle.characters
-    const firstPosition = puzzle.positions[0]!
+    const firstPosition = puzzle.positions.find((position) => !position.blocked)
     const blockedPosition = puzzle.positions.find(
       (position) =>
+        !position.blocked &&
+        firstPosition &&
         position.id !== firstPosition.id &&
         (position.row === firstPosition.row || position.column === firstPosition.column),
     )
-    if (!firstCharacter || !secondCharacter || !blockedPosition) {
+    if (!firstCharacter || !secondCharacter || !firstPosition || !blockedPosition) {
       throw new Error('Expected a deduction grid with two characters and positions')
     }
 
