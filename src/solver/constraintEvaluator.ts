@@ -37,6 +37,18 @@ export const isClueSatisfiedByPartialAssignment = (
       const position = positionFor(puzzle, assignment, clue.characterId)
       return !position || position.placeId !== clue.placeId
     }
+    case 'character-next-to-obstacle': {
+      const position = positionFor(puzzle, assignment, clue.characterId)
+      const obstacle = puzzle.positions.find(
+        (candidate) => candidate.id === clue.obstaclePositionId && candidate.blocked,
+      )
+      return (
+        !position ||
+        Boolean(
+          obstacle && obstacle.placeId === position.placeId && areAdjacent(position, obstacle),
+        )
+      )
+    }
     case 'has-item':
       return characterHasItem(puzzle, clue.characterId, clue.itemId)
     case 'does-not-have-item':

@@ -65,8 +65,18 @@ type UiKey =
   | 'timer'
   | 'completedGames'
   | 'shared'
+  | 'oldShareUnavailable'
   | 'hintPickerTitle'
   | 'hintPickerDescription'
+  | 'previousClue'
+  | 'nextClue'
+  | 'challengeSomeone'
+  | 'returnChallenge'
+  | 'offlineReady'
+  | 'gamePreparationError'
+  | 'preparing'
+  | 'selectPersonFirst'
+  | 'gameActions'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -111,7 +121,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventuresCompleted: 'aventures completades',
     adventure: 'Aventura',
     mapInstruction: 'Tria un amic i després un lloc del mapa.',
-    logicGridInstruction: 'Tria una persona i un espai lliure de fila i columna.',
+    logicGridInstruction: 'Tria una persona i una casella lliure.',
     profileEyebrow: 'El teu racó de lògica',
     profileTitle: 'Abans de començar, crea el teu perfil.',
     profileDescription:
@@ -128,8 +138,18 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     timer: 'Temps',
     completedGames: 'Partides resoltes',
     shared: 'Enllaç preparat per compartir.',
+    oldShareUnavailable: 'Aquesta partida és d’una versió anterior i no es pot compartir.',
     hintPickerTitle: 'De qui necessites una pista?',
     hintPickerDescription: 'Tria una persona per rebre la pista.',
+    previousClue: 'Pista anterior',
+    nextClue: 'Pista següent',
+    challengeSomeone: 'Repta algú',
+    returnChallenge: 'Torna el repte',
+    offlineReady: 'Logic Garden ja està preparat per jugar sense connexió.',
+    gamePreparationError: 'No hem pogut preparar aquesta aventura. Prova una partida nova.',
+    preparing: 'Preparant el jardí de lògica…',
+    selectPersonFirst: 'Primer tria una persona de la llista o del mapa.',
+    gameActions: 'Accions de joc',
   },
   es: {
     play: 'Jugar',
@@ -173,7 +193,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventuresCompleted: 'aventuras completadas',
     adventure: 'Aventura',
     mapInstruction: 'Elige un amigo y después un lugar del mapa.',
-    logicGridInstruction: 'Elige una persona y un espacio libre de fila y columna.',
+    logicGridInstruction: 'Elige una persona y una casilla libre.',
     profileEyebrow: 'Tu rincón de lógica',
     profileTitle: 'Antes de empezar, crea tu perfil.',
     profileDescription:
@@ -190,8 +210,18 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     timer: 'Tiempo',
     completedGames: 'Partidas resueltas',
     shared: 'Enlace preparado para compartir.',
+    oldShareUnavailable: 'Esta partida es de una versión anterior y no se puede compartir.',
     hintPickerTitle: '¿De quién necesitas una pista?',
     hintPickerDescription: 'Elige una persona y la colocaremos en su espacio.',
+    previousClue: 'Pista anterior',
+    nextClue: 'Pista siguiente',
+    challengeSomeone: 'Reta a alguien',
+    returnChallenge: 'Devuelve el reto',
+    offlineReady: 'Logic Garden ya está listo para jugar sin conexión.',
+    gamePreparationError: 'No hemos podido preparar esta aventura. Prueba una partida nueva.',
+    preparing: 'Preparando el jardín de lógica…',
+    selectPersonFirst: 'Primero elige una persona de la lista o del mapa.',
+    gameActions: 'Acciones de juego',
   },
   en: {
     play: 'Play',
@@ -235,7 +265,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventuresCompleted: 'adventures completed',
     adventure: 'Adventure',
     mapInstruction: 'Choose a friend, then choose a place on the map.',
-    logicGridInstruction: 'Choose a person and a space free in its row and column.',
+    logicGridInstruction: 'Choose a person and an empty space.',
     profileEyebrow: 'Your logic corner',
     profileTitle: 'Create your profile before you start.',
     profileDescription:
@@ -252,12 +282,135 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     timer: 'Time',
     completedGames: 'Completed games',
     shared: 'Link ready to share.',
+    oldShareUnavailable: 'This game is from an older version and cannot be shared.',
     hintPickerTitle: 'Who needs a hint?',
     hintPickerDescription: 'Choose a person and we will place them in their space.',
+    previousClue: 'Previous clue',
+    nextClue: 'Next clue',
+    challengeSomeone: 'Challenge someone',
+    returnChallenge: 'Send it back',
+    offlineReady: 'Logic Garden is ready for offline play.',
+    gamePreparationError: 'We could not prepare this adventure. Try a new game.',
+    preparing: 'Preparing the logic garden…',
+    selectPersonFirst: 'Choose a person from the list or the map first.',
+    gameActions: 'Game actions',
   },
 }
 
 export const t = (locale: Locale, key: UiKey) => ui[locale][key]
+
+export const challengeInviteCopy = (locale: Locale, benchmark?: string) => {
+  const copy: Record<
+    Locale,
+    {
+      title: string
+      welcome: string
+      message: string
+      timedMessage: (time: string) => string
+      play: string
+    }
+  > = {
+    ca: {
+      title: 'T’han enviat un misteri',
+      welcome: 'Et donem la benvinguda a Logic Garden.',
+      message: 'Una persona t’envia aquest misteri. Podràs resoldre’l?',
+      timedMessage: (time) =>
+        `Una persona t’envia aquest misteri. L’ha resolt en ${time}. Podràs millorar-ho?`,
+      play: 'Accepta el repte',
+    },
+    es: {
+      title: 'Te han enviado un misterio',
+      welcome: 'Te damos la bienvenida a Logic Garden.',
+      message: 'Una persona te envía este misterio. ¿Podrás resolverlo?',
+      timedMessage: (time) =>
+        `Una persona te envía este misterio. Lo ha resuelto en ${time}. ¿Podrás mejorarlo?`,
+      play: 'Aceptar el reto',
+    },
+    en: {
+      title: 'Someone sent you a mystery',
+      welcome: 'Welcome to Logic Garden.',
+      message: 'Someone sent you this mystery. Can you solve it?',
+      timedMessage: (time) =>
+        `Someone sent you this mystery. They solved it in ${time}. Can you beat it?`,
+      play: 'Accept challenge',
+    },
+  }
+  const selected = copy[locale]
+  return {
+    ...selected,
+    message: benchmark ? selected.timedMessage(benchmark) : selected.message,
+  }
+}
+
+export const challengeResultCopy = (
+  locale: Locale,
+  benchmark: string,
+  current: string,
+  improved: boolean,
+) => {
+  const copy: Record<Locale, { improved: string; completed: string; share: string }> = {
+    ca: {
+      improved: `Has superat la marca de ${benchmark} amb ${current}.`,
+      completed: `Repte resolt en ${current}. La marca a superar era ${benchmark}.`,
+      share: 'Torna’l a enviar amb la teva marca o fes una captura d’aquesta targeta.',
+    },
+    es: {
+      improved: `Has superado la marca de ${benchmark} con ${current}.`,
+      completed: `Reto resuelto en ${current}. La marca a superar era ${benchmark}.`,
+      share: 'Devuélvelo con tu marca o haz una captura de esta tarjeta.',
+    },
+    en: {
+      improved: `You beat the ${benchmark} mark with ${current}.`,
+      completed: `Challenge solved in ${current}. The mark to beat was ${benchmark}.`,
+      share: 'Send it back with your mark or take a screenshot of this card.',
+    },
+  }
+  const selected = copy[locale]
+  return { message: improved ? selected.improved : selected.completed, share: selected.share }
+}
+
+export const challengeShareCopy = (locale: Locale, title: string, time?: string) => {
+  const copy: Record<Locale, (puzzleTitle: string, mark?: string) => string> = {
+    ca: (puzzleTitle, mark) =>
+      mark
+        ? `Et repto a Logic Garden: ${puzzleTitle}. L’he resolt en ${mark}. Podràs millorar-ho?`
+        : `Et repto a Logic Garden: ${puzzleTitle}. Podràs resoldre aquest misteri?`,
+    es: (puzzleTitle, mark) =>
+      mark
+        ? `Te reto en Logic Garden: ${puzzleTitle}. Lo he resuelto en ${mark}. ¿Podrás mejorarlo?`
+        : `Te reto en Logic Garden: ${puzzleTitle}. ¿Podrás resolver este misterio?`,
+    en: (puzzleTitle, mark) =>
+      mark
+        ? `A Logic Garden challenge: ${puzzleTitle}. I solved it in ${mark}. Can you beat it?`
+        : `A Logic Garden challenge: ${puzzleTitle}. Can you solve this mystery?`,
+  }
+  return copy[locale](title, time)
+}
+
+export const installPromptCopy = (locale: Locale) => {
+  const copy: Record<Locale, { title: string; ios: string; android: string; dismiss: string }> =
+    {
+      ca: {
+        title: 'Juga també sense connexió',
+        ios: 'Toca Compartir i després «Afegeix a la pantalla d’inici».',
+        android: 'Toca Instal·la. Si no apareix, obre el menú i tria «Instal·la l’aplicació».',
+        dismiss: 'Ara no',
+      },
+      es: {
+        title: 'Juega también sin conexión',
+        ios: 'Toca Compartir y después «Añadir a pantalla de inicio».',
+        android: 'Toca Instalar. Si no aparece, abre el menú y elige «Instalar aplicación».',
+        dismiss: 'Ahora no',
+      },
+      en: {
+        title: 'Play offline too',
+        ios: 'Tap Share, then “Add to Home Screen”.',
+        android: 'Tap Install. If it is unavailable, open the menu and choose “Install app”.',
+        dismiss: 'Not now',
+      },
+    }
+  return copy[locale]
+}
 
 export const boardActionCopy = (locale: Locale) => {
   const copy: Record<Locale, { moveToPosition: string; selectPosition: string }> = {

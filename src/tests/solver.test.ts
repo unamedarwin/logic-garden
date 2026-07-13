@@ -6,7 +6,7 @@ import {
   isPartialAssignmentValid,
   solve,
 } from '../solver/solver'
-import { itemId, placeId, type Clue } from '../domain/types'
+import { itemId, placeId, positionId, type Clue } from '../domain/types'
 import { characterIds, createPuzzle, fullAssignment, positionIds } from './fixtures'
 
 const base = <Type extends Clue['type']>(id: string, type: Type) => ({
@@ -56,8 +56,43 @@ describe('solver', () => {
   it('stops as soon as the solution limit is reached', () => {
     const result = analyzeSolutions(createPuzzle(), { limit: 2 })
     expect(result.count).toBe(2)
+    expect(result.foundSolutions).toHaveLength(2)
     expect(result.reachedNodeLimit).toBe(false)
     expect(result.exploredNodes).toBeLessThan(12)
+  })
+
+  it('limits a person to playable cells beside a visible obstacle in the same room', () => {
+    const obstacleId = positionId('obstacle')
+    const puzzle = {
+      ...createPuzzle(),
+      positions: [
+        ...createPuzzle().positions,
+        {
+          id: obstacleId,
+          placeId: placeId('place0'),
+          row: 1,
+          column: 0,
+          label: 'Objecte',
+          blocked: true,
+        },
+      ],
+    }
+    const clue: Clue = {
+      ...base('landmark', 'character-next-to-obstacle'),
+      characterId: characterIds.a,
+      obstaclePositionId: obstacleId,
+    }
+
+    expect(
+      isClueSatisfiedByPartialAssignment(puzzle, clue, {
+        [characterIds.a]: positionIds.p0,
+      }),
+    ).toBe(true)
+    expect(
+      isClueSatisfiedByPartialAssignment(puzzle, clue, {
+        [characterIds.a]: positionIds.p1,
+      }),
+    ).toBe(false)
   })
 
   it('rejects duplicate positions and contradictory partial assignments', () => {

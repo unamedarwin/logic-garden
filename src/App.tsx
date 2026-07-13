@@ -5,9 +5,10 @@ import {
   useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { Check, Home, Lightbulb, Redo2, RotateCcw, Shuffle, Undo2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import { parseSharedGameRoute, shareUrl } from './app/routes'
+import { Check, Home, Lightbulb, Redo2, RotateCcw, Share2, Shuffle, Undo2 } from 'lucide-react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { parseSharedGameRoute, shareUrl, type SharedGameRoute } from './app/routes'
+import { ChallengeIntroDialog } from './components/ChallengeIntroDialog'
 import { CharacterTray } from './components/CharacterTray'
 import { CharacterClueRail } from './components/CharacterClueRail'
 import { CluePanel } from './components/CluePanel'
@@ -22,8 +23,18 @@ import { ProfileSetup } from './components/ProfileSetup'
 import { ResultDialog } from './components/ResultDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import { UpdatePrompt } from './components/UpdatePrompt'
-import { audienceHeroCopy, audienceLabel, boardActionCopy, t, themeCopy } from './domain/i18n'
+import {
+  audienceHeroCopy,
+  audienceLabel,
+  boardActionCopy,
+  challengeInviteCopy,
+  challengeResultCopy,
+  challengeShareCopy,
+  t,
+  themeCopy,
+} from './domain/i18n'
 import { avatarOptions, type PlayerProfile } from './domain/profile'
+import { getTheme } from './domain/themes'
 import { seed, type Audience, type Difficulty } from './domain/types'
 import {
   gameReducer,
@@ -34,6 +45,7 @@ import {
 import { progress, unplacedCharacters } from './game/selectors'
 import { elapsedSeconds, formatCounter } from './game/time'
 import { generatePuzzle } from './generator/puzzleGenerator'
+import { GENERATOR_VERSION } from './generator/version'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
 import { loadProfile, saveProfile } from './storage/profile'
 import { clearSavedGame, loadSavedGame, saveGame } from './storage/savedGame'
@@ -53,7 +65,7 @@ import {
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
 
 const emptyStatistics: Statistics = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   completed: 0,
   hintsUsed: 0,
   recentSeeds: [],
@@ -117,9 +129,16 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [editingProfile, setEditingProfile] = useState(false)
   const [showHintPicker, setShowHintPicker] = useState(false)
+  const [sharedChallenge, setSharedChallenge] = useState<SharedGameRoute | null>(null)
+  const [showChallengeIntro, setShowChallengeIntro] = useState(false)
+  const [challengeFirstVisit, setChallengeFirstVisit] = useState(false)
+  const boardScrollRef = useRef<HTMLDivElement>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
+  const showOfflineReady = useEffectEvent(() => {
+    setNotice(t(preferences.locale, 'offlineReady'))
+  })
 
   useEffect(() => {
     let active = true
@@ -134,10 +153,17 @@ export default function App() {
       setStatistics(storedStatistics)
       setProfile(storedProfile)
       const shared = parseSharedGameRoute(window.location)
+      setSharedChallenge(shared)
+      setChallengeFirstVisit(!storedProfile)
       if (storedProfile && shared) {
-        setGame(
-          createGameState(generatePuzzle(shared.difficulty, shared.seed, shared.audience)),
-        )
+        try {
+          setGame(
+            createGameState(generatePuzzle(shared.difficulty, shared.seed, shared.audience)),
+          )
+          setShowChallengeIntro(true)
+        } catch {
+          setSharedChallenge(null)
+        }
       } else if (storedProfile && savedGame?.status === 'playing') {
         setGame(savedGame)
       }
@@ -161,6 +187,13 @@ export default function App() {
   }, [game])
 
   useEffect(() => {
+    const scrollArea = boardScrollRef.current
+    if (!scrollArea) return
+    scrollArea.scrollLeft = 0
+    scrollArea.scrollTop = 0
+  }, [game?.puzzle.id])
+
+  useEffect(() => {
     const setOnlineState = () => setOnline(navigator.onLine)
     window.addEventListener('online', setOnlineState)
     window.addEventListener('offline', setOnlineState)
@@ -173,8 +206,7 @@ export default function App() {
   useEffect(() => {
     const update = registerServiceWorker({
       onNeedRefresh: () => setUpdateAvailable(true),
-      onOfflineReady: () =>
-        setNotice('Logic Garden ja està preparat per jugar sense connexió.'),
+      onOfflineReady: showOfflineReady,
     })
     setApplyUpdate(() => () => {
       void update(true)
@@ -190,12 +222,14 @@ export default function App() {
     try {
       const nextGame = createGameState(generatePuzzle(difficulty, source, profile.audience))
       setGame(nextGame)
+      setSharedChallenge(null)
+      setShowChallengeIntro(false)
       setShowHintPicker(false)
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
       resetPageScroll()
       setNotice('')
     } catch {
-      setNotice('No hem pogut preparar aquesta aventura. Prova una partida nova.')
+      setNotice(t(preferences.locale, 'gamePreparationError'))
     } finally {
       setGenerating(false)
     }
@@ -203,6 +237,8 @@ export default function App() {
 
   const returnToHome = () => {
     setGame(null)
+    setSharedChallenge(null)
+    setShowChallengeIntro(false)
     setShowHintPicker(false)
     void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
@@ -214,11 +250,35 @@ export default function App() {
     setProfile(nextProfile)
     void saveProfile(nextProfile)
     void clearSavedGame()
-    setGame(null)
+    if (sharedChallenge) {
+      try {
+        setGame(
+          createGameState(
+            generatePuzzle(
+              sharedChallenge.difficulty,
+              sharedChallenge.seed,
+              sharedChallenge.audience,
+            ),
+          ),
+        )
+        setShowChallengeIntro(true)
+      } catch {
+        setGame(null)
+        setSharedChallenge(null)
+      }
+    } else {
+      setGame(null)
+    }
     setEditingProfile(false)
-    window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    if (!sharedChallenge) window.history.replaceState({}, '', import.meta.env.BASE_URL)
     resetPageScroll()
   }
+
+  const activeAudience: Audience = game
+    ? game.puzzle.boardMode === 'map'
+      ? 'children'
+      : (getTheme(game.puzzle.theme).audience ?? profile?.audience ?? 'adults')
+    : (profile?.audience ?? 'children')
 
   const runGameAction = (action: GameAction) => {
     if (!game) return
@@ -230,8 +290,9 @@ export default function App() {
       void recordCompletion({
         seed: nextGame.puzzle.seed,
         title: themeCopy(preferences.locale, nextGame.puzzle.theme).title,
-        audience: profile?.audience ?? 'children',
+        audience: activeAudience,
         difficulty: nextGame.puzzle.difficulty,
+        generatorVersion: nextGame.puzzle.metadata.generatorVersion,
         elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
         moves: nextGame.moves,
         hintsUsed: nextGame.hintsUsed,
@@ -256,7 +317,7 @@ export default function App() {
     }
   }
 
-  const shareWithSystemMenu = (url: string, title: string) => {
+  const shareWithSystemMenu = (url: string, title: string, text: string = title) => {
     const copyLink = async () => {
       try {
         await navigator.clipboard.writeText(url)
@@ -266,7 +327,7 @@ export default function App() {
       }
     }
     if (navigator.share) {
-      void navigator.share({ title, text: title, url }).then(
+      void navigator.share({ title, text, url }).then(
         () => setNotice(t(preferences.locale, 'shared')),
         (error: unknown) => {
           if (error instanceof Error && error.name === 'AbortError') return
@@ -280,19 +341,49 @@ export default function App() {
 
   const shareCurrentGame = () => {
     if (!game || !profile) return
+    const title = themeCopy(preferences.locale, game.puzzle.theme).title
+    const completedSeconds =
+      game.status === 'won' ? elapsedSeconds(game.startedAt, game.finishedAt) : undefined
     shareWithSystemMenu(
-      shareUrl(game.puzzle, profile.audience),
-      `Logic Garden: ${game.puzzle.title}`,
+      shareUrl(
+        {
+          difficulty: game.puzzle.difficulty,
+          seed: game.puzzle.seed,
+          generatorVersion: game.puzzle.metadata.generatorVersion,
+        },
+        activeAudience,
+        completedSeconds,
+      ),
+      `Logic Garden: ${title}`,
+      challengeShareCopy(
+        preferences.locale,
+        title,
+        completedSeconds === undefined ? undefined : formatCounter(completedSeconds),
+      ),
     )
   }
 
   const shareCompletedGame = (completedGame: CompletedGame) => {
+    if (completedGame.generatorVersion !== GENERATOR_VERSION) {
+      setNotice(t(preferences.locale, 'oldShareUnavailable'))
+      return
+    }
     shareWithSystemMenu(
       shareUrl(
-        { difficulty: completedGame.difficulty, seed: seed(completedGame.seed) },
+        {
+          difficulty: completedGame.difficulty,
+          seed: seed(completedGame.seed),
+          generatorVersion: completedGame.generatorVersion,
+        },
         completedGame.audience,
+        completedGame.elapsedSeconds,
       ),
       `Logic Garden: ${completedGame.title}`,
+      challengeShareCopy(
+        preferences.locale,
+        completedGame.title,
+        formatCounter(completedGame.elapsedSeconds),
+      ),
     )
   }
 
@@ -308,12 +399,24 @@ export default function App() {
   const connectionLabel = t(preferences.locale, online ? 'online' : 'offline')
 
   if (!ready) {
-    return <main className="loading-screen">Preparant el jardí de lògica…</main>
+    return <main className="loading-screen">{t(preferences.locale, 'preparing')}</main>
   }
 
   if (!profile || editingProfile) {
     return (
-      <ProfileSetup profile={profile} locale={preferences.locale} onSave={savePlayerProfile} />
+      <>
+        <ProfileSetup
+          profile={profile}
+          locale={preferences.locale}
+          onLocaleChange={(locale) => setPreferences({ ...preferences, locale })}
+          onSave={savePlayerProfile}
+        />
+        <InstallPrompt
+          label={t(preferences.locale, 'install')}
+          locale={preferences.locale}
+          prominent={!profile}
+        />
+      </>
     )
   }
 
@@ -379,11 +482,11 @@ export default function App() {
           games={statistics.history}
           locale={preferences.locale}
           title={t(preferences.locale, 'completedGames')}
-          shareLabel={t(preferences.locale, 'share')}
+          shareLabel={t(preferences.locale, 'challengeSomeone')}
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
           onShare={shareCompletedGame}
         />
-        <InstallPrompt label={t(preferences.locale, 'install')} />
+        <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
         {showSettings && (
           <SettingsDialog
             preferences={preferences}
@@ -409,10 +512,28 @@ export default function App() {
   )
   const gameProgress = progress(game)
   const availableCharacters = unplacedCharacters(game)
+  const currentElapsedSeconds = elapsedSeconds(game.startedAt, game.finishedAt)
+  const challengeInvite = sharedChallenge
+    ? challengeInviteCopy(
+        preferences.locale,
+        sharedChallenge.benchmarkSeconds === undefined
+          ? undefined
+          : formatCounter(sharedChallenge.benchmarkSeconds),
+      )
+    : null
+  const challengeResult =
+    sharedChallenge?.benchmarkSeconds === undefined
+      ? null
+      : challengeResultCopy(
+          preferences.locale,
+          formatCounter(sharedChallenge.benchmarkSeconds),
+          formatCounter(currentElapsedSeconds),
+          currentElapsedSeconds < sharedChallenge.benchmarkSeconds,
+        )
 
   return (
     <main
-      className={`app-shell game-screen audience--${profile.audience} theme--${game.puzzle.theme}`}
+      className={`app-shell game-screen audience--${activeAudience} theme--${game.puzzle.theme}`}
     >
       <GameHeader
         online={online}
@@ -476,35 +597,39 @@ export default function App() {
               </div>
               <span className="map-area__prompt">{boardInstruction}</span>
             </div>
-            <GameBoard
-              positions={game.puzzle.positions}
-              characters={game.puzzle.characters}
-              items={game.puzzle.items}
-              assignments={game.assignments}
-              selectedCharacterId={game.selectedCharacterId}
-              boardLabel={boardTitle}
-              emptyLabel={t(preferences.locale, 'emptyPlace')}
-              returnLabel={t(preferences.locale, 'returnToTray')}
-              moveToPositionLabel={boardActions.moveToPosition}
-              selectPositionLabel={boardActions.selectPosition}
-              boardMode={game.puzzle.boardMode}
-              audience={profile.audience}
-              spatialPlanId={game.puzzle.spatialPlanId}
-              onMoveToPosition={(positionId) => {
-                if (game.selectedCharacterId) {
-                  runGameAction({
-                    type: 'move-character',
-                    characterId: game.selectedCharacterId,
-                    positionId,
-                  })
-                } else {
-                  setNotice('Primer tria un amic de la safata o del mapa.')
+            <div ref={boardScrollRef} className="game-board-scroll">
+              <GameBoard
+                positions={game.puzzle.positions}
+                characters={game.puzzle.characters}
+                assignments={game.assignments}
+                selectedCharacterId={game.selectedCharacterId}
+                boardLabel={boardTitle}
+                emptyLabel={t(preferences.locale, 'emptyPlace')}
+                returnLabel={t(preferences.locale, 'returnToTray')}
+                moveToPositionLabel={boardActions.moveToPosition}
+                selectPositionLabel={boardActions.selectPosition}
+                boardMode={game.puzzle.boardMode}
+                audience={activeAudience}
+                locale={preferences.locale}
+                puzzleSeed={game.puzzle.seed}
+                themeId={game.puzzle.theme}
+                spatialPlanId={game.puzzle.spatialPlanId}
+                onMoveToPosition={(positionId) => {
+                  if (game.selectedCharacterId) {
+                    runGameAction({
+                      type: 'move-character',
+                      characterId: game.selectedCharacterId,
+                      positionId,
+                    })
+                  } else {
+                    setNotice(t(preferences.locale, 'selectPersonFirst'))
+                  }
+                }}
+                onRemoveCharacter={(characterId) =>
+                  runGameAction({ type: 'remove-character', characterId })
                 }
-              }}
-              onRemoveCharacter={(characterId) =>
-                runGameAction({ type: 'remove-character', characterId })
-              }
-            />
+              />
+            </div>
             {game.puzzle.boardMode === 'logic-grid' ? (
               <CharacterClueRail
                 puzzle={game.puzzle}
@@ -513,6 +638,8 @@ export default function App() {
                 selectedCharacterId={game.selectedCharacterId}
                 label={t(preferences.locale, 'characters')}
                 emptyLabel={t(preferences.locale, 'noCharacterClue')}
+                previousClueLabel={t(preferences.locale, 'previousClue')}
+                nextClueLabel={t(preferences.locale, 'nextClue')}
                 onSelect={(character) =>
                   runGameAction({ type: 'select-character', characterId: character.id })
                 }
@@ -541,7 +668,7 @@ export default function App() {
           </section>
         </div>
       </DndContext>
-      <div className="game-actions" aria-label="Accions de joc">
+      <div className="game-actions" aria-label={t(preferences.locale, 'gameActions')}>
         <div className="game-actions__secondary">
           <button
             type="button"
@@ -566,6 +693,10 @@ export default function App() {
           <button type="button" onClick={requestHint}>
             <Lightbulb aria-hidden="true" />
             {t(preferences.locale, 'hint')}
+          </button>
+          <button type="button" onClick={shareCurrentGame}>
+            <Share2 aria-hidden="true" />
+            {t(preferences.locale, 'challengeSomeone')}
           </button>
         </div>
         <div className="game-actions__primary">
@@ -592,7 +723,7 @@ export default function App() {
           {game.feedback ?? notice}
         </p>
       )}
-      <InstallPrompt label={t(preferences.locale, 'install')} />
+      <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
       {showSettings && (
         <SettingsDialog
           preferences={preferences}
@@ -615,6 +746,19 @@ export default function App() {
           onClose={() => setShowHintPicker(false)}
         />
       )}
+      {showChallengeIntro && challengeInvite && (
+        <ChallengeIntroDialog
+          title={challengeInvite.title}
+          welcome={challengeFirstVisit ? challengeInvite.welcome : undefined}
+          message={challengeInvite.message}
+          actionLabel={challengeInvite.play}
+          onContinue={() => {
+            setShowChallengeIntro(false)
+            window.history.replaceState({}, '', import.meta.env.BASE_URL)
+            resetPageScroll()
+          }}
+        />
+      )}
       {game.status === 'won' && (
         <ResultDialog
           title={copy.title}
@@ -626,8 +770,13 @@ export default function App() {
           hintsLabel={t(preferences.locale, 'hintsUsed')}
           newGameLabel={t(preferences.locale, 'newGame')}
           changeDifficultyLabel={t(preferences.locale, 'changeDifficulty')}
-          shareLabel={t(preferences.locale, 'share')}
+          shareLabel={t(
+            preferences.locale,
+            sharedChallenge ? 'returnChallenge' : 'challengeSomeone',
+          )}
           timeLabel={t(preferences.locale, 'timer').toLowerCase()}
+          challengeMessage={challengeResult?.message}
+          challengeShareHint={challengeResult?.share}
           onNewGame={() => startGame()}
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}

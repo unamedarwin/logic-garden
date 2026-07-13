@@ -3,6 +3,9 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import App from '../App'
+import { shareUrl } from '../app/routes'
+import { seed } from '../domain/types'
+import { GENERATOR_VERSION } from '../generator/version'
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({ children }: { children: ReactNode }) => children,
@@ -66,6 +69,33 @@ vi.mock('../storage/savedGame', () => ({
 }))
 
 describe('game interface', () => {
+  it('opens a timed shared mystery with a clear challenge dialog', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(
+      {},
+      '',
+      shareUrl(
+        {
+          difficulty: 'easy',
+          seed: seed('shared-app-test'),
+          generatorVersion: GENERATOR_VERSION,
+        },
+        'children',
+        95,
+      ),
+    )
+
+    render(<App />)
+
+    const dialog = await screen.findByRole('dialog', { name: 'T’han enviat un misteri' })
+    expect(dialog).toHaveTextContent('01:35')
+    await user.click(screen.getByRole('button', { name: 'Accepta el repte' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
+    expect(window.location.search).toBe('')
+  })
+
   it('plays by keyboard and click, supports undo and provides a solver hint', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
@@ -142,5 +172,20 @@ describe('game interface', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent(/Pista aplicada/u)
+  })
+
+  it('keeps keyboard focus inside dialogs and restores it after Escape', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    const settingsButton = screen.getByRole('button', { name: 'Configuració' })
+    await user.click(settingsButton)
+
+    const dialog = screen.getByRole('dialog', { name: 'Configuració' })
+    expect(dialog.querySelector('button')).toHaveFocus()
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog', { name: 'Configuració' })).not.toBeInTheDocument()
+    expect(settingsButton).toHaveFocus()
   })
 })

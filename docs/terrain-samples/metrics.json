@@ -1,0 +1,352 @@
+[
+  {
+    "material": "artificial-turf",
+    "meanRgb": [121.04, 165.95, 140.68],
+    "standardDeviationRgb": [71.02, 42.85, 50.18],
+    "variants": [
+      {
+        "seed": "terrain-sample:artificial-turf:0",
+        "decoratedCells": 12,
+        "density": 0.75,
+        "motifs": ["circle", "diamond", "waves"]
+      },
+      {
+        "seed": "terrain-sample:artificial-turf:1",
+        "decoratedCells": 8,
+        "density": 0.5,
+        "motifs": ["circle", "diamond", "waves"]
+      },
+      {
+        "seed": "terrain-sample:artificial-turf:2",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["circle", "diamond", "waves"]
+      }
+    ]
+  },
+  {
+    "material": "carpet",
+    "meanRgb": [167.54, 151.97, 174.65],
+    "standardDeviationRgb": [45.79, 50.54, 32.56],
+    "variants": [
+      {
+        "seed": "terrain-sample:carpet:0",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["sparkles", "waves"]
+      },
+      {
+        "seed": "terrain-sample:carpet:1",
+        "decoratedCells": 6,
+        "density": 0.375,
+        "motifs": ["sparkles", "waves"]
+      },
+      {
+        "seed": "terrain-sample:carpet:2",
+        "decoratedCells": 8,
+        "density": 0.5,
+        "motifs": ["sparkles", "waves"]
+      }
+    ]
+  },
+  {
+    "material": "concrete",
+    "meanRgb": [194.42, 195.12, 187.59],
+    "standardDeviationRgb": [32.46, 28.64, 27.08],
+    "variants": [
+      {
+        "seed": "terrain-sample:concrete:0",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["circle", "hexagon", "shapes"]
+      },
+      {
+        "seed": "terrain-sample:concrete:1",
+        "decoratedCells": 6,
+        "density": 0.375,
+        "motifs": ["circle", "hexagon", "shapes"]
+      },
+      {
+        "seed": "terrain-sample:concrete:2",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["circle", "hexagon", "shapes"]
+      }
+    ]
+  },
+  {
+    "material": "cork",
+    "meanRgb": [202.85, 180.38, 143.21],
+    "standardDeviationRgb": [28.92, 35.44, 49.12],
+    "variants": [
+      {
+        "seed": "terrain-sample:cork:0",
+        "decoratedCells": 4,
+        "density": 0.25,
+        "motifs": ["circle", "shapes"]
+      },
+      {
+        "seed": "terrain-sample:cork:1",
+        "decoratedCells": 7,
+        "density": 0.4375,
+        "motifs": ["circle", "shapes"]
+      },
+      {
+        "seed": "terrain-sample:cork:2",
+        "decoratedCells": 12,
+        "density": 0.75,
+        "motifs": ["circle", "hexagon"]
+      }
+    ]
+  },
+  {
+    "material": "grass",
+    "meanRgb": [181.83, 201.37, 158.73],
+    "standardDeviationRgb": [38.49, 25.99, 40.67],
+    "variants": [
+      {
+        "seed": "terrain-sample:grass:0",
+        "decoratedCells": 8,
+        "density": 0.5,
+        "motifs": ["flower", "leaf", "sprout"]
+      },
+      {
+        "seed": "terrain-sample:grass:1",
+        "decoratedCells": 12,
+        "density": 0.75,
+        "motifs": ["flower", "leaf", "sprout"]
+      },
+      {
+        "seed": "terrain-sample:grass:2",
+        "decoratedCells": 10,
+        "density": 0.625,
+        "motifs": ["flower", "leaf", "sprout"]
+      }
+    ]
+  },
+  {
+    "material": "metal",
+    "meanRgb": [156.61, 171.89, 173.51],
+    "standardDeviationRgb": [51.4, 39.66, 33.12],
+    "variants": [
+      {
+        "seed": "terrain-sample:metal:0",
+        "decoratedCells": 4,
+        "density": 0.25,
+        "motifs": ["bolt", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:metal:1",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["bolt", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:metal:2",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["bolt", "disc", "hexagon"]
+      }
+    ]
+  },
+  {
+    "material": "mosaic",
+    "meanRgb": [199.4, 214.3, 206.82],
+    "standardDeviationRgb": [30.52, 21.57, 20.64],
+    "variants": [
+      {
+        "seed": "terrain-sample:mosaic:0",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["diamond", "sparkles"]
+      },
+      {
+        "seed": "terrain-sample:mosaic:1",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["diamond", "sparkles"]
+      },
+      {
+        "seed": "terrain-sample:mosaic:2",
+        "decoratedCells": 7,
+        "density": 0.4375,
+        "motifs": ["diamond", "sparkles"]
+      }
+    ]
+  },
+  {
+    "material": "parquet",
+    "meanRgb": [207.4, 187.03, 154.74],
+    "standardDeviationRgb": [28.45, 33.02, 43.14],
+    "variants": [
+      {
+        "seed": "terrain-sample:parquet:0",
+        "decoratedCells": 12,
+        "density": 0.75,
+        "motifs": ["waves"]
+      },
+      {
+        "seed": "terrain-sample:parquet:1",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["waves"]
+      },
+      {
+        "seed": "terrain-sample:parquet:2",
+        "decoratedCells": 6,
+        "density": 0.375,
+        "motifs": ["waves"]
+      }
+    ]
+  },
+  {
+    "material": "rubber",
+    "meanRgb": [139.33, 153.48, 157.8],
+    "standardDeviationRgb": [60.98, 49.53, 41.15],
+    "variants": [
+      {
+        "seed": "terrain-sample:rubber:0",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["circle", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:rubber:1",
+        "decoratedCells": 9,
+        "density": 0.5625,
+        "motifs": ["circle", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:rubber:2",
+        "decoratedCells": 6,
+        "density": 0.375,
+        "motifs": ["circle", "disc", "hexagon"]
+      }
+    ]
+  },
+  {
+    "material": "sand",
+    "meanRgb": [225.34, 207.15, 164.53],
+    "standardDeviationRgb": [21.91, 23.69, 37.59],
+    "variants": [
+      {
+        "seed": "terrain-sample:sand:0",
+        "decoratedCells": 8,
+        "density": 0.5,
+        "motifs": ["circle", "shell", "waves"]
+      },
+      {
+        "seed": "terrain-sample:sand:1",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["circle", "shell", "waves"]
+      },
+      {
+        "seed": "terrain-sample:sand:2",
+        "decoratedCells": 4,
+        "density": 0.25,
+        "motifs": ["circle", "shell", "waves"]
+      }
+    ]
+  },
+  {
+    "material": "soil",
+    "meanRgb": [194.26, 167.73, 133.31],
+    "standardDeviationRgb": [32.38, 41.84, 54.5],
+    "variants": [
+      {
+        "seed": "terrain-sample:soil:0",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["shapes", "sprout"]
+      },
+      {
+        "seed": "terrain-sample:soil:1",
+        "decoratedCells": 9,
+        "density": 0.5625,
+        "motifs": ["circle", "shapes", "sprout"]
+      },
+      {
+        "seed": "terrain-sample:soil:2",
+        "decoratedCells": 9,
+        "density": 0.5625,
+        "motifs": ["circle", "shapes", "sprout"]
+      }
+    ]
+  },
+  {
+    "material": "stage",
+    "meanRgb": [145.86, 120.43, 125.27],
+    "standardDeviationRgb": [57.46, 68.05, 58.92],
+    "variants": [
+      {
+        "seed": "terrain-sample:stage:0",
+        "decoratedCells": 7,
+        "density": 0.4375,
+        "motifs": ["audio", "music", "sparkles"]
+      },
+      {
+        "seed": "terrain-sample:stage:1",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["audio", "music"]
+      },
+      {
+        "seed": "terrain-sample:stage:2",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["audio", "music", "sparkles"]
+      }
+    ]
+  },
+  {
+    "material": "stone",
+    "meanRgb": [193.47, 198.49, 189.24],
+    "standardDeviationRgb": [32.86, 27.13, 26.32],
+    "variants": [
+      {
+        "seed": "terrain-sample:stone:0",
+        "decoratedCells": 8,
+        "density": 0.5,
+        "motifs": ["circle", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:stone:1",
+        "decoratedCells": 11,
+        "density": 0.6875,
+        "motifs": ["circle", "disc", "hexagon"]
+      },
+      {
+        "seed": "terrain-sample:stone:2",
+        "decoratedCells": 6,
+        "density": 0.375,
+        "motifs": ["circle", "disc", "hexagon"]
+      }
+    ]
+  },
+  {
+    "material": "water",
+    "meanRgb": [160.74, 199.42, 205.07],
+    "standardDeviationRgb": [49.3, 26.44, 20.56],
+    "variants": [
+      {
+        "seed": "terrain-sample:water:0",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["droplets", "waves"]
+      },
+      {
+        "seed": "terrain-sample:water:1",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["circle", "droplets", "waves"]
+      },
+      {
+        "seed": "terrain-sample:water:2",
+        "decoratedCells": 5,
+        "density": 0.3125,
+        "motifs": ["circle", "droplets", "waves"]
+      }
+    ]
+  }
+]

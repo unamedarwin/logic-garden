@@ -1,5 +1,6 @@
 import { areAdjacent, isStrictlyBetween, manhattanDistance } from '../domain/constraints'
 import type { Assignment, CharacterId, Clue, Position, Puzzle } from '../domain/types'
+import { preferredLandmark } from './landmarkDomains'
 import { SeededRandom } from './seededRandom'
 
 const solutionPosition = (
@@ -44,6 +45,19 @@ export const generateCandidateClues = (
     const otherItem = puzzle.items.find((item) => item.id !== character.itemId)
 
     if (puzzle.boardMode === 'logic-grid') {
+      const adjacentObstacle = preferredLandmark(puzzle.positions, position, puzzle.difficulty)
+      if (adjacentObstacle) {
+        add({
+          ...clueBase(
+            random,
+            'character-next-to-obstacle',
+            `${character.id}:${adjacentObstacle.id}`,
+          ),
+          type: 'character-next-to-obstacle',
+          characterId: character.id,
+          obstaclePositionId: adjacentObstacle.id,
+        })
+      }
       add({
         ...clueBase(random, 'character-at-position', character.id),
         type: 'character-at-position',

@@ -8,6 +8,7 @@ import type {
   PositionId,
   Puzzle,
 } from './types'
+import { localizeThemeLabel } from './themeVocabulary'
 
 type Templates = Record<Clue['type'], readonly string[]>
 
@@ -17,6 +18,7 @@ const mapTemplates: Record<Locale, Templates> = {
     'character-not-at-position': ['{a} no és a {p}.', 'No posis {a} a {p}.'],
     'character-in-place': ['{a} és a {p}.', 'Busca {a} a {p}.'],
     'character-not-in-place': ['{a} no és a {p}.', 'No busquis {a} a {p}.'],
+    'character-next-to-obstacle': ['{a} és al costat de {o}, a {p}.'],
     adjacent: ['{a} és al costat de {b}.', '{a} té {b} de veí.'],
     'not-adjacent': ['{a} no és al costat de {b}.', '{a} i {b} no són veïns.'],
     'same-row': ['{a} i {b} són a la mateixa fila.', '{a} comparteix fila amb {b}.'],
@@ -40,6 +42,7 @@ const mapTemplates: Record<Locale, Templates> = {
     'character-not-at-position': ['{a} no está en {p}.', 'No pongas a {a} en {p}.'],
     'character-in-place': ['{a} está en {p}.', 'Busca a {a} en {p}.'],
     'character-not-in-place': ['{a} no está en {p}.', 'No busques a {a} en {p}.'],
+    'character-next-to-obstacle': ['{a} está junto a {o}, en {p}.'],
     adjacent: ['{a} está junto a {b}.', '{a} y {b} son vecinos.'],
     'not-adjacent': ['{a} no está junto a {b}.', '{a} y {b} no son vecinos.'],
     'same-row': ['{a} y {b} están en la misma fila.', '{a} comparte fila con {b}.'],
@@ -63,6 +66,7 @@ const mapTemplates: Record<Locale, Templates> = {
     'character-not-at-position': ['{a} is not at {p}.', 'Do not place {a} at {p}.'],
     'character-in-place': ['{a} is at {p}.', 'Find {a} at {p}.'],
     'character-not-in-place': ['{a} is not at {p}.', 'Do not find {a} at {p}.'],
+    'character-next-to-obstacle': ['{a} is next to {o}, in {p}.'],
     adjacent: ['{a} is next to {b}.', '{a} and {b} are neighbors.'],
     'not-adjacent': ['{a} is not next to {b}.', '{a} and {b} are not neighbors.'],
     'same-row': ['{a} and {b} are in the same row.', '{a} shares a row with {b}.'],
@@ -98,18 +102,23 @@ const gridTemplates: Record<Locale, Templates> = {
     ],
     'character-in-place': ['{a} se sent a gust a «{p}» i hi porta {i}.'],
     'character-not-in-place': ['{a} prefereix ajudar en un altre espai, no a «{p}».'],
-    adjacent: ['{a} i {b} tenen espais veïns.'],
-    'not-adjacent': ['{a} i {b} no tenen espais veïns.'],
-    'same-row': ['{a} i {b} ocupen la mateixa franja.'],
-    'different-row': ['{a} i {b} ocupen franges diferents.'],
-    'same-column': ['{a} i {b} comparteixen zona.'],
-    'different-column': ['{a} i {b} no comparteixen zona.'],
-    'left-of': ["{a}, amb {i}, és a l'esquerra de {b}."],
-    'right-of': ['{a}, amb {i}, és a la dreta de {b}.'],
-    above: ['{a}, amb {i}, és per damunt de {b}.'],
-    below: ['{a}, amb {i}, és per sota de {b}.'],
-    distance: ['{a} i {b} mantenen la separació indicada al plànol.'],
-    between: ['{a}, amb {i}, queda entre {b} i {c}.'],
+    'character-next-to-obstacle': [
+      '{a} prepara amb il·lusió la zona «{p}», al costat de {o}, i hi porta {i}.',
+      'A «{p}», {a} dona un cop de mà al costat de {o} i porta {i}.',
+      '{a} té cura de «{p}» des d’un espai al costat de {o}, amb {i}.',
+    ],
+    adjacent: ['{a} i {b} preparen junts dos espais veïns.'],
+    'not-adjacent': ['{a} i {b} col·laboren en espais que no són veïns.'],
+    'same-row': ['{a} i {b} ajuden des de la mateixa franja del plànol.'],
+    'different-row': ['{a} i {b} ajuden des de franges diferents del plànol.'],
+    'same-column': ['{a} i {b} col·laboren dins la mateixa zona.'],
+    'different-column': ['{a} i {b} col·laboren en zones diferents.'],
+    'left-of': ["{a}, amb {i}, ajuda en un espai a l'esquerra de {b}."],
+    'right-of': ['{a}, amb {i}, ajuda en un espai a la dreta de {b}.'],
+    above: ['{a}, amb {i}, prepara un espai per damunt de {b}.'],
+    below: ['{a}, amb {i}, prepara un espai per sota de {b}.'],
+    distance: ['{a} i {b} col·laboren amb la separació indicada al plànol.'],
+    between: ['{a}, amb {i}, ajuda des d’un espai entre {b} i {c}.'],
     'has-item': ['{a} porta {i}.'],
     'does-not-have-item': ['{i} no acompanya {a}.'],
   },
@@ -124,18 +133,23 @@ const gridTemplates: Record<Locale, Templates> = {
     ],
     'character-in-place': ['{a} se siente a gusto en «{p}» y lleva {i}.'],
     'character-not-in-place': ['{a} prefiere ayudar en otro espacio, no en «{p}».'],
-    adjacent: ['{a} y {b} tienen espacios vecinos.'],
-    'not-adjacent': ['{a} y {b} no tienen espacios vecinos.'],
-    'same-row': ['{a} y {b} ocupan la misma franja.'],
-    'different-row': ['{a} y {b} ocupan franjas distintas.'],
-    'same-column': ['{a} y {b} comparten zona.'],
-    'different-column': ['{a} y {b} no comparten zona.'],
-    'left-of': ['{a}, con {i}, está a la izquierda de {b}.'],
-    'right-of': ['{a}, con {i}, está a la derecha de {b}.'],
-    above: ['{a}, con {i}, está por encima de {b}.'],
-    below: ['{a}, con {i}, está por debajo de {b}.'],
-    distance: ['{a} y {b} mantienen la separación indicada en el plano.'],
-    between: ['{a}, con {i}, queda entre {b} y {c}.'],
+    'character-next-to-obstacle': [
+      '{a} prepara con ilusión la zona «{p}», junto a {o}, y lleva {i}.',
+      'En «{p}», {a} echa una mano junto a {o} y lleva {i}.',
+      '{a} cuida de «{p}» desde un espacio junto a {o}, con {i}.',
+    ],
+    adjacent: ['{a} y {b} preparan juntos dos espacios vecinos.'],
+    'not-adjacent': ['{a} y {b} colaboran en espacios que no son vecinos.'],
+    'same-row': ['{a} y {b} ayudan desde la misma franja del plano.'],
+    'different-row': ['{a} y {b} ayudan desde franjas distintas del plano.'],
+    'same-column': ['{a} y {b} colaboran dentro de la misma zona.'],
+    'different-column': ['{a} y {b} colaboran en zonas distintas.'],
+    'left-of': ['{a}, con {i}, ayuda en un espacio a la izquierda de {b}.'],
+    'right-of': ['{a}, con {i}, ayuda en un espacio a la derecha de {b}.'],
+    above: ['{a}, con {i}, prepara un espacio por encima de {b}.'],
+    below: ['{a}, con {i}, prepara un espacio por debajo de {b}.'],
+    distance: ['{a} y {b} colaboran con la separación indicada en el plano.'],
+    between: ['{a}, con {i}, ayuda desde un espacio entre {b} y {c}.'],
     'has-item': ['{a} lleva {i}.'],
     'does-not-have-item': ['{i} no acompaña a {a}.'],
   },
@@ -150,18 +164,23 @@ const gridTemplates: Record<Locale, Templates> = {
     ],
     'character-in-place': ['{a} feels at home in “{p}” and carries {i}.'],
     'character-not-in-place': ['{a} would rather help elsewhere, not in “{p}”.'],
-    adjacent: ['{a} and {b} have neighboring spaces.'],
-    'not-adjacent': ['{a} and {b} do not have neighboring spaces.'],
-    'same-row': ['{a} and {b} occupy the same strip.'],
-    'different-row': ['{a} and {b} occupy different strips.'],
-    'same-column': ['{a} and {b} share a zone.'],
-    'different-column': ['{a} and {b} do not share a zone.'],
-    'left-of': ['{a}, with {i}, is left of {b}.'],
-    'right-of': ['{a}, with {i}, is right of {b}.'],
-    above: ['{a}, with {i}, is above {b}.'],
-    below: ['{a}, with {i}, is below {b}.'],
-    distance: ['{a} and {b} keep the separation marked on the plan.'],
-    between: ['{a}, with {i}, is between {b} and {c}.'],
+    'character-next-to-obstacle': [
+      '{a} is excited to prepare “{p}” beside {o}, carrying {i}.',
+      'In “{p}”, {a} lends a hand beside {o} and carries {i}.',
+      '{a} looks after “{p}” from a space beside {o}, with {i}.',
+    ],
+    adjacent: ['{a} and {b} prepare two neighboring spaces together.'],
+    'not-adjacent': ['{a} and {b} help in spaces that are not neighbors.'],
+    'same-row': ['{a} and {b} help from the same strip of the plan.'],
+    'different-row': ['{a} and {b} help from different strips of the plan.'],
+    'same-column': ['{a} and {b} work together in the same zone.'],
+    'different-column': ['{a} and {b} work together in different zones.'],
+    'left-of': ['{a}, with {i}, helps in a space left of {b}.'],
+    'right-of': ['{a}, with {i}, helps in a space right of {b}.'],
+    above: ['{a}, with {i}, prepares a space above {b}.'],
+    below: ['{a}, with {i}, prepares a space below {b}.'],
+    distance: ['{a} and {b} help with the separation marked on the plan.'],
+    between: ['{a}, with {i}, helps from a space between {b} and {c}.'],
     'has-item': ['{a} carries {i}.'],
     'does-not-have-item': ['{i} is not with {a}.'],
   },
@@ -175,8 +194,12 @@ const valueOrFallback = <Id extends string>(
   values.find((value) => value.id === id)?.label ??
   'here'
 
-const placeLabel = (puzzle: Puzzle, placeId: PlaceId) =>
-  puzzle.positions.find((position) => position.placeId === placeId)?.label ?? 'here'
+const placeLabel = (puzzle: Puzzle, placeId: PlaceId, locale: Locale) => {
+  const label = puzzle.positions.find((position) => position.placeId === placeId)?.label
+  return label
+    ? localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(label))
+    : { ca: 'aquí', es: 'aquí', en: 'here' }[locale]
+}
 
 const gridPlaceLabel = (label: string) => label.replace(/\s·\s\d+(?:\.\d+)?$/u, '')
 
@@ -212,7 +235,16 @@ export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
   const characterName = (id: CharacterId) => valueOrFallback(puzzle.characters, id)
   const positionFor = (id: PositionId) =>
     puzzle.positions.find((position) => position.id === id)
-  const itemName = (id: ItemId) => valueOrFallback(puzzle.items, id)
+  const itemName = (id: ItemId) =>
+    localizeThemeLabel(locale, puzzle.theme, valueOrFallback(puzzle.items, id))
+  const localizedPlace = (label: string) =>
+    localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(label))
+  const obstacleName = (position: Position, fallback: string) =>
+    `${position.obstacleEmoji ?? ''} ${localizeThemeLabel(
+      locale,
+      puzzle.theme,
+      position.obstacleLabel ?? fallback,
+    )}`.trim()
   const itemForCharacter = (id: CharacterId) => {
     const character = puzzle.characters.find((candidate) => candidate.id === id)
     return character ? itemName(character.itemId) : 'object'
@@ -225,15 +257,12 @@ export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
       const position = positionFor(clue.positionId)
       values.a = characterName(clue.characterId)
       values.i = itemForCharacter(clue.characterId)
-      values.p = position
-        ? puzzle.boardMode === 'logic-grid'
-          ? gridPlaceLabel(position.label)
-          : position.label
-        : 'here'
+      values.p = position ? localizedPlace(position.label) : 'here'
       const obstacle = position
         ? puzzle.positions.find(
             (candidate) =>
               candidate.blocked &&
+              candidate.placeId === position.placeId &&
               Math.abs(candidate.row - position.row) +
                 Math.abs(candidate.column - position.column) ===
                 1,
@@ -242,20 +271,23 @@ export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
       const near = { ca: 'prop de', es: 'junto a', en: 'near' } as const
       values.d =
         position && obstacle ? landmarkDirection(position, obstacle, locale) : near[locale]
-      values.o = obstacle
-        ? `${obstacle.obstacleEmoji ?? ''} ${obstacle.obstacleLabel ?? values.p}`.trim()
-        : values.p
+      values.o = obstacle ? obstacleName(obstacle, values.p) : values.p
       break
     }
     case 'character-in-place':
     case 'character-not-in-place':
       values.a = characterName(clue.characterId)
       values.i = itemForCharacter(clue.characterId)
-      values.p =
-        puzzle.boardMode === 'logic-grid'
-          ? gridPlaceLabel(placeLabel(puzzle, clue.placeId))
-          : placeLabel(puzzle, clue.placeId)
+      values.p = placeLabel(puzzle, clue.placeId, locale)
       break
+    case 'character-next-to-obstacle': {
+      const obstacle = positionFor(clue.obstaclePositionId)
+      values.a = characterName(clue.characterId)
+      values.i = itemForCharacter(clue.characterId)
+      values.p = obstacle ? localizedPlace(obstacle.label) : 'here'
+      values.o = obstacle ? obstacleName(obstacle, values.p) : values.p
+      break
+    }
     case 'has-item':
     case 'does-not-have-item':
       values.a = characterName(clue.characterId)

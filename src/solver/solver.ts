@@ -10,6 +10,7 @@ export interface SolverOptions {
 export interface SearchResult {
   readonly count: number
   readonly firstSolution: Assignment | null
+  readonly foundSolutions: readonly Assignment[]
   readonly exploredNodes: number
   readonly reachedNodeLimit: boolean
 }
@@ -50,11 +51,12 @@ export const analyzeSolutions = (puzzle: Puzzle, options: SolverOptions = {}): S
   const initialAssignment = { ...(options.partial ?? {}) }
   let count = 0
   let firstSolution: Assignment | null = null
+  const foundSolutions: Assignment[] = []
   let exploredNodes = 0
   let reachedNodeLimit = false
 
   if (!isPartialAssignmentValid(puzzle, initialAssignment)) {
-    return { count, firstSolution, exploredNodes, reachedNodeLimit }
+    return { count, firstSolution, foundSolutions, exploredNodes, reachedNodeLimit }
   }
 
   const visit = (assignment: PartialAssignment): void => {
@@ -68,7 +70,9 @@ export const analyzeSolutions = (puzzle: Puzzle, options: SolverOptions = {}): S
     const choice = nextCharacter(puzzle, assignment)
     if (!choice) {
       count += 1
-      firstSolution ??= assignment as Assignment
+      const solution = assignment as Assignment
+      firstSolution ??= solution
+      foundSolutions.push(solution)
       return
     }
 
@@ -79,7 +83,7 @@ export const analyzeSolutions = (puzzle: Puzzle, options: SolverOptions = {}): S
   }
 
   visit(initialAssignment)
-  return { count, firstSolution, exploredNodes, reachedNodeLimit }
+  return { count, firstSolution, foundSolutions, exploredNodes, reachedNodeLimit }
 }
 
 export const solve = (puzzle: Puzzle): Assignment | null =>

@@ -1,7 +1,8 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { getTheme, themes } from '../domain/themes'
-import type { Difficulty } from '../domain/types'
+import { fluentIconData } from '../assets/generated/fluentIconData'
+import type { Audience, Difficulty } from '../domain/types'
 import { renderClue } from '../domain/vocabulary'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
@@ -14,8 +15,46 @@ describe('seeded puzzle generator', () => {
   it('keeps character identities visually separate from object markers in every theme', () => {
     for (const theme of themes) {
       const objectEmojis = new Set(theme.items.map((item) => item.emoji))
+      expect(new Set(theme.characters.map((character) => character.emoji)).size, theme.id).toBe(
+        theme.characters.length,
+      )
       expect(
         theme.characters.filter((character) => objectEmojis.has(character.emoji)),
+        theme.id,
+      ).toEqual([])
+    }
+  })
+
+  it('uses curated, unique room objects for every teen and adult scene', () => {
+    for (const theme of themes.filter((candidate) => candidate.audience)) {
+      expect(theme.roomObjects?.length, theme.id).toBeGreaterThanOrEqual(20)
+      const roomEmojis = new Set(theme.roomObjects?.map((item) => item.emoji))
+      const carriedEmojis = new Set(theme.items.map((item) => item.emoji))
+      expect(roomEmojis.size, theme.id).toBe(theme.roomObjects?.length)
+      expect(
+        theme.items.filter((item) => roomEmojis.has(item.emoji)),
+        theme.id,
+      ).toEqual([])
+      expect(
+        theme.characters.filter((character) => roomEmojis.has(character.emoji)),
+        theme.id,
+      ).toEqual([])
+      expect(
+        theme.characters.filter((character) => carriedEmojis.has(character.emoji)),
+        theme.id,
+      ).toEqual([])
+    }
+  })
+
+  it('bundles a local Fluent SVG for every generated person and object', () => {
+    for (const theme of themes) {
+      const emojis = [
+        ...theme.characters.map((character) => character.emoji),
+        ...theme.items.map((item) => item.emoji),
+        ...(theme.roomObjects ?? []).map((item) => item.emoji),
+      ]
+      expect(
+        emojis.filter((emoji) => !fluentIconData[emoji]),
         theme.id,
       ).toEqual([])
     }
@@ -53,6 +92,53 @@ describe('seeded puzzle generator', () => {
     )
   }, 20_000)
 
+  it('keeps advanced puzzles deductive and uniquely solvable across seeded profiles', () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom<Audience>('teens', 'adults'),
+        fc.constantFrom<Difficulty>('easy', 'medium', 'hard'),
+        fc.integer({ min: -1_000_000, max: 1_000_000 }),
+        (audience, difficulty, value) => {
+          const puzzle = generatePuzzle(difficulty, `advanced-${value}`, audience)
+          const exactClues = puzzle.clues.filter(
+            (clue) => clue.type === 'character-at-position',
+          )
+          const relationalClues = puzzle.clues.filter((clue) =>
+            [
+              'adjacent',
+              'not-adjacent',
+              'left-of',
+              'right-of',
+              'above',
+              'below',
+              'between',
+            ].includes(clue.type),
+          )
+          if (countSolutions(puzzle, { limit: 2 }) !== 1) return false
+          if (exactClues.length > puzzle.characters.length - 1) return false
+          if (relationalClues.length < 1) return false
+          return exactClues.every((clue) => {
+            const position = puzzle.positions.find(
+              (candidate) => candidate.id === clue.positionId,
+            )
+            return Boolean(
+              position &&
+              puzzle.positions.some(
+                (obstacle) =>
+                  obstacle.blocked &&
+                  obstacle.placeId === position.placeId &&
+                  Math.abs(obstacle.row - position.row) +
+                    Math.abs(obstacle.column - position.column) ===
+                    1,
+              ),
+            )
+          })
+        },
+      ),
+      { numRuns: 6 },
+    )
+  }, 30_000)
+
   it('keeps every selected clue necessary after clue reduction', () => {
     const puzzle = generatePuzzle('hard', 'minimal-clues')
     for (const clue of puzzle.clues) {
@@ -71,9 +157,11 @@ describe('seeded puzzle generator', () => {
     if (!solution) throw new Error('Expected a solvable deduction grid')
 
     expect(teenPuzzle.boardMode).toBe('logic-grid')
-    expect(teenPuzzle.characters).toHaveLength(6)
-    expect(teenPuzzle.positions).toHaveLength(81)
-    expect(teenPuzzle.positions.filter((position) => position.blocked)).toHaveLength(9)
+    expect(teenPuzzle.characters.length).toBeGreaterThanOrEqual(4)
+    expect([36, 81, 256]).toContain(teenPuzzle.positions.length)
+    expect([6, 9, 20]).toContain(
+      teenPuzzle.positions.filter((position) => position.blocked).length,
+    )
     expect(getTheme(teenPuzzle.theme).audience).toBe('teens')
     expect(getTheme(adultPuzzle.theme).audience).toBe('adults')
 
@@ -124,6 +212,26 @@ describe('seeded puzzle generator', () => {
           }),
       ).toBe(true)
       const exactClues = puzzle.clues.filter((clue) => clue.type === 'character-at-position')
+      expect(exactClues.length).toBeLessThanOrEqual(puzzle.characters.length - 1)
+      expect(
+        puzzle.clues.filter((clue) => clue.type === 'character-next-to-obstacle'),
+      ).toHaveLength(puzzle.characters.length)
+      expect(
+        exactClues.every((clue) => {
+          const position = puzzle.positions.find(
+            (candidate) => candidate.id === clue.positionId,
+          )
+          return puzzle.positions.some(
+            (obstacle) =>
+              position &&
+              obstacle.blocked &&
+              obstacle.placeId === position.placeId &&
+              Math.abs(obstacle.row - position.row) +
+                Math.abs(obstacle.column - position.column) ===
+                1,
+          )
+        }),
+      ).toBe(true)
       expect(
         exactClues.every((clue) => /agrada|ganes|ajuda/u.test(renderClue(puzzle, clue, 'ca'))),
       ).toBe(true)
@@ -135,32 +243,82 @@ describe('seeded puzzle generator', () => {
           /excited|ready|helping/u.test(renderClue(puzzle, clue, 'en')),
         ),
       ).toBe(true)
+      const landmarkTexts = puzzle.clues
+        .filter((clue) => clue.type === 'character-next-to-obstacle')
+        .flatMap((clue) =>
+          (['ca', 'es', 'en'] as const).map((locale) => renderClue(puzzle, clue, locale)),
+        )
+      expect(landmarkTexts.every((text) => text.length > 24)).toBe(true)
     }
   })
 
-  it('scales spatial plans without coupling people to the board dimension', () => {
-    const sizes = [
-      ['easy', 6, 4, 4],
-      ['medium', 9, 6, 9],
-      ['hard', 16, 8, 20],
-    ] as const
-
-    for (const [difficulty, dimension, people, obstacles] of sizes) {
-      const puzzle = generatePuzzle(difficulty, `large-plan-${difficulty}`, 'adults')
-      expect(puzzle.characters).toHaveLength(people)
-      expect(puzzle.positions).toHaveLength(dimension * dimension)
-      expect(new Set(puzzle.positions.map((position) => position.label)).size).toBe(
-        puzzle.positions.length,
+  it('scales spatial plans without coupling difficulty to one board dimension', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      const puzzles = Array.from({ length: 60 }, (_, index) =>
+        generatePuzzle(difficulty, `large-plan-${difficulty}-${index}`, 'adults'),
       )
-      expect(puzzle.positions.filter((position) => position.blocked)).toHaveLength(obstacles)
-      expect(
-        puzzle.positions
+      expect(new Set(puzzles.map((puzzle) => Math.sqrt(puzzle.positions.length)))).toEqual(
+        new Set([6, 9, 16]),
+      )
+
+      for (const puzzle of puzzles.slice(0, 6)) {
+        const dimension = Math.sqrt(puzzle.positions.length)
+        const obstacles = dimension === 6 ? 6 : dimension === 9 ? 9 : 20
+        expect(puzzle.characters.length).toBeLessThanOrEqual(dimension)
+        expect(puzzle.positions).toHaveLength(dimension * dimension)
+        expect(new Set(puzzle.positions.map((position) => position.label)).size).toBe(
+          puzzle.positions.length,
+        )
+        expect(puzzle.positions.filter((position) => position.blocked)).toHaveLength(obstacles)
+        expect(
+          puzzle.positions
+            .filter((position) => position.blocked)
+            .every((position) => position.obstacleEmoji && position.obstacleLabel),
+        ).toBe(true)
+        const theme = getTheme(puzzle.theme)
+        const roomObjectEmojis = new Set(theme.roomObjects?.map((item) => item.emoji))
+        const obstacleEmojis = puzzle.positions
           .filter((position) => position.blocked)
-          .every((position) => position.obstacleEmoji && position.obstacleLabel),
-      ).toBe(true)
-      expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+          .map((position) => position.obstacleEmoji)
+        expect(obstacleEmojis.every((emoji) => emoji && roomObjectEmojis.has(emoji))).toBe(true)
+        const roomSpecificObstacleCount = puzzle.positions
+          .filter((position) => position.blocked)
+          .filter((position) => {
+            const roomIndex = Number(position.placeId.replace('place-', ''))
+            return theme.roomObjectsByPlace?.[roomIndex]?.some(
+              (item) => item.emoji === position.obstacleEmoji,
+            )
+          }).length
+        expect(roomSpecificObstacleCount).toBeGreaterThanOrEqual(
+          Math.ceil(obstacleEmojis.length * 0.7),
+        )
+        if (theme.id === 'city-garden') {
+          const pondPlaceIndex = theme.terrainFeature?.placeIndex
+          expect(
+            puzzle.positions
+              .filter(
+                (position) =>
+                  position.blocked && position.placeId === `place-${pondPlaceIndex}`,
+              )
+              .every((position) =>
+                theme.roomObjectsByPlace?.[pondPlaceIndex ?? -1]?.some(
+                  (item) => item.emoji === position.obstacleEmoji,
+                ),
+              ),
+          ).toBe(true)
+        }
+        expect(new Set(obstacleEmojis).size).toBe(obstacleEmojis.length)
+        expect(
+          new Set(
+            puzzle.positions
+              .filter((position) => position.blocked)
+              .map((position) => position.placeId),
+          ).size,
+        ).toBeGreaterThanOrEqual(6)
+        expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+      }
     }
-  })
+  }, 20_000)
 
   it('varies rectangular children maps between both seeded orientations', () => {
     const shapes = new Set(

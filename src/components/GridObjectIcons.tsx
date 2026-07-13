@@ -1,22 +1,24 @@
 import { gridPlaceLabel, type SpatialPlan } from '../domain/spatialPlan'
-import type { Item, Position } from '../domain/types'
+import { localizeThemeLabel } from '../domain/themeVocabulary'
+import type { Locale, Position, ThemeId } from '../domain/types'
+import { gridObjectLayout } from './gridObjectLayout'
+import { SceneIcon } from './SceneIcon'
 
 interface GridObjectIconsProps {
   readonly plan: SpatialPlan
   readonly positions: readonly Position[]
-  readonly items: readonly Item[]
+  readonly locale: Locale
+  readonly themeId: ThemeId
 }
 
-export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps) => {
+export const GridObjectIcons = ({ plan, positions, locale, themeId }: GridObjectIconsProps) => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
   const rows = Math.max(...positions.map((position) => position.row)) + 1
   const places = plan.zones.map((_, index) => {
     const position = positions.find((candidate) => candidate.placeId === `place-${index}`)
-    return position ? gridPlaceLabel(position.label) : ''
+    return position ? localizeThemeLabel(locale, themeId, gridPlaceLabel(position.label)) : ''
   })
-  const labelSafeInset = columns <= 6 ? 0.19 : columns <= 9 ? 0.14 : 0.09
-  const safeLabelPosition = (value: number) =>
-    Math.min(1 - labelSafeInset, Math.max(labelSafeInset, value))
+  const layout = gridObjectLayout(plan, positions, places)
 
   return (
     <div
@@ -26,21 +28,16 @@ export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps
     >
       {plan.zones.map((zone, index) => {
         const label = places[index % places.length]
-        const item = items[index % items.length]
+        const zoneLayout = layout[index] ?? zone
         return (
           <div key={index} className="grid-object-icons__zone">
-            <span
-              className="grid-object-icons__item"
-              style={{ left: `${zone.object.x * 100}%`, top: `${zone.object.y * 100}%` }}
-            >
-              {item?.emoji}
-            </span>
             {label && (
               <span
                 className="grid-object-icons__label"
                 style={{
-                  left: `${safeLabelPosition(zone.label.x) * 100}%`,
-                  top: `${safeLabelPosition(zone.label.y) * 100}%`,
+                  left: `${zoneLayout.label.x * 100}%`,
+                  top: `${zoneLayout.label.y * 100}%`,
+                  transform: zoneLayout.labelTransform,
                 }}
               >
                 {label}
@@ -59,9 +56,13 @@ export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps
               left: `${((position.column + 0.5) / columns) * 100}%`,
               top: `${((position.row + 0.5) / rows) * 100}%`,
             }}
-            title={position.obstacleLabel}
+            title={
+              position.obstacleLabel
+                ? localizeThemeLabel(locale, themeId, position.obstacleLabel)
+                : undefined
+            }
           >
-            {position.obstacleEmoji}
+            {position.obstacleEmoji && <SceneIcon emoji={position.obstacleEmoji} />}
           </span>
         ))}
     </div>

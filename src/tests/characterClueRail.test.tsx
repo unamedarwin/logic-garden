@@ -43,6 +43,8 @@ describe('character clue rail', () => {
         selectedCharacterId={selectedCharacterId}
         label="Amics"
         emptyLabel="Sense pistes"
+        previousClueLabel="Pista anterior"
+        nextClueLabel="Pista següent"
         onSelect={() => undefined}
       />
     )

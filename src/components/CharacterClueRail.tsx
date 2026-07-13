@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { renderClue } from '../domain/vocabulary'
 import type { Character, CharacterId, Clue, Locale, PositionId, Puzzle } from '../domain/types'
+import { SceneIcon } from './SceneIcon'
 
 interface CharacterClueRailProps {
   readonly puzzle: Puzzle
@@ -9,6 +11,8 @@ interface CharacterClueRailProps {
   readonly selectedCharacterId?: CharacterId
   readonly label: string
   readonly emptyLabel: string
+  readonly previousClueLabel: string
+  readonly nextClueLabel: string
   readonly onSelect: (character: Character) => void
 }
 
@@ -18,6 +22,7 @@ const clueReferencesCharacter = (clue: Clue, characterId: CharacterId) => {
     case 'character-not-at-position':
     case 'character-in-place':
     case 'character-not-in-place':
+    case 'character-next-to-obstacle':
     case 'has-item':
     case 'does-not-have-item':
       return clue.characterId === characterId
@@ -49,9 +54,13 @@ export const CharacterClueRail = ({
   selectedCharacterId,
   label,
   emptyLabel,
+  previousClueLabel,
+  nextClueLabel,
   onSelect,
 }: CharacterClueRailProps) => {
   const clueRailRef = useRef<HTMLDivElement>(null)
+  const peopleRefs = useRef(new Map<CharacterId, HTMLButtonElement>())
+  const [clueIndex, setClueIndex] = useState(0)
   const firstCharacterWithClue = puzzle.characters.find((character) =>
     puzzle.clues.some((clue) => clueReferencesCharacter(clue, character.id)),
   )
@@ -59,16 +68,36 @@ export const CharacterClueRail = ({
     puzzle.characters.find((character) => character.id === selectedCharacterId) ??
     firstCharacterWithClue ??
     puzzle.characters[0]
+  const activeCharacterId = activeCharacter?.id
+  const clues = activeCharacter
+    ? puzzle.clues.filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
+    : []
 
   useEffect(() => {
     // A previous person's long clue list must not hide the next person's first clue.
+    setClueIndex(0)
     clueRailRef.current?.scrollTo({ left: 0, behavior: 'auto' })
-  }, [activeCharacter?.id])
+    if (activeCharacterId) {
+      peopleRefs.current.get(activeCharacterId)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    }
+  }, [activeCharacterId])
 
   if (!activeCharacter) return null
 
-  const clues = puzzle.clues.filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
   const clueRegionId = `character-clues-${activeCharacter.id}`
+  const showClue = (nextIndex: number) => {
+    const boundedIndex = Math.max(0, Math.min(clues.length - 1, nextIndex))
+    setClueIndex(boundedIndex)
+    clueRailRef.current?.children[boundedIndex]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    })
+  }
 
   return (
     <section className="character-clue-rail" aria-label={label}>
@@ -80,16 +109,19 @@ export const CharacterClueRail = ({
           return (
             <div key={character.id} role="listitem">
               <button
+                ref={(node) => {
+                  if (node) peopleRefs.current.set(character.id, node)
+                  else peopleRefs.current.delete(character.id)
+                }}
                 type="button"
                 className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${previewed ? 'character-clue-rail__person--previewed' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
-                aria-pressed={selected || previewed}
+                aria-pressed={selected}
+                aria-current={previewed ? 'true' : undefined}
                 aria-controls={clueRegionId}
-                onClick={() => {
-                  if (!selected) onSelect(character)
-                }}
+                onClick={() => onSelect(character)}
               >
                 <span className="character-clue-rail__emoji" aria-hidden="true">
-                  {character.emoji}
+                  <SceneIcon emoji={character.emoji} />
                 </span>
                 <span>{character.name}</span>
               </button>
@@ -99,17 +131,43 @@ export const CharacterClueRail = ({
       </div>
       <div id={clueRegionId} className="character-clue-rail__context" aria-live="polite">
         <p className="character-clue-rail__active">
-          <span aria-hidden="true">{activeCharacter.emoji}</span>
+          <SceneIcon
+            emoji={activeCharacter.emoji}
+            className="character-clue-rail__active-icon"
+          />
           <strong>{activeCharacter.name}</strong>
         </p>
         {clues.length > 0 ? (
-          <div ref={clueRailRef} className="character-clue-rail__clues">
-            {clues.map((clue) => (
-              <p key={clue.id} className="character-clue-rail__clue">
-                {renderClue(puzzle, clue, locale)}
-              </p>
-            ))}
-          </div>
+          <>
+            <div className="character-clue-rail__navigation">
+              <span aria-live="polite">
+                {clueIndex + 1} / {clues.length}
+              </span>
+              <button
+                type="button"
+                aria-label={previousClueLabel}
+                disabled={clueIndex === 0}
+                onClick={() => showClue(clueIndex - 1)}
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label={nextClueLabel}
+                disabled={clueIndex === clues.length - 1}
+                onClick={() => showClue(clueIndex + 1)}
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </div>
+            <div ref={clueRailRef} className="character-clue-rail__clues">
+              {clues.map((clue) => (
+                <p key={clue.id} className="character-clue-rail__clue">
+                  {renderClue(puzzle, clue, locale)}
+                </p>
+              ))}
+            </div>
+          </>
         ) : (
           <p className="character-clue-rail__clue character-clue-rail__clue--empty">
             {emptyLabel}

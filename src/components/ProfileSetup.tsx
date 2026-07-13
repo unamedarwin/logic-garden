@@ -1,17 +1,29 @@
 import { useState } from 'react'
 import { avatarOptions, defaultProfile, type PlayerProfile } from '../domain/profile'
-import { audienceDescription, audienceLabel, t } from '../domain/i18n'
+import {
+  audienceDescription,
+  audienceLabel,
+  localeLabels,
+  supportedLocales,
+  t,
+} from '../domain/i18n'
 import type { Audience, Locale } from '../domain/types'
 
 interface ProfileSetupProps {
   readonly profile: PlayerProfile | null
   readonly locale: Locale
+  readonly onLocaleChange: (locale: Locale) => void
   readonly onSave: (profile: PlayerProfile) => void
 }
 
 const audiences: readonly Audience[] = ['children', 'teens', 'adults']
 
-export const ProfileSetup = ({ profile, locale, onSave }: ProfileSetupProps) => {
+export const ProfileSetup = ({
+  profile,
+  locale,
+  onLocaleChange,
+  onSave,
+}: ProfileSetupProps) => {
   const initial = profile ?? defaultProfile
   const [name, setName] = useState(initial.name)
   const [audience, setAudience] = useState<Audience>(initial.audience)
@@ -31,6 +43,19 @@ export const ProfileSetup = ({ profile, locale, onSave }: ProfileSetupProps) => 
             onSave({ schemaVersion: 1, name: name.trim(), audience, avatar })
           }}
         >
+          <label className="profile-setup__language">
+            {t(locale, 'language')}
+            <select
+              value={locale}
+              onChange={(event) => onLocaleChange(event.target.value as Locale)}
+            >
+              {supportedLocales.map((option) => (
+                <option key={option} value={option}>
+                  {localeLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
           <fieldset className="profile-setup__audiences">
             <legend>{t(locale, 'audience')}</legend>
             {audiences.map((option) => (

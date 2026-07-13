@@ -21,6 +21,14 @@ uniqueness by running the solver with a limit of two solutions.
 All game randomness must use the seeded PRNG. The same generator version, difficulty,
 and seed must produce the same puzzle. Never publish or display a generated puzzle unless
 the solver confirms that it has exactly one solution.
+Advanced games are selected from the generated structural template catalog. Templates may store
+only audience, difficulty, grid size, plan id, generic clue tuples, and difficulty metrics; they
+must never store an answer, profile data, names, localized phrases, or concrete theme objects.
+Keep all 1,000 catalog entries structurally distinct, cover both advanced audiences and every
+difficulty/size combination, and rerun the solver with a limit of two after every runtime theme application.
+Board size and difficulty are independent. Grade advanced difficulty through the number of
+candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
+to each difficulty.
 
 ## TypeScript
 
@@ -38,6 +46,8 @@ changes and add only intentional domain terms to its project dictionary.
 
 Drag-and-drop must always have a click/tap and keyboard alternative. Do not encode
 information using color alone. Respect reduced-motion preferences.
+Prevent accidental interface-text selection during board interaction, while preserving normal
+selection and editing in input, textarea, and editable controls.
 Keep a visible, keyboard-accessible path from a game and its completion dialog back to the
 difficulty picker before a player starts another adventure.
 
@@ -52,10 +62,35 @@ interaction and accessibility layer.
 Scale room labels, textures, objects, placed avatars, and crossed cells from the actual grid
 dimension rather than viewport units. Character/avatar emoji catalogs and object/obstacle emoji
 catalogs must remain disjoint, with an automated invariant test covering every theme.
+Render current scene emoji through the locally bundled Fluent Emoji Flat SVG subset; never load
+scene art from a CDN or runtime API. Follow `docs/visual-asset-policy.md` for replacements: use
+current official Kenney packs first, Game-icons.net only with per-author CC BY 3.0 credits, and
+itch.io only for individually licensed pixel-art packs. Keep every imported file local, record its
+source and license, and migrate a reviewed semantic category as a coherent set rather than mixing
+styles ad hoc. Carried clue items and fixed room objects must also use disjoint
+icons within a theme. Room-object catalogs are curated scene content, not arbitrary random emoji,
+and advanced rooms must prioritize their place-specific subset. A deterministic same-theme fallback
+is allowed only when a globally unique object matching cannot otherwise be completed; at least 70%
+of fixed objects must remain place-specific, and pond objects never use the fallback.
+Advanced room floors use local square seamless SVG materials plus a seeded decorative motif layer.
+Decorate an exact seeded 25-75% of each room's unblocked cells, keep every motif behind interaction
+and clue artwork, and reproduce the same material composition from the same puzzle seed. Keep the
+same pattern phase across adjacent cells. Water is never an entire playable room: garden ponds are
+contiguous blocked patches of 1, 2, or 4 cells on 6x6, 9x9, or 16x16 boards, while the surrounding
+room remains traversable. Water obstacles must use the curated pond-object catalog. Regenerate and
+review every fixed PNG under `docs/terrain-samples/` after changing textures, motifs, density,
+palette, scale, or opacity.
+The contiguous 1/2/4 blocked cluster belongs to spatial-plan geometry for every advanced theme;
+only the city-garden visual treatment turns it into water. Theme selection must never change which
+cells a structural template considers blocked.
+Render one continuous stone rim only along water-to-land pond edges. Never draw a rim between two
+orthogonally adjacent water cells. Pond perimeter tests must derive the expected edge count from
+the actual generated cluster and cover non-rectangular shapes rather than assuming a 2x2 patch.
 On small screens, keep the map, character picker, and the selected person's contextual clues in
 one compact workspace. Use a horizontally scrollable people rail rather than forcing navigation
 between a person, their clues, and the map location where they are placed. Keep the complete clue
-list available as an accessible collapsed support panel.
+list available as an accessible collapsed support panel. Do not spend header space announcing a
+normal online state; show connectivity status only when the app is offline.
 
 Teen and adult modes share the same deduction rules, board dimensions, and irregular spatial
 plan geometry. Their visual themes and safe content may differ, but neither mode may fall back to
@@ -78,7 +113,9 @@ Anchor solutions must sit beside a visible obstacle so exact localized clues can
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
-difficulty, and seeded puzzle identifier, but never a solution or any profile data.
+difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
+solution or any profile data. A received challenge must explain the benchmark before play and
+offer a return challenge after completion.
 
 ## Delivery
 
@@ -92,3 +129,8 @@ site artifact.
 
 After meaningful changes, run formatting, lint, type checking, unit tests, and the
 production build. A task is not complete while any check fails.
+After changes to boards, icons, labels, clues, or responsive layout, visually inspect teen and
+adult games at a 390x844 mobile viewport for 6x6, 9x9, and 16x16 boards. Check both an empty board
+and a board with a placed character where relevant. Reject clipped or overlapping labels,
+misaligned cells, repeated or semantically wrong icons, unreadable clues, broken horizontal
+scroll restoration, and touch targets obscured by artwork before publishing.

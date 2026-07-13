@@ -10,6 +10,7 @@ export interface CompletedGame {
   readonly title: string
   readonly audience: Audience
   readonly difficulty: Difficulty
+  readonly generatorVersion: number
   readonly completedAt: number
   readonly elapsedSeconds: number
   readonly moves: number
@@ -21,49 +22,75 @@ export interface CompletionInput {
   readonly title: string
   readonly audience: Audience
   readonly difficulty: Difficulty
+  readonly generatorVersion: number
   readonly elapsedSeconds: number
   readonly moves: number
   readonly hintsUsed: number
 }
 
 export interface Statistics {
-  readonly schemaVersion: 2
+  readonly schemaVersion: 3
   readonly completed: number
   readonly hintsUsed: number
   readonly recentSeeds: readonly string[]
   readonly history: readonly CompletedGame[]
 }
 
-interface LegacyStatistics {
+interface LegacyStatisticsV1 {
   readonly schemaVersion: 1
   readonly completed: number
   readonly hintsUsed: number
   readonly recentSeeds: readonly string[]
 }
 
+interface LegacyStatisticsV2 {
+  readonly schemaVersion: 2
+  readonly completed: number
+  readonly hintsUsed: number
+  readonly recentSeeds: readonly string[]
+  readonly history?: readonly Omit<CompletedGame, 'generatorVersion'>[]
+}
+
 const defaults: Statistics = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   completed: 0,
   hintsUsed: 0,
   recentSeeds: [],
   history: [],
 }
 
-const isLegacyStatistics = (value: unknown): value is LegacyStatistics =>
+const isLegacyStatisticsV1 = (value: unknown): value is LegacyStatisticsV1 =>
   Boolean(value) &&
   typeof value === 'object' &&
   (value as { readonly schemaVersion?: unknown }).schemaVersion === 1
 
-const isStatistics = (value: unknown): value is Statistics =>
+const isLegacyStatisticsV2 = (value: unknown): value is LegacyStatisticsV2 =>
   Boolean(value) &&
   typeof value === 'object' &&
   (value as { readonly schemaVersion?: unknown }).schemaVersion === 2
+
+const isStatistics = (value: unknown): value is Statistics =>
+  Boolean(value) &&
+  typeof value === 'object' &&
+  (value as { readonly schemaVersion?: unknown }).schemaVersion === 3
 
 export const loadStatistics = async (): Promise<Statistics> => {
   try {
     const stored = await get<unknown>(key)
     if (isStatistics(stored)) return { ...defaults, ...stored, history: stored.history ?? [] }
-    if (isLegacyStatistics(stored)) {
+    if (isLegacyStatisticsV2(stored)) {
+      return {
+        ...defaults,
+        completed: stored.completed,
+        hintsUsed: stored.hintsUsed,
+        recentSeeds: stored.recentSeeds,
+        history: (stored.history ?? []).map((record) => ({
+          ...record,
+          generatorVersion: 0,
+        })),
+      }
+    }
+    if (isLegacyStatisticsV1(stored)) {
       return {
         ...defaults,
         completed: stored.completed,
@@ -90,7 +117,7 @@ export const recordCompletion = async (input: CompletionInput): Promise<Statisti
     ...previous.recentSeeds.filter((entry) => entry !== input.seed),
   ].slice(0, 8)
   const next: Statistics = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     completed: previous.completed + 1,
     hintsUsed: previous.hintsUsed + input.hintsUsed,
     recentSeeds,

@@ -1,4 +1,4 @@
-import { themesForAudience, type Theme } from '../domain/themes'
+import { themesForAudience, type Theme, type ThemeItem } from '../domain/themes'
 import {
   type Audience,
   characterId,
@@ -13,12 +13,16 @@ import {
 } from '../domain/types'
 import {
   planObstacles,
+  clusteredObstacleRoomIndex,
   spatialPlanForId,
   spatialPlanIdsForAudience,
   spatialPlanZoneAt,
+  type PlanObstacle,
+  type SpatialPlan,
   type SpatialPlanId,
 } from '../domain/spatialPlan'
 import { difficultyConfigs, logicGridCharacterCounts, logicGridDimensions } from './difficulty'
+import { landmarkDomainDistance } from './landmarkDomains'
 import { SeededRandom } from './seededRandom'
 
 export interface GeneratedWorld {
@@ -31,23 +35,171 @@ export interface GeneratedWorld {
   readonly solution: Assignment
 }
 
+export interface AdvancedWorldStructure {
+  readonly gridSize: 6 | 9 | 16
+  readonly characterCount: number
+  readonly spatialPlanId: SpatialPlanId
+}
+
+const selectNonConflictingPositions = (
+  candidates: readonly Position[],
+  count: number,
+): readonly Position[] => {
+  const candidatesByRow = new Map<number, Position[]>()
+  for (const candidate of candidates) {
+    const rowCandidates = candidatesByRow.get(candidate.row) ?? []
+    rowCandidates.push(candidate)
+    candidatesByRow.set(candidate.row, rowCandidates)
+  }
+  const matchedByColumn = new Map<number, Position>()
+
+  const assignRow = (row: number, visitedRows: Set<number>, visitedColumns: Set<number>) => {
+    if (visitedRows.has(row)) return false
+    visitedRows.add(row)
+    for (const candidate of candidatesByRow.get(row) ?? []) {
+      if (visitedColumns.has(candidate.column)) continue
+      visitedColumns.add(candidate.column)
+      const previous = matchedByColumn.get(candidate.column)
+      if (!previous || assignRow(previous.row, new Set(visitedRows), visitedColumns)) {
+        matchedByColumn.set(candidate.column, candidate)
+        return true
+      }
+    }
+    return false
+  }
+
+  for (const row of candidatesByRow.keys()) {
+    assignRow(row, new Set(), new Set())
+    if (matchedByColumn.size >= count) return [...matchedByColumn.values()].slice(0, count)
+  }
+  return []
+}
+
+const waterObstacleCount = (size: number) => {
+  if (size <= 6) return 1
+  if (size <= 9) return 2
+  return 4
+}
+
+const contiguousRoomCells = (
+  plan: SpatialPlan,
+  roomIndex: number,
+  columns: number,
+  rows: number,
+  count: number,
+): readonly PlanObstacle[] => {
+  const anchor = plan.zones[roomIndex]?.object
+  if (!anchor) return []
+  const queue: PlanObstacle[] = [
+    {
+      column: Math.min(columns - 1, Math.floor(anchor.x * columns)),
+      row: Math.min(rows - 1, Math.floor(anchor.y * rows)),
+    },
+  ]
+  const visited = new Set<string>()
+  const found: PlanObstacle[] = []
+
+  while (queue.length > 0 && found.length < count) {
+    const cell = queue.shift()
+    if (!cell) break
+    const key = `${cell.row}:${cell.column}`
+    if (visited.has(key)) continue
+    visited.add(key)
+    if (cell.column < 0 || cell.column >= columns || cell.row < 0 || cell.row >= rows) continue
+    if (spatialPlanZoneAt(plan, cell.column, cell.row, columns, rows) !== roomIndex) continue
+
+    found.push(cell)
+    queue.push(
+      { column: cell.column + 1, row: cell.row },
+      { column: cell.column, row: cell.row + 1 },
+      { column: cell.column - 1, row: cell.row },
+      { column: cell.column, row: cell.row - 1 },
+    )
+  }
+
+  return found
+}
+
+export const planObstaclesForPlan = (
+  plan: SpatialPlan,
+  columns: number,
+  rows: number,
+): readonly PlanObstacle[] => {
+  const planned = planObstacles(plan.id, columns, rows)
+  const pond = contiguousRoomCells(
+    plan,
+    clusteredObstacleRoomIndex,
+    columns,
+    rows,
+    waterObstacleCount(Math.max(columns, rows)),
+  )
+  const dryObstacleCount = Math.max(0, planned.length - pond.length)
+  const dry = planned
+    .filter(
+      (obstacle) =>
+        spatialPlanZoneAt(plan, obstacle.column, obstacle.row, columns, rows) !==
+        clusteredObstacleRoomIndex,
+    )
+    .slice(0, dryObstacleCount)
+
+  return [...dry, ...pond]
+}
+
+interface ObstacleSlot {
+  readonly candidates: readonly ThemeItem[]
+  readonly column: number
+  readonly row: number
+  readonly zone: number
+}
+
+const assignUniqueObstacleObjects = (
+  slots: readonly ObstacleSlot[],
+): readonly ThemeItem[] | undefined => {
+  const slotByEmoji = new Map<string, number>()
+  const objectBySlot = new Map<number, ThemeItem>()
+
+  const assign = (slotIndex: number, visitedEmojis: Set<string>): boolean => {
+    const slot = slots[slotIndex]
+    if (!slot) return false
+    for (const candidate of slot.candidates) {
+      if (visitedEmojis.has(candidate.emoji)) continue
+      visitedEmojis.add(candidate.emoji)
+      const previousSlot = slotByEmoji.get(candidate.emoji)
+      if (previousSlot === undefined || assign(previousSlot, visitedEmojis)) {
+        slotByEmoji.set(candidate.emoji, slotIndex)
+        objectBySlot.set(slotIndex, candidate)
+        return true
+      }
+    }
+    return false
+  }
+
+  for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
+    if (!assign(slotIndex, new Set())) return undefined
+  }
+  return slots.map((_, slotIndex) => objectBySlot.get(slotIndex)!)
+}
+
 export const generateWorld = (
   difficulty: Difficulty,
   random: SeededRandom,
   audience: Audience,
+  structure?: AdvancedWorldStructure,
 ): GeneratedWorld => {
   const config = difficultyConfigs[difficulty]
   const boardMode = audience === 'children' ? 'map' : 'logic-grid'
   const spatialAudience = audience === 'children' ? 'teens' : audience
   const characterCount =
-    boardMode === 'logic-grid' ? logicGridCharacterCounts[difficulty] : config.characterCount
+    boardMode === 'logic-grid'
+      ? (structure?.characterCount ?? logicGridCharacterCounts[difficulty])
+      : config.characterCount
   const invertedMap =
     boardMode === 'map' && config.rows !== config.columns && random.next() < 0.5
   const mapColumns = invertedMap ? config.rows : config.columns
   const theme = random.pick(themesForAudience(audience))
   const spatialPlanId =
     boardMode === 'logic-grid'
-      ? random.pick(spatialPlanIdsForAudience(spatialAudience))
+      ? (structure?.spatialPlanId ?? random.pick(spatialPlanIdsForAudience(spatialAudience)))
       : undefined
   const items = random
     .shuffle(theme.items)
@@ -70,15 +222,59 @@ export const generateWorld = (
   const positions: readonly Position[] =
     boardMode === 'logic-grid'
       ? (() => {
-          const gridSize = logicGridDimensions[difficulty]
+          const gridSize = structure?.gridSize ?? logicGridDimensions[difficulty]
           const spatialPlan = spatialPlanForId(spatialPlanId)
           if (!spatialPlan) throw new Error('No s’ha pogut carregar la planta espacial.')
-          const obstacleObjects = random.shuffle(theme.items)
+          const fallbackObstacleObjects = theme.roomObjects ?? theme.items
+          const pondRoomIndex = theme.terrainFeature?.placeIndex
+          const pondEmojis = new Set(
+            pondRoomIndex !== undefined
+              ? (theme.roomObjectsByPlace?.[pondRoomIndex] ?? []).map(({ emoji }) => emoji)
+              : [],
+          )
+          const obstacleObjectsByPlace = spatialPlan.zones.map((_, zone) =>
+            (() => {
+              const preferred = random.shuffle(
+                theme.roomObjectsByPlace?.[zone] ?? fallbackObstacleObjects,
+              )
+              const preferredEmojis = new Set(preferred.map(({ emoji }) => emoji))
+              const fallback =
+                pondRoomIndex !== undefined && zone === pondRoomIndex
+                  ? []
+                  : random.shuffle(
+                      fallbackObstacleObjects.filter(
+                        ({ emoji }) =>
+                          !preferredEmojis.has(emoji) &&
+                          !(pondRoomIndex !== undefined && pondEmojis.has(emoji)),
+                      ),
+                    )
+              return [...preferred, ...fallback]
+            })(),
+          )
+          const obstacleSlots = planObstaclesForPlan(spatialPlan, gridSize, gridSize).map(
+            ({ row, column }) => {
+              const zone = spatialPlanZoneAt(spatialPlan, column, row, gridSize, gridSize)
+              return {
+                row,
+                column,
+                zone,
+                candidates: obstacleObjectsByPlace[zone] ?? fallbackObstacleObjects,
+              }
+            },
+          )
+          const obstacleAssignments = assignUniqueObstacleObjects(obstacleSlots)
+          if (!obstacleAssignments || obstacleAssignments.length !== obstacleSlots.length) {
+            throw new Error('No s’ha pogut assignar un objecte coherent a cada estança.')
+          }
           const blocked = new Map(
-            planObstacles(spatialPlanId, gridSize, gridSize).map(({ row, column }, index) => [
-              `${row}:${column}`,
-              obstacleObjects[index % obstacleObjects.length],
-            ]),
+            obstacleSlots.map(({ row, column }, index) => {
+              const zone = spatialPlanZoneAt(spatialPlan, column, row, gridSize, gridSize)
+              const obstacle = obstacleAssignments[index]
+              if (!obstacle || obstacleSlots[index]?.zone !== zone) {
+                throw new Error('No s’ha pogut conservar l’objecte de l’estança.')
+              }
+              return [`${row}:${column}`, obstacle] as const
+            }),
           )
           return Array.from({ length: gridSize * gridSize }, (_, index) => {
             const row = Math.floor(index / gridSize)
@@ -114,34 +310,25 @@ export const generateWorld = (
               positions.some(
                 (candidate) =>
                   candidate.blocked &&
+                  candidate.placeId === position.placeId &&
                   Math.abs(candidate.row - position.row) +
                     Math.abs(candidate.column - position.column) ===
                     1,
               ),
           )
 
-          for (let attempt = 0; attempt < 80; attempt += 1) {
-            const candidates = random.shuffle(adjacentToObstacle)
-            const selected: Position[] = []
-
-            for (let index = 0; index < characterCount; index += 1) {
-              const position = candidates.find(
-                (candidate) =>
-                  !selected.some(
-                    (placed) =>
-                      placed.row === candidate.row || placed.column === candidate.column,
-                  ),
-              )
-              if (!position) break
-              selected.push(position)
-              candidates.splice(candidates.indexOf(position), 1)
-            }
-
-            if (selected.length === characterCount) {
-              return Object.fromEntries(
-                characters.map((character, index) => [character.id, selected[index]!.id]),
-              ) as Assignment
-            }
+          const candidates = random
+            .shuffle(adjacentToObstacle)
+            .sort(
+              (first, second) =>
+                landmarkDomainDistance(positions, first, difficulty) -
+                landmarkDomainDistance(positions, second, difficulty),
+            )
+          const selected = selectNonConflictingPositions(candidates, characterCount)
+          if (selected.length === characterCount) {
+            return Object.fromEntries(
+              characters.map((character, index) => [character.id, selected[index]!.id]),
+            ) as Assignment
           }
 
           throw new Error('No s’ha pogut construir una posició de graella.')

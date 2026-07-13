@@ -1,6 +1,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import type { CSSProperties } from 'react'
 import type { Character } from '../domain/types'
+import { SceneIcon } from './SceneIcon'
 
 interface CharacterTokenProps {
   readonly character: Character
@@ -36,7 +37,7 @@ export const CharacterToken = ({
       onClick={() => onSelect(character)}
     >
       <span className="character-token__emoji" aria-hidden="true">
-        {character.emoji}
+        <SceneIcon emoji={character.emoji} />
       </span>
       <span>{character.name}</span>
     </button>

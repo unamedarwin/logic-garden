@@ -4,7 +4,13 @@
   "import": ["@cspell/dict-ca/cspell-ext.json", "@cspell/dict-es-es/cspell-ext.json"],
   "useGitignore": true,
   "files": ["src/**/*.{ts,tsx,css}", "README.md", "AGENTS.md"],
-  "ignorePaths": ["node_modules", "dist", "coverage"],
+  "ignorePaths": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "src/assets/generated/fluentIconData.ts",
+    "src/assets/generated/puzzleTemplateData.ts"
+  ],
   "words": [
     "Aina",
     "Biel",
@@ -23,6 +29,8 @@
     "Workbox",
     "dnd",
     "idb",
+    "Iconify",
+    "iconify",
     "mulberry",
     "xorshift",
     "PWA",
@@ -42,8 +50,12 @@
     "satèl",
     "robotet",
     "Localisation",
+    "lusió",
     "precached",
     "precache",
-    "nums"
+    "nums",
+    "Schoger",
+    "parkay",
+    "Kenney"
   ]
 }

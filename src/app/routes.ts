@@ -1,11 +1,17 @@
 import { isAudience } from '../domain/profile'
 import { seed, type Audience, type Difficulty, type Seed } from '../domain/types'
+import { GENERATOR_VERSION } from '../generator/version'
 
 export interface SharedGameRoute {
   readonly difficulty: Difficulty
   readonly seed: Seed
   readonly audience: Audience
+  readonly generatorVersion: number
+  readonly benchmarkSeconds?: number
 }
+
+const isBenchmarkSeconds = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && Number(value) >= 0 && Number(value) <= 86_400
 
 const isDifficulty = (value: string | null): value is Difficulty =>
   value === 'easy' || value === 'medium' || value === 'hard'
@@ -13,28 +19,34 @@ const isDifficulty = (value: string | null): value is Difficulty =>
 const isSharedPayload = (
   value: unknown,
 ): value is {
-  readonly v: 1
+  readonly v: 2 | 3
   readonly difficulty: Difficulty
   readonly seed: string
   readonly audience: Audience
+  readonly generatorVersion: number
+  readonly benchmarkSeconds?: number
 } => {
   if (!value || typeof value !== 'object') return false
   const payload = value as Record<string, unknown>
   return (
-    payload.v === 1 &&
+    (payload.v === 2 || payload.v === 3) &&
     typeof payload.difficulty === 'string' &&
     isDifficulty(payload.difficulty) &&
     typeof payload.seed === 'string' &&
     typeof payload.audience === 'string' &&
-    isAudience(payload.audience)
+    isAudience(payload.audience) &&
+    payload.generatorVersion === GENERATOR_VERSION &&
+    (payload.benchmarkSeconds === undefined || isBenchmarkSeconds(payload.benchmarkSeconds))
   )
 }
 
 const encodePayload = (payload: {
-  readonly v: 1
+  readonly v: 3
   readonly difficulty: Difficulty
   readonly seed: Seed
   readonly audience: Audience
+  readonly generatorVersion: number
+  readonly benchmarkSeconds?: number
 }) =>
   btoa(JSON.stringify(payload)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
 
@@ -58,30 +70,49 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
       difficulty: decoded.difficulty,
       seed: seed(decoded.seed),
       audience: decoded.audience,
+      generatorVersion: decoded.generatorVersion,
+      benchmarkSeconds: decoded.benchmarkSeconds,
     }
   }
 
   const difficulty = params.get('difficulty')
   const gameSeed = params.get('seed')
   const version = params.get('v')
+  const generatorVersion = Number(params.get('generatorVersion'))
   const audience = params.get('audience')
-  return version === '1' && isDifficulty(difficulty) && gameSeed
+  return version === '2' &&
+    generatorVersion === GENERATOR_VERSION &&
+    isDifficulty(difficulty) &&
+    gameSeed
     ? {
         difficulty,
         seed: seed(gameSeed),
         audience: isAudience(audience) ? audience : 'children',
+        generatorVersion,
       }
     : null
 }
 
 export const shareUrl = (
-  puzzle: { readonly difficulty: Difficulty; readonly seed: Seed },
+  puzzle: {
+    readonly difficulty: Difficulty
+    readonly seed: Seed
+    readonly generatorVersion: number
+  },
   audience: Audience,
+  benchmarkSeconds?: number,
 ) => {
   const url = new URL(import.meta.env.BASE_URL, window.location.origin)
   url.searchParams.set(
     'p',
-    encodePayload({ v: 1, difficulty: puzzle.difficulty, seed: puzzle.seed, audience }),
+    encodePayload({
+      v: 3,
+      difficulty: puzzle.difficulty,
+      seed: puzzle.seed,
+      audience,
+      generatorVersion: puzzle.generatorVersion,
+      ...(isBenchmarkSeconds(benchmarkSeconds) ? { benchmarkSeconds } : {}),
+    }),
   )
   return url.toString()
 }

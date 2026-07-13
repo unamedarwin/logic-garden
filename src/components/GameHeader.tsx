@@ -37,9 +37,11 @@ export const GameHeader = ({
       </a>
     )}
     <div className="game-header__tools">
-      <span className={`connection-pill ${online ? '' : 'connection-pill--offline'}`}>
-        <span aria-hidden="true">{online ? '●' : '○'}</span> {connectionLabel}
-      </span>
+      {!online && (
+        <span className="connection-pill connection-pill--offline">
+          <span aria-hidden="true">○</span> {connectionLabel}
+        </span>
+      )}
       <button
         type="button"
         className="icon-button"

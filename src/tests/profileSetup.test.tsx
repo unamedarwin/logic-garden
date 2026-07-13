@@ -7,7 +7,7 @@ describe('profile setup', () => {
   it('saves a local audience, name, and avatar before play starts', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()
-    render(<ProfileSetup profile={null} locale="ca" onSave={onSave} />)
+    render(<ProfileSetup profile={null} locale="ca" onLocaleChange={vi.fn()} onSave={onSave} />)
 
     await user.click(screen.getByRole('button', { name: /Adolescents/u }))
     await user.type(screen.getByLabelText('Com et dius?'), 'Laia')
@@ -20,5 +20,21 @@ describe('profile setup', () => {
       audience: 'teens',
       avatar: 'music',
     })
+  })
+
+  it('changes the interface language before a profile is saved', async () => {
+    const user = userEvent.setup()
+    const onLocaleChange = vi.fn()
+    render(
+      <ProfileSetup
+        profile={null}
+        locale="ca"
+        onLocaleChange={onLocaleChange}
+        onSave={vi.fn()}
+      />,
+    )
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Idioma' }), 'en')
+    expect(onLocaleChange).toHaveBeenCalledWith('en')
   })
 })

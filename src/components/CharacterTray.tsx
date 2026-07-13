@@ -22,6 +22,7 @@ export const CharacterTray = ({
           character={character}
           selected={selectedCharacterId === character.id}
           onSelect={onSelect}
+          actionLabel={`${label}: ${character.name}`}
         />
       ))}
     </div>

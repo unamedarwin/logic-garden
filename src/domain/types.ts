@@ -90,6 +90,11 @@ export type Clue =
       readonly placeId: PlaceId
     })
   | (ClueBase & {
+      readonly type: 'character-next-to-obstacle'
+      readonly characterId: CharacterId
+      readonly obstaclePositionId: PositionId
+    })
+  | (ClueBase & {
       readonly type:
         | 'adjacent'
         | 'not-adjacent'

@@ -26,6 +26,8 @@ export interface SpatialPlan {
   readonly obstacleAnchors: readonly PlanPoint[]
 }
 
+export const clusteredObstacleRoomIndex = 4
+
 interface PlanTemplate {
   readonly id: string
   readonly zones: readonly PlanZone[]
@@ -315,7 +317,7 @@ export const spatialPlanZoneAt = (
 }
 
 const obstacleCount = (size: number) => {
-  if (size <= 6) return 4
+  if (size <= 6) return 6
   if (size <= 9) return 9
   return 20
 }
@@ -328,7 +330,9 @@ export const planObstacles = (
   const plan = spatialPlanForId(id)
   if (!plan) return []
   const found = new Map<string, PlanObstacle>()
-  for (const anchor of plan.obstacleAnchors) {
+  // The first anchors put a meaningful object in every room; larger boards then
+  // receive extra furniture from the plan-specific obstacle distribution.
+  for (const anchor of [...plan.zones.map((zone) => zone.object), ...plan.obstacleAnchors]) {
     const column = Math.min(columns - 1, Math.floor(anchor.x * columns))
     const row = Math.min(rows - 1, Math.floor(anchor.y * rows))
     found.set(`${row}:${column}`, { column, row })
