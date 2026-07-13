@@ -232,6 +232,8 @@ When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:b
 builder may generate extra candidates and discard impossible geometry or duplicates, but it must
 stop at exactly 1,000 valid structures and retain all 18 audience/difficulty/size buckets.
 
+Planned product work is tracked in [`docs/product-backlog.md`](docs/product-backlog.md).
+
 To add a clue type, extend the `Clue` union, partial evaluator, candidate generator, all
 three template dictionaries, and solver tests. Update `GENERATOR_VERSION` when a change can
 alter seed output.
