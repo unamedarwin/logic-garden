@@ -17,7 +17,7 @@ import {
   spatialPlanForId,
   type SpatialPlanId,
 } from '../domain/spatialPlan'
-import { CharacterToken } from './CharacterToken'
+import { CharacterToken, CharacterTokenPreview } from './CharacterToken'
 import { GridObjectIcons } from './GridObjectIcons'
 import { LogicGridArtwork } from './LogicGridArtwork'
 
@@ -25,6 +25,7 @@ interface LocationCellProps {
   readonly position: Position
   readonly character?: Character
   readonly selectedCharacterId?: CharacterId
+  readonly draggedCharacter?: Character
   readonly onMoveToPosition: (positionId: PositionId) => void
   readonly onRemoveCharacter: (characterId: CharacterId) => void
   readonly emptyLabel: string
@@ -45,6 +46,7 @@ const LocationCell = ({
   position,
   character,
   selectedCharacterId,
+  draggedCharacter,
   onMoveToPosition,
   onRemoveCharacter,
   emptyLabel,
@@ -66,6 +68,7 @@ const LocationCell = ({
     ? moveToPositionLabel(positionLabel)
     : selectPositionLabel(positionLabel)
   const unavailable = disabled || position.blocked
+  const showDropPreview = Boolean(isOver && !unavailable && draggedCharacter)
 
   return (
     <article
@@ -107,6 +110,11 @@ const LocationCell = ({
           />
         </div>
       )}
+      {showDropPreview && draggedCharacter && (
+        <div className="location-cell__drop-preview">
+          <CharacterTokenPreview character={draggedCharacter} variant="drop-target" />
+        </div>
+      )}
     </article>
   )
 }
@@ -116,6 +124,7 @@ interface GameBoardProps {
   readonly characters: readonly Character[]
   readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
   readonly selectedCharacterId?: CharacterId
+  readonly draggedCharacterId?: CharacterId
   readonly onMoveToPosition: (positionId: PositionId) => void
   readonly onRemoveCharacter: (characterId: CharacterId) => void
   readonly boardLabel: string
@@ -129,6 +138,7 @@ interface GameBoardProps {
   readonly puzzleSeed: Seed
   readonly themeId: ThemeId
   readonly spatialPlanId?: SpatialPlanId
+  readonly zoom?: number
 }
 
 export const GameBoard = ({
@@ -136,6 +146,7 @@ export const GameBoard = ({
   characters,
   assignments,
   selectedCharacterId,
+  draggedCharacterId,
   onMoveToPosition,
   onRemoveCharacter,
   boardLabel,
@@ -149,12 +160,15 @@ export const GameBoard = ({
   puzzleSeed,
   themeId,
   spatialPlanId,
+  zoom = 1,
 }: GameBoardProps) => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
   const rows = Math.max(...positions.map((position) => position.row)) + 1
   const boardStyle = {
     '--board-columns': columns,
     '--board-rows': rows,
+    width: zoom > 1 ? `${zoom * 100}%` : undefined,
+    maxWidth: zoom > 1 ? 'none' : undefined,
   } as CSSProperties
   const assignmentsWithoutSelected = Object.fromEntries(
     Object.entries(assignments).filter(([characterId]) => characterId !== selectedCharacterId),
@@ -164,7 +178,7 @@ export const GameBoard = ({
   )
   const crossedRows = new Set(occupiedGridPositions.map((position) => position.row))
   const crossedColumns = new Set(occupiedGridPositions.map((position) => position.column))
-  const assignedPositionIds = new Set(Object.values(assignments))
+  const occupiedByOtherIds = new Set(Object.values(assignmentsWithoutSelected))
   const spatialPlan =
     boardMode === 'logic-grid' && audience !== 'children'
       ? (spatialPlanForId(spatialPlanId) ?? defaultSpatialPlanFor(audience))
@@ -172,8 +186,8 @@ export const GameBoard = ({
   const positionIsUnavailable = (position: Position) =>
     Boolean(
       position.blocked ||
+      (boardMode === 'logic-grid' && occupiedByOtherIds.has(position.id)) ||
       (boardMode === 'logic-grid' &&
-        !assignedPositionIds.has(position.id) &&
         (crossedRows.has(position.row) || crossedColumns.has(position.column))),
     )
   const firstFocusablePosition = positions.find((position) => !positionIsUnavailable(position))
@@ -185,6 +199,7 @@ export const GameBoard = ({
     focusedPosition && !positionIsUnavailable(focusedPosition)
       ? focusedPosition.id
       : firstFocusablePosition?.id
+  const draggedCharacter = characters.find((character) => character.id === draggedCharacterId)
 
   const moveGridFocus = (position: Position, event: KeyboardEvent<HTMLButtonElement>) => {
     const direction = {
@@ -214,7 +229,7 @@ export const GameBoard = ({
 
   return (
     <section
-      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''} ${selectedCharacterId ? 'game-board--placing' : ''}`}
+      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''} ${selectedCharacterId ? 'game-board--placing' : ''} ${draggedCharacter ? 'game-board--dragging' : ''}`}
       style={boardStyle}
       role="grid"
       aria-rowcount={rows}
@@ -258,6 +273,7 @@ export const GameBoard = ({
                     position={position}
                     character={character}
                     selectedCharacterId={selectedCharacterId}
+                    draggedCharacter={draggedCharacter}
                     onMoveToPosition={onMoveToPosition}
                     onRemoveCharacter={onRemoveCharacter}
                     emptyLabel={emptyLabel}
@@ -265,7 +281,7 @@ export const GameBoard = ({
                     moveToPositionLabel={moveToPositionLabel}
                     selectPositionLabel={selectPositionLabel}
                     crossed={crossed}
-                    disabled={crossed}
+                    disabled={positionIsUnavailable(position)}
                     logicGrid={boardMode === 'logic-grid'}
                     tabIndex={activeFocusedPositionId === position.id ? 0 : -1}
                     onFocus={() => setFocusedPositionId(position.id)}

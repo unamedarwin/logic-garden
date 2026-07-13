@@ -37,6 +37,37 @@ export type ThemeId =
   | 'city-garden'
   | 'weekend-market'
 
+export interface ChallengeMetadata {
+  readonly difficulty: Difficulty
+  readonly seed: Seed
+  readonly audience: Audience
+  readonly generatorVersion: number
+  readonly benchmarkSeconds?: number
+}
+
+export const isShareableSeed = (value: unknown): value is string =>
+  typeof value === 'string' && /^[A-Za-z0-9._~-]{1,128}$/u.test(value)
+
+export const isChallengeMetadata = (value: unknown): value is ChallengeMetadata => {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (
+    (candidate.difficulty === 'easy' ||
+      candidate.difficulty === 'medium' ||
+      candidate.difficulty === 'hard') &&
+    isShareableSeed(candidate.seed) &&
+    (candidate.audience === 'children' ||
+      candidate.audience === 'teens' ||
+      candidate.audience === 'adults') &&
+    Number.isSafeInteger(candidate.generatorVersion) &&
+    Number(candidate.generatorVersion) > 0 &&
+    (candidate.benchmarkSeconds === undefined ||
+      (Number.isSafeInteger(candidate.benchmarkSeconds) &&
+        Number(candidate.benchmarkSeconds) >= 0 &&
+        Number(candidate.benchmarkSeconds) <= 86_400))
+  )
+}
+
 export interface Character {
   readonly id: CharacterId
   readonly name: string

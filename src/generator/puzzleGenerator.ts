@@ -7,10 +7,12 @@ import {
   type Seed,
 } from '../domain/types'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
+import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
 import { analyzeSolutions } from '../solver/solver'
 import { selectMinimalUniqueClues } from './clueReducer'
 import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
+import { logicGridCharacterCounts } from './difficulty'
 import { generateWorld, type AdvancedWorldStructure } from './solutionGenerator'
 import { materializeAdvancedPuzzleTemplate } from './puzzleTemplates'
 import { GENERATOR_VERSION } from './version'
@@ -178,21 +180,61 @@ export const generatePuzzle = (
   audience: Audience = 'children',
 ): Puzzle => {
   if (audience === 'children') return generatePuzzleDirect(difficulty, source, audience)
+
+  const puzzleSeed = seed(source)
+  const templates = advancedTemplateCandidates(difficulty, puzzleSeed, audience)
+  for (const template of templates) {
+    try {
+      return materializeAdvancedPuzzleTemplate(template, puzzleSeed)
+    } catch {
+      // Try another structure of the same independently selected size.
+    }
+  }
+
+  const fallbackRandom = new SeededRandom(deriveSeed(puzzleSeed, 101))
+  const fallbackSizes = fallbackRandom.shuffle(advancedGridSizes)
+  const plans = fallbackRandom.shuffle(spatialPlanIdsForAudience(audience))
+  for (const gridSize of fallbackSizes) {
+    const spatialPlanId = plans[gridSize % plans.length]
+    if (!spatialPlanId) continue
+    try {
+      return generatePuzzleDirect(difficulty, source, audience, {
+        gridSize,
+        characterCount: Math.min(gridSize, logicGridCharacterCounts[difficulty]),
+        spatialPlanId,
+      })
+    } catch {
+      // Keep the fallback independent from difficulty by trying every grid size.
+    }
+  }
+  throw new Error('No s’ha pogut validar cap estructura espacial per a aquesta llavor.')
+}
+
+const advancedGridSizes = [6, 9, 16] as const
+
+const advancedTemplateCandidates = (
+  difficulty: Difficulty,
+  puzzleSeed: Seed,
+  audience: Exclude<Audience, 'children'>,
+) => {
   const templates = advancedPuzzleTemplates.filter(
     (template) =>
       template.generatorVersion === GENERATOR_VERSION &&
       template.audience === audience &&
       template.difficulty === difficulty,
   )
-  if (templates.length === 0) return generatePuzzleDirect(difficulty, source, audience)
-
-  const puzzleSeed = seed(source)
+  if (templates.length === 0) return []
   const selector = new SeededRandom(deriveSeed(puzzleSeed, 97))
-  const template = selector.pick(templates)
-  try {
-    return materializeAdvancedPuzzleTemplate(template, puzzleSeed)
-  } catch {
-    // A catalog regression must never expose an invalid puzzle to the player.
-    return generatePuzzleDirect(difficulty, source, audience)
-  }
+  const availableSizes = advancedGridSizes.filter((gridSize) =>
+    templates.some((template) => template.gridSize === gridSize),
+  )
+  if (availableSizes.length === 0) return []
+  const selectedSize = selector.pick(availableSizes)
+  return selector.shuffle(templates.filter((template) => template.gridSize === selectedSize))
 }
+
+export const selectAdvancedPuzzleTemplate = (
+  difficulty: Difficulty,
+  source: Seed | string,
+  audience: Exclude<Audience, 'children'>,
+) => advancedTemplateCandidates(difficulty, seed(source), audience)[0] ?? null

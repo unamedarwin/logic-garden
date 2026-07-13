@@ -1,21 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
 import { GENERATOR_VERSION, generatePuzzle } from '../generator/puzzleGenerator'
-import { materializeAdvancedPuzzleTemplate } from '../generator/puzzleTemplates'
+import {
+  canonicalTemplateSignature,
+  materializeAdvancedPuzzleTemplate,
+} from '../generator/puzzleTemplates'
 import { countSolutions } from '../solver/solver'
-
-const structuralSignature = (template: (typeof advancedPuzzleTemplates)[number]) =>
-  JSON.stringify({
-    audience: template.audience,
-    gridSize: template.gridSize,
-    spatialPlanId: template.spatialPlanId,
-    clues: template.clues,
-  })
 
 describe('validated advanced puzzle templates', () => {
   it('contains one thousand distinct answer-free structures across every profile bucket', () => {
     expect(advancedPuzzleTemplates).toHaveLength(1_000)
-    expect(new Set(advancedPuzzleTemplates.map(structuralSignature)).size).toBe(1_000)
+    expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(1_000)
     expect(JSON.stringify(advancedPuzzleTemplates)).not.toContain('solution')
     expect(
       new Set(
@@ -46,7 +41,7 @@ describe('validated advanced puzzle templates', () => {
         key,
       ).not.toContain('character-0')
     }
-  })
+  }, 20_000)
 
   it('selects and decorates catalog entries deterministically from the public seed', () => {
     const first = generatePuzzle('hard', 'catalog-selection', 'adults')

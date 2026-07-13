@@ -1,16 +1,32 @@
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core'
-import { Check, Home, Lightbulb, Redo2, RotateCcw, Share2, Shuffle, Undo2 } from 'lucide-react'
+import {
+  Check,
+  Home,
+  Lightbulb,
+  Redo2,
+  RotateCcw,
+  Scan,
+  Share2,
+  Shuffle,
+  Undo2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { parseSharedGameRoute, shareUrl, type SharedGameRoute } from './app/routes'
 import { ChallengeIntroDialog } from './components/ChallengeIntroDialog'
 import { CharacterTray } from './components/CharacterTray'
 import { CharacterClueRail } from './components/CharacterClueRail'
+import { CharacterTokenPreview } from './components/CharacterToken'
 import { CluePanel } from './components/CluePanel'
 import { CompletedGames } from './components/CompletedGames'
 import { DifficultySelector } from './components/DifficultySelector'
@@ -30,12 +46,13 @@ import {
   challengeInviteCopy,
   challengeResultCopy,
   challengeShareCopy,
+  gameFeedbackCopy,
   t,
   themeCopy,
 } from './domain/i18n'
 import { avatarOptions, type PlayerProfile } from './domain/profile'
 import { getTheme } from './domain/themes'
-import { seed, type Audience, type Difficulty } from './domain/types'
+import { seed, type Audience, type CharacterId, type Difficulty } from './domain/types'
 import {
   gameReducer,
   createGameState,
@@ -65,7 +82,7 @@ import {
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
 
 const emptyStatistics: Statistics = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   completed: 0,
   hintsUsed: 0,
   recentSeeds: [],
@@ -132,6 +149,8 @@ export default function App() {
   const [sharedChallenge, setSharedChallenge] = useState<SharedGameRoute | null>(null)
   const [showChallengeIntro, setShowChallengeIntro] = useState(false)
   const [challengeFirstVisit, setChallengeFirstVisit] = useState(false)
+  const [activeDragCharacterId, setActiveDragCharacterId] = useState<CharacterId | null>(null)
+  const [boardZoom, setBoardZoom] = useState(1)
   const boardScrollRef = useRef<HTMLDivElement>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -153,19 +172,15 @@ export default function App() {
       setStatistics(storedStatistics)
       setProfile(storedProfile)
       const shared = parseSharedGameRoute(window.location)
-      setSharedChallenge(shared)
       setChallengeFirstVisit(!storedProfile)
       if (storedProfile && shared) {
-        try {
-          setGame(
-            createGameState(generatePuzzle(shared.difficulty, shared.seed, shared.audience)),
-          )
-          setShowChallengeIntro(true)
-        } catch {
-          setSharedChallenge(null)
-        }
-      } else if (storedProfile && savedGame?.status === 'playing') {
-        setGame(savedGame)
+        setSharedChallenge(shared)
+        setShowChallengeIntro(true)
+      } else if (storedProfile && savedGame?.state.status === 'playing') {
+        setGame(savedGame.state)
+        setSharedChallenge(savedGame.challenge ?? null)
+      } else {
+        setSharedChallenge(shared)
       }
       setReady(true)
     })
@@ -183,15 +198,25 @@ export default function App() {
   }, [preferences, profile, ready])
 
   useEffect(() => {
-    if (game?.status === 'playing') void saveGame(game)
-  }, [game])
+    if (game?.status === 'playing') void saveGame(game, sharedChallenge ?? undefined)
+  }, [game, sharedChallenge])
 
   useEffect(() => {
     const scrollArea = boardScrollRef.current
     if (!scrollArea) return
     scrollArea.scrollLeft = 0
     scrollArea.scrollTop = 0
+    setBoardZoom(1)
+    setActiveDragCharacterId(null)
   }, [game?.puzzle.id])
+
+  useEffect(() => {
+    if (boardZoom !== 1) return
+    const scrollArea = boardScrollRef.current
+    if (!scrollArea) return
+    scrollArea.scrollLeft = 0
+    scrollArea.scrollTop = 0
+  }, [boardZoom])
 
   useEffect(() => {
     const setOnlineState = () => setOnline(navigator.onLine)
@@ -251,27 +276,41 @@ export default function App() {
     void saveProfile(nextProfile)
     void clearSavedGame()
     if (sharedChallenge) {
-      try {
-        setGame(
-          createGameState(
-            generatePuzzle(
-              sharedChallenge.difficulty,
-              sharedChallenge.seed,
-              sharedChallenge.audience,
-            ),
-          ),
-        )
-        setShowChallengeIntro(true)
-      } catch {
-        setGame(null)
-        setSharedChallenge(null)
-      }
+      setGame(null)
+      setShowChallengeIntro(true)
     } else {
       setGame(null)
     }
     setEditingProfile(false)
     if (!sharedChallenge) window.history.replaceState({}, '', import.meta.env.BASE_URL)
     resetPageScroll()
+  }
+
+  const acceptSharedChallenge = () => {
+    if (!profile || !sharedChallenge) return
+    setGenerating(true)
+    try {
+      setGame(
+        createGameState(
+          generatePuzzle(
+            sharedChallenge.difficulty,
+            sharedChallenge.seed,
+            sharedChallenge.audience,
+          ),
+        ),
+      )
+      setShowChallengeIntro(false)
+      setChallengeFirstVisit(false)
+      window.history.replaceState({}, '', import.meta.env.BASE_URL)
+      resetPageScroll()
+      setNotice('')
+    } catch {
+      setSharedChallenge(null)
+      setShowChallengeIntro(false)
+      setNotice(t(preferences.locale, 'gamePreparationError'))
+    } finally {
+      setGenerating(false)
+    }
   }
 
   const activeAudience: Audience = game
@@ -289,7 +328,7 @@ export default function App() {
       const finishedAt = nextGame.finishedAt ?? Date.now()
       void recordCompletion({
         seed: nextGame.puzzle.seed,
-        title: themeCopy(preferences.locale, nextGame.puzzle.theme).title,
+        theme: nextGame.puzzle.theme,
         audience: activeAudience,
         difficulty: nextGame.puzzle.difficulty,
         generatorVersion: nextGame.puzzle.metadata.generatorVersion,
@@ -300,7 +339,14 @@ export default function App() {
     }
   }
 
+  const onDragStart = (event: DragStartEvent) => {
+    const characterId = String(event.active.id)
+    const character = game?.puzzle.characters.find((candidate) => candidate.id === characterId)
+    if (character) setActiveDragCharacterId(character.id)
+  }
+
   const onDragEnd = (event: DragEndEvent) => {
+    setActiveDragCharacterId(null)
     if (!game || !event.over) return
     const character = game.puzzle.characters.find(
       (candidate) => candidate.id === String(event.active.id),
@@ -368,6 +414,9 @@ export default function App() {
       setNotice(t(preferences.locale, 'oldShareUnavailable'))
       return
     }
+    const completedTitle = completedGame.theme
+      ? themeCopy(preferences.locale, completedGame.theme).title
+      : (completedGame.legacyTitle ?? 'Logic Garden')
     shareWithSystemMenu(
       shareUrl(
         {
@@ -378,10 +427,10 @@ export default function App() {
         completedGame.audience,
         completedGame.elapsedSeconds,
       ),
-      `Logic Garden: ${completedGame.title}`,
+      `Logic Garden: ${completedTitle}`,
       challengeShareCopy(
         preferences.locale,
-        completedGame.title,
+        completedTitle,
         formatCounter(completedGame.elapsedSeconds),
       ),
     )
@@ -397,6 +446,14 @@ export default function App() {
   }
 
   const connectionLabel = t(preferences.locale, online ? 'online' : 'offline')
+  const challengeInvite = sharedChallenge
+    ? challengeInviteCopy(
+        preferences.locale,
+        sharedChallenge.benchmarkSeconds === undefined
+          ? undefined
+          : formatCounter(sharedChallenge.benchmarkSeconds),
+      )
+    : null
 
   if (!ready) {
     return <main className="loading-screen">{t(preferences.locale, 'preparing')}</main>
@@ -487,6 +544,15 @@ export default function App() {
           onShare={shareCompletedGame}
         />
         <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
+        {showChallengeIntro && challengeInvite && (
+          <ChallengeIntroDialog
+            title={challengeInvite.title}
+            welcome={challengeFirstVisit ? challengeInvite.welcome : undefined}
+            message={challengeInvite.message}
+            actionLabel={challengeInvite.play}
+            onContinue={acceptSharedChallenge}
+          />
+        )}
         {showSettings && (
           <SettingsDialog
             preferences={preferences}
@@ -510,17 +576,16 @@ export default function App() {
     preferences.locale,
     game.puzzle.boardMode === 'logic-grid' ? 'logicGridInstruction' : 'mapInstruction',
   )
+  const activeBoardCharacterId = activeDragCharacterId ?? game.selectedCharacterId
+  const activeDragCharacter = game.puzzle.characters.find(
+    (character) => character.id === activeDragCharacterId,
+  )
   const gameProgress = progress(game)
   const availableCharacters = unplacedCharacters(game)
   const currentElapsedSeconds = elapsedSeconds(game.startedAt, game.finishedAt)
-  const challengeInvite = sharedChallenge
-    ? challengeInviteCopy(
-        preferences.locale,
-        sharedChallenge.benchmarkSeconds === undefined
-          ? undefined
-          : formatCounter(sharedChallenge.benchmarkSeconds),
-      )
-    : null
+  const localizedGameFeedback = game.feedback
+    ? gameFeedbackCopy(preferences.locale, game.feedback)
+    : undefined
   const challengeResult =
     sharedChallenge?.benchmarkSeconds === undefined
       ? null
@@ -579,30 +644,71 @@ export default function App() {
         />
       </div>
       <p className="sr-only" aria-live="polite">
-        {game.feedback ?? notice}
+        {localizedGameFeedback ?? notice}
       </p>
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={onDragStart}
+        onDragCancel={() => setActiveDragCharacterId(null)}
+        onDragEnd={onDragEnd}
+      >
         <div className="game-layout">
           <section className="map-area">
             <div className="map-area__heading">
               <div>
                 <p className="eyebrow">{boardTitle}</p>
                 <h2>
-                  {game.selectedCharacterId
+                  {activeBoardCharacterId
                     ? game.puzzle.characters.find(
-                        (character) => character.id === game.selectedCharacterId,
+                        (character) => character.id === activeBoardCharacterId,
                       )?.name
                     : boardInstruction}
                 </h2>
               </div>
               <span className="map-area__prompt">{boardInstruction}</span>
             </div>
-            <div ref={boardScrollRef} className="game-board-scroll">
+            <div
+              className="board-view-controls"
+              role="group"
+              aria-label={t(preferences.locale, 'boardZoom')}
+            >
+              <button
+                type="button"
+                aria-pressed={boardZoom === 1}
+                onClick={() => setBoardZoom(1)}
+              >
+                <Scan aria-hidden="true" />
+                {t(preferences.locale, 'fitBoard')}
+              </button>
+              <button
+                type="button"
+                disabled={boardZoom === 1}
+                aria-label={t(preferences.locale, 'zoomOutBoard')}
+                onClick={() => setBoardZoom((current) => Math.max(1, current - 0.5))}
+              >
+                <ZoomOut aria-hidden="true" />
+              </button>
+              <span className="board-view-controls__value">{Math.round(boardZoom * 100)}%</span>
+              <button
+                type="button"
+                disabled={boardZoom === 2.5}
+                aria-label={t(preferences.locale, 'zoomInBoard')}
+                onClick={() => setBoardZoom((current) => Math.min(2.5, current + 0.5))}
+              >
+                <ZoomIn aria-hidden="true" />
+              </button>
+            </div>
+            <div
+              ref={boardScrollRef}
+              className={`game-board-scroll ${boardZoom > 1 ? 'game-board-scroll--zoomed' : 'game-board-scroll--fit'}`}
+            >
               <GameBoard
                 positions={game.puzzle.positions}
                 characters={game.puzzle.characters}
                 assignments={game.assignments}
-                selectedCharacterId={game.selectedCharacterId}
+                selectedCharacterId={activeBoardCharacterId}
+                draggedCharacterId={activeDragCharacterId ?? undefined}
                 boardLabel={boardTitle}
                 emptyLabel={t(preferences.locale, 'emptyPlace')}
                 returnLabel={t(preferences.locale, 'returnToTray')}
@@ -614,6 +720,7 @@ export default function App() {
                 puzzleSeed={game.puzzle.seed}
                 themeId={game.puzzle.theme}
                 spatialPlanId={game.puzzle.spatialPlanId}
+                zoom={boardZoom}
                 onMoveToPosition={(positionId) => {
                   if (game.selectedCharacterId) {
                     runGameAction({
@@ -667,6 +774,11 @@ export default function App() {
             />
           </section>
         </div>
+        <DragOverlay dropAnimation={null}>
+          {activeDragCharacter && (
+            <CharacterTokenPreview character={activeDragCharacter} variant="drag-overlay" />
+          )}
+        </DragOverlay>
       </DndContext>
       <div className="game-actions" aria-label={t(preferences.locale, 'gameActions')}>
         <div className="game-actions__secondary">
@@ -718,9 +830,9 @@ export default function App() {
           </button>
         </div>
       </div>
-      {(game.feedback || notice) && (
+      {(localizedGameFeedback || notice) && (
         <p className="feedback" role="status">
-          {game.feedback ?? notice}
+          {localizedGameFeedback ?? notice}
         </p>
       )}
       <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
@@ -744,19 +856,6 @@ export default function App() {
             runGameAction({ type: 'hint', characterId: character.id })
           }}
           onClose={() => setShowHintPicker(false)}
-        />
-      )}
-      {showChallengeIntro && challengeInvite && (
-        <ChallengeIntroDialog
-          title={challengeInvite.title}
-          welcome={challengeFirstVisit ? challengeInvite.welcome : undefined}
-          message={challengeInvite.message}
-          actionLabel={challengeInvite.play}
-          onContinue={() => {
-            setShowChallengeIntro(false)
-            window.history.replaceState({}, '', import.meta.env.BASE_URL)
-            resetPageScroll()
-          }}
         />
       )}
       {game.status === 'won' && (

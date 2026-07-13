@@ -1,4 +1,5 @@
 import type { Audience, Locale, ThemeId } from './types'
+import type { GameFeedback } from '../game/feedback'
 
 export const supportedLocales: readonly Locale[] = ['ca', 'es', 'en']
 
@@ -77,6 +78,10 @@ type UiKey =
   | 'preparing'
   | 'selectPersonFirst'
   | 'gameActions'
+  | 'boardZoom'
+  | 'fitBoard'
+  | 'zoomInBoard'
+  | 'zoomOutBoard'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -150,6 +155,10 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     preparing: 'Preparant el jardí de lògica…',
     selectPersonFirst: 'Primer tria una persona de la llista o del mapa.',
     gameActions: 'Accions de joc',
+    boardZoom: 'Mida del tauler',
+    fitBoard: 'Encaixa',
+    zoomInBoard: 'Amplia el tauler',
+    zoomOutBoard: 'Redueix el tauler',
   },
   es: {
     play: 'Jugar',
@@ -222,6 +231,10 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     preparing: 'Preparando el jardín de lógica…',
     selectPersonFirst: 'Primero elige una persona de la lista o del mapa.',
     gameActions: 'Acciones de juego',
+    boardZoom: 'Tamaño del tablero',
+    fitBoard: 'Encajar',
+    zoomInBoard: 'Ampliar el tablero',
+    zoomOutBoard: 'Reducir el tablero',
   },
   en: {
     play: 'Play',
@@ -294,10 +307,114 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     preparing: 'Preparing the logic garden…',
     selectPersonFirst: 'Choose a person from the list or the map first.',
     gameActions: 'Game actions',
+    boardZoom: 'Board size',
+    fitBoard: 'Fit',
+    zoomInBoard: 'Zoom in on the board',
+    zoomOutBoard: 'Zoom out from the board',
   },
 }
 
 export const t = (locale: Locale, key: UiKey) => ui[locale][key]
+
+const gameFeedbackTemplates: Record<
+  Locale,
+  {
+    readonly assignmentIncomplete: string
+    readonly assignmentIncorrect: string
+    readonly assignmentCorrect: string
+    readonly hintPersonRequired: string
+    readonly hintLimitReached: string
+    readonly hintPuzzlePreparing: string
+    readonly hintReadyToCheck: string
+    readonly hintHighlightedClue: string
+    readonly hintCharacterDeducible: (name: string) => string
+    readonly hintCharacterPosition: (name: string, position: string) => string
+    readonly hintAlreadyCorrect: (name: string) => string
+    readonly hintApplied: (name: string) => string
+  }
+> = {
+  ca: {
+    assignmentIncomplete: 'Encara hi ha algun amic sense lloc. Continua quan vulguis!',
+    assignmentIncorrect: 'Gairebé! Revisa les pistes i prova una combinació diferent.',
+    assignmentCorrect: 'Fantàstic! Has resolt el puzzle amb una gran deducció.',
+    hintPersonRequired: 'Tria la persona que necessita una pista.',
+    hintLimitReached: 'Ja tens prou pistes per trobar l’últim lloc.',
+    hintPuzzlePreparing: 'Aquest puzzle s’està preparant. Torna-ho a provar en un moment.',
+    hintReadyToCheck: 'Tot encaixa! Pots comprovar la teva resposta.',
+    hintHighlightedClue: 'Aquesta pista et pot ajudar ara.',
+    hintCharacterDeducible: (name) => `Pots deduir el lloc de ${name}.`,
+    hintCharacterPosition: (name, position) =>
+      position
+        ? `Una petita ajuda: ${name} encaixa a ${position}.`
+        : `Una petita ajuda: ja pots trobar el lloc de ${name}.`,
+    hintAlreadyCorrect: (name) => `${name} ja és al lloc correcte.`,
+    hintApplied: (name) => `Pista aplicada: ${name} ja és al seu espai.`,
+  },
+  es: {
+    assignmentIncomplete: '¡Aún falta colocar a alguien! Continúa cuando quieras.',
+    assignmentIncorrect: '¡Casi! Revisa las pistas y prueba una combinación diferente.',
+    assignmentCorrect: '¡Fantástico! Has resuelto el puzle con una gran deducción.',
+    hintPersonRequired: 'Elige a la persona que necesita una pista.',
+    hintLimitReached: 'Ya tienes suficientes pistas para encontrar el último lugar.',
+    hintPuzzlePreparing: 'Este puzle se está preparando. Inténtalo de nuevo en un momento.',
+    hintReadyToCheck: '¡Todo encaja! Ya puedes comprobar tu respuesta.',
+    hintHighlightedClue: 'Esta pista puede ayudarte ahora.',
+    hintCharacterDeducible: (name) => `Puedes deducir el lugar de ${name}.`,
+    hintCharacterPosition: (name, position) =>
+      position
+        ? `Una pequeña ayuda: ${name} encaja en ${position}.`
+        : `Una pequeña ayuda: ya puedes encontrar el lugar de ${name}.`,
+    hintAlreadyCorrect: (name) => `${name} ya está en el lugar correcto.`,
+    hintApplied: (name) => `Pista aplicada: ${name} ya está en su espacio.`,
+  },
+  en: {
+    assignmentIncomplete: 'Someone still needs a place. Keep going when you are ready!',
+    assignmentIncorrect: 'Almost! Check the clues and try a different combination.',
+    assignmentCorrect: 'Fantastic! You solved the puzzle with careful deduction.',
+    hintPersonRequired: 'Choose the person who needs a hint.',
+    hintLimitReached: 'You have enough hints to find the final place.',
+    hintPuzzlePreparing: 'This puzzle is still getting ready. Try again in a moment.',
+    hintReadyToCheck: 'Everything fits! You can check your answer now.',
+    hintHighlightedClue: 'This clue can help you now.',
+    hintCharacterDeducible: (name) => `You can work out where ${name} belongs.`,
+    hintCharacterPosition: (name, position) =>
+      position
+        ? `A small hint: ${name} belongs at ${position}.`
+        : `A small hint: you can now find a place for ${name}.`,
+    hintAlreadyCorrect: (name) => `${name} is already in the right place.`,
+    hintApplied: (name) => `Hint applied: ${name} is now in the right space.`,
+  },
+}
+
+export const gameFeedbackCopy = (locale: Locale, feedback: GameFeedback) => {
+  const copy = gameFeedbackTemplates[locale]
+  switch (feedback.type) {
+    case 'assignment-incomplete':
+      return copy.assignmentIncomplete
+    case 'assignment-incorrect':
+      return copy.assignmentIncorrect
+    case 'assignment-correct':
+      return copy.assignmentCorrect
+    case 'hint-person-required':
+      return copy.hintPersonRequired
+    case 'hint-limit-reached':
+      return copy.hintLimitReached
+    case 'hint-puzzle-preparing':
+      return copy.hintPuzzlePreparing
+    case 'hint-ready-to-check':
+      return copy.hintReadyToCheck
+    case 'hint-highlighted-clue':
+      return copy.hintHighlightedClue
+    case 'hint-character-deducible':
+      return copy.hintCharacterDeducible(feedback.characterName)
+    case 'hint-character-position':
+      return copy.hintCharacterPosition(feedback.characterName, feedback.positionLabel)
+    case 'hint-already-correct':
+      return copy.hintAlreadyCorrect(feedback.characterName)
+    case 'hint-applied':
+      return copy.hintApplied(feedback.characterName)
+  }
+}
 
 export const challengeInviteCopy = (locale: Locale, benchmark?: string) => {
   const copy: Record<

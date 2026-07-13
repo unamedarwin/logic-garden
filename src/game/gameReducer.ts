@@ -1,6 +1,7 @@
 import type { CharacterId, PartialAssignment, PositionId, Puzzle } from '../domain/types'
 import { getSolverHint, validateAssignment } from './validation'
 import { solve } from '../solver/solver'
+import type { GameFeedback } from './feedback'
 
 export interface GameSnapshot {
   readonly assignments: PartialAssignment
@@ -17,7 +18,7 @@ export interface GameState {
   readonly hintsUsed: number
   readonly status: 'playing' | 'won'
   readonly finishedAt?: number
-  readonly feedback?: string
+  readonly feedback?: GameFeedback
   readonly highlightedClueId?: string
   readonly startedAt: number
 }
@@ -102,6 +103,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         (character) => character.id === action.characterId,
       )
       if (!targetPosition || targetPosition.blocked || !characterExists) return state
+      if (state.assignments[action.characterId] === action.positionId) return state
 
       if (state.puzzle.boardMode === 'logic-grid') {
         const conflictsWithGrid = state.puzzle.characters.some((character) => {
@@ -160,7 +162,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         ...state,
         status: result.correct ? 'won' : 'playing',
         finishedAt: result.correct ? Date.now() : undefined,
-        feedback: result.message,
+        feedback: result.feedback,
         highlightedClueId: undefined,
       }
     }
@@ -169,7 +171,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (!characterId) {
         return {
           ...state,
-          feedback: 'Tria la persona que necessita una pista.',
+          feedback: { type: 'hint-person-required' },
           highlightedClueId: undefined,
         }
       }
@@ -178,7 +180,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (state.hintsUsed >= maximumHints) {
         return {
           ...state,
-          feedback: 'Ja tens prou pistes per trobar l’últim lloc.',
+          feedback: { type: 'hint-limit-reached' },
           highlightedClueId: undefined,
         }
       }
@@ -195,7 +197,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         const hint = getSolverHint(state.puzzle, state.assignments, state.hintsUsed)
         return {
           ...state,
-          feedback: hint.message,
+          feedback: hint.feedback,
           highlightedClueId: hint.clueId,
         }
       }
@@ -223,7 +225,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         return {
           ...state,
           selectedCharacterId: undefined,
-          feedback: `${character.name} ja és al lloc correcte.`,
+          feedback: { type: 'hint-already-correct', characterName: character.name },
           highlightedClueId: undefined,
         }
       }
@@ -245,7 +247,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         moves: state.moves + 1,
         hintsUsed: state.hintsUsed + 1,
         selectedCharacterId: undefined,
-        feedback: `Pista aplicada: ${character.name} ja és al seu espai.`,
+        feedback: { type: 'hint-applied', characterName: character.name },
         highlightedClueId: undefined,
       }
     }

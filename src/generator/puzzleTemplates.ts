@@ -36,6 +36,16 @@ export interface AdvancedPuzzleTemplate {
   readonly exactClueCount: number
 }
 
+export const canonicalTemplateSignature = (template: AdvancedPuzzleTemplate) =>
+  JSON.stringify({
+    audience: template.audience,
+    gridSize: template.gridSize,
+    spatialPlanId: template.spatialPlanId,
+    clues: [...template.clues].sort((first, second) =>
+      JSON.stringify(first).localeCompare(JSON.stringify(second)),
+    ),
+  })
+
 const numericSuffix = (value: string) => {
   const match = /-(\d+)$/u.exec(value)
   if (!match) throw new Error(`Identificador estructural desconegut: ${value}`)

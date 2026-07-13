@@ -33,15 +33,16 @@ describe('local completion statistics', () => {
     })
 
     const statistics = await loadStatistics()
-    expect(statistics.schemaVersion).toBe(3)
+    expect(statistics.schemaVersion).toBe(4)
     expect(statistics.history[0]?.generatorVersion).toBe(0)
+    expect(statistics.history[0]?.legacyTitle).toBe('Old game')
   })
 
   it('stores the generator version without an answer or profile data', async () => {
     vi.mocked(get).mockResolvedValue(undefined)
     const statistics = await recordCompletion({
       seed: 'new',
-      title: 'New game',
+      theme: 'music-studio',
       audience: 'teens',
       difficulty: 'hard',
       generatorVersion: GENERATOR_VERSION,
@@ -51,6 +52,7 @@ describe('local completion statistics', () => {
     })
 
     expect(statistics.history[0]?.generatorVersion).toBe(GENERATOR_VERSION)
+    expect(statistics.history[0]?.theme).toBe('music-studio')
     expect(JSON.stringify(statistics.history[0])).not.toContain('solution')
     expect(set).toHaveBeenCalledOnce()
   })

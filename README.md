@@ -107,10 +107,14 @@ orientation, so a `2 x 3` board can also appear as `3 x 2`.
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
 focus and activate a character button, then activate a location button. Touching a placed
-character returns it to the waiting tray. Teen and adult modes use the same deduction rules.
+character returns it to the waiting tray. A placed character can also be dragged again: its old
+cell is excluded while valid destinations light up, a cell-sized preview shows the exact drop
+target under the pointer, and dropping on the current cell does not count as a move. Teen and adult modes use the
+same deduction rules.
 Every advanced difficulty can use `6 x 6`, `9 x 9`, or `16 x 16`; grid size does not define
-difficulty and never dictates the number of people. Easy templates keep landmark choices narrow,
-medium templates leave more alternatives open, and hard templates require deeper clue chains.
+difficulty and never dictates the number of people. The seeded selector chooses one of the three
+sizes first, with equal probability, and only then chooses a template from that size. Easy
+templates keep landmark choices narrow, while harder templates allow broader candidate domains.
 Groups target 4, 6, and 8 people and are capped by the selected grid dimension. Visible scenery
 blocks selected cells, and occupied rows and columns are blocked
 in both the interface and the reducer, so drag interactions cannot bypass either rule. The game
@@ -167,18 +171,20 @@ material rules. The committed [terrain atlas](docs/terrain-samples/atlas.png) an
 
 On narrow screens, the plan, horizontally scrollable people rail, and the selected person's
 contextual clue stay in one workspace. The full clue list remains an optional collapsed support
-panel rather than a separate view. `9 x 9` and `16 x 16` plans use an internally scrollable board
-that preserves at least 44-pixel interaction cells without forcing whole-page navigation. A
+panel rather than a separate view. Every plan fits the available width by default, including
+`9 x 9` and `16 x 16`; there is no internal board scroll in fit mode. Players can explicitly zoom
+from 100% to 250%, at which point only the enlarged board can be moved within its viewport. A
 compact fixed action rail keeps hint, undo, sharing, and validation available without scrolling
-to the page end. A visible game counter records elapsed time without blocking play. Screen
-transitions reset both document and board scroll so a new game always opens from its header and
-top-left board area rather than inheriting a previous position.
+to the page end. A visible game counter records elapsed time without blocking play. New games
+reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
 
 Catalan, Spanish, and English are available before profile creation and in settings. Every clue is a discriminated
 union value; `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
+Reducer and solver feedback is also stored as structured message data; the interface localizes it
+at render time, so saved games never retain wording from a previously selected language.
 Spatial cells inherit the room that geometrically contains them. Exact spatial clues add a short,
 positive social action before identifying one playable cell by naming its room, a visible adjacent
 obstacle, and the direction from that obstacle. They never expose route, row, column, step, or
@@ -206,11 +212,12 @@ in a URL-safe Base64 payload:
 /logic-garden/?p=<url-safe-base64-payload>
 ```
 
-After a solve, the local history stores the theme, audience, difficulty, generator version,
+After a solve, the local history stores the theme identifier, audience, difficulty, generator version,
 elapsed time, moves, hint count, and seed. It never stores the answer or profile data. Each saved result exposes the
 same share action, using the platform share sheet on supported Android and Apple devices and
 copying the link as a fallback. Opening a timed link shows an accessible challenge dialog; after
-the solve, the result card compares both marks and offers a return link plus screenshot-ready
+the timer starts only when that dialog is accepted, and its benchmark survives an in-progress
+reload. After the solve, the result card compares both marks and offers a return link plus screenshot-ready
 copy, creating a safe back-and-forth challenge without transmitting a player name.
 
 ## Persistence
@@ -228,7 +235,9 @@ To add a theme, add safe characters, places, objects, and source words in
 Run `pnpm icons:build` after changing a theme icon; `pnpm verify` rejects stale or missing local
 Fluent SVG data. See `THIRD_PARTY_NOTICES.md` for artwork attribution.
 
-When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:build`. The catalog
+When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:build`. Use
+`pnpm templates:repair` when a canonical integrity check finds duplicate clue sets whose only
+difference is clue order. The catalog
 builder may generate extra candidates and discard impossible geometry or duplicates, but it must
 stop at exactly 1,000 valid structures and retain all 18 audience/difficulty/size buckets.
 

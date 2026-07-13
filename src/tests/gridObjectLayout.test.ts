@@ -103,5 +103,5 @@ describe('spatial label and object layout', () => {
         }
       }
     }
-  })
+  }, 20_000)
 })

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { installPromptCopy } from '../domain/i18n'
 import type { Locale } from '../domain/types'
-
-interface InstallPromptEvent extends Event {
-  prompt: () => Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+import {
+  clearInstallPromptEvent,
+  consumeInstallPromptEvent,
+  getInstallPromptEvent,
+  subscribeToInstallPromptEvent,
+} from './installPromptEventStore'
 
 interface InstallPromptProps {
   readonly label: string
@@ -14,6 +15,14 @@ interface InstallPromptProps {
 }
 
 const dismissedKey = 'logic-garden:install-prompt:v1'
+
+const rememberDismissal = () => {
+  try {
+    localStorage.setItem(dismissedKey, 'dismissed')
+  } catch {
+    // Dismissal persistence is optional in private browsing.
+  }
+}
 
 const wasDismissed = () => {
   try {
@@ -29,17 +38,12 @@ const isStandalone = () =>
   Boolean((navigator as Navigator & { readonly standalone?: boolean }).standalone)
 
 export const InstallPrompt = ({ label, locale, prominent = false }: InstallPromptProps) => {
-  const [event, setEvent] = useState<InstallPromptEvent | null>(null)
+  const event = useSyncExternalStore(
+    subscribeToInstallPromptEvent,
+    getInstallPromptEvent,
+    getInstallPromptEvent,
+  )
   const [dismissed, setDismissed] = useState(wasDismissed)
-
-  useEffect(() => {
-    const onBeforeInstallPrompt = (nextEvent: Event) => {
-      nextEvent.preventDefault()
-      setEvent(nextEvent as InstallPromptEvent)
-    }
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
-  }, [])
 
   const userAgent = navigator.userAgent
   const ios = /iPad|iPhone|iPod/iu.test(userAgent)
@@ -47,12 +51,22 @@ export const InstallPrompt = ({ label, locale, prominent = false }: InstallPromp
   if (dismissed || isStandalone() || (!event && !ios && !android)) return null
   const copy = installPromptCopy(locale)
   const dismiss = () => {
-    try {
-      localStorage.setItem(dismissedKey, 'dismissed')
-    } catch {
-      // Dismissal persistence is optional in private browsing.
-    }
+    clearInstallPromptEvent()
+    rememberDismissal()
     setDismissed(true)
+  }
+  const install = async () => {
+    if (!event || !consumeInstallPromptEvent(event)) return
+    try {
+      await event.prompt()
+      const { outcome } = await event.userChoice
+      if (outcome === 'accepted') {
+        rememberDismissal()
+        setDismissed(true)
+      }
+    } catch {
+      // A failed native prompt cannot be invoked again with the same event.
+    }
   }
 
   return (
@@ -63,19 +77,7 @@ export const InstallPrompt = ({ label, locale, prominent = false }: InstallPromp
       </div>
       <div className="install-prompt__actions">
         {event && (
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              void event
-                .prompt()
-                .then(() => event.userChoice)
-                .then(({ outcome }) => {
-                  if (outcome === 'accepted') dismiss()
-                  else setEvent(null)
-                })
-            }}
-          >
+          <button type="button" className="button" onClick={() => void install()}>
             {label}
           </button>
         )}

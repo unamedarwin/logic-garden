@@ -1,1 +1,1 @@
-export const GENERATOR_VERSION = 9
+export const GENERATOR_VERSION = 10

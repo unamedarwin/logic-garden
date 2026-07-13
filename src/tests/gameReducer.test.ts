@@ -20,7 +20,9 @@ describe('game reducer', () => {
     expect(state.assignments[character.id]).toBeUndefined()
     state = gameReducer(state, { type: 'redo' })
     expect(state.assignments[character.id]).toBe(position.id)
-    expect(gameReducer(state, { type: 'check' }).feedback).toMatch(/Encara hi ha/)
+    expect(gameReducer(state, { type: 'check' }).feedback).toEqual({
+      type: 'assignment-incomplete',
+    })
     expect(gameReducer(state, { type: 'reset' }).assignments).toEqual({})
   })
 
@@ -70,7 +72,7 @@ describe('game reducer', () => {
 
     expect(limited.hintsUsed).toBe(puzzle.characters.length - 1)
     expect(limited.assignments[lastCharacter.id]).toBeUndefined()
-    expect(limited.feedback).toMatch(/últim lloc/u)
+    expect(limited.feedback).toEqual({ type: 'hint-limit-reached' })
   })
 
   it('returns a placed character to the waiting tray and records the move', () => {
@@ -88,6 +90,28 @@ describe('game reducer', () => {
     expect(state.assignments[character.id]).toBeUndefined()
     expect(state.moves).toBe(2)
     expect(state.past).toHaveLength(2)
+  })
+
+  it('does not count dropping a character on its current cell as a move', () => {
+    const puzzle = generatePuzzle('easy', 'same-cell-drop')
+    const character = puzzle.characters[0]!
+    const position = puzzle.positions[0]!
+    let state = createGameState(puzzle)
+    state = gameReducer(state, {
+      type: 'move-character',
+      characterId: character.id,
+      positionId: position.id,
+    })
+
+    const unchanged = gameReducer(state, {
+      type: 'move-character',
+      characterId: character.id,
+      positionId: position.id,
+    })
+
+    expect(unchanged).toBe(state)
+    expect(unchanged.moves).toBe(1)
+    expect(unchanged.past).toHaveLength(1)
   })
 
   it('rejects deduction-grid moves that reuse an occupied row or column', () => {

@@ -4,7 +4,7 @@ import { getTheme, themes } from '../domain/themes'
 import { fluentIconData } from '../assets/generated/fluentIconData'
 import type { Audience, Difficulty } from '../domain/types'
 import { renderClue } from '../domain/vocabulary'
-import { generatePuzzle } from '../generator/puzzleGenerator'
+import { generatePuzzle, selectAdvancedPuzzleTemplate } from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
 import { countSolutions, solve } from '../solver/solver'
 
@@ -319,6 +319,32 @@ describe('seeded puzzle generator', () => {
       }
     }
   }, 20_000)
+
+  it('selects advanced grid size independently and without catalog bucket bias', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+        const counts = new Map<number, number>([
+          [6, 0],
+          [9, 0],
+          [16, 0],
+        ])
+        for (let index = 0; index < 900; index += 1) {
+          const template = selectAdvancedPuzzleTemplate(
+            difficulty,
+            `balanced-size-${audience}-${difficulty}-${index}`,
+            audience,
+          )
+          if (!template) throw new Error('Expected an advanced template')
+          counts.set(template.gridSize, (counts.get(template.gridSize) ?? 0) + 1)
+        }
+
+        for (const [size, count] of counts) {
+          expect(count, `${audience}:${difficulty}:${size}`).toBeGreaterThan(240)
+          expect(count, `${audience}:${difficulty}:${size}`).toBeLessThan(360)
+        }
+      }
+    }
+  })
 
   it('varies rectangular children maps between both seeded orientations', () => {
     const shapes = new Set(

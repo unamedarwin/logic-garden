@@ -1,15 +1,36 @@
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 import { shareUrl } from '../app/routes'
 import { seed } from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
 
+const dndMock = vi.hoisted(() => ({
+  overId: null as string | null,
+  onDragStart: undefined as ((event: { active: { id: string } }) => void) | undefined,
+  onDragEnd: undefined as
+    ((event: { active: { id: string }; over: { id: string } | null }) => void) | undefined,
+}))
+
 vi.mock('@dnd-kit/core', () => ({
-  DndContext: ({ children }: { children: ReactNode }) => children,
+  DndContext: ({
+    children,
+    onDragStart,
+    onDragEnd,
+  }: {
+    children: ReactNode
+    onDragStart?: (event: { active: { id: string } }) => void
+    onDragEnd?: (event: { active: { id: string }; over: { id: string } | null }) => void
+  }) => {
+    dndMock.onDragStart = onDragStart
+    dndMock.onDragEnd = onDragEnd
+    return children
+  },
+  DragOverlay: ({ children }: { children: ReactNode }) => children,
   PointerSensor: class PointerSensor {},
+  pointerWithin: vi.fn(),
   useSensor: () => null,
   useSensors: () => [],
   useDraggable: () => ({
@@ -19,7 +40,10 @@ vi.mock('@dnd-kit/core', () => ({
     transform: null,
     isDragging: false,
   }),
-  useDroppable: () => ({ setNodeRef: () => undefined, isOver: false }),
+  useDroppable: ({ id }: { id: string }) => ({
+    setNodeRef: () => undefined,
+    isOver: dndMock.overId === id,
+  }),
 }))
 
 vi.mock('../pwa/registerServiceWorker', () => ({
@@ -69,8 +93,15 @@ vi.mock('../storage/savedGame', () => ({
 }))
 
 describe('game interface', () => {
+  beforeEach(() => {
+    dndMock.overId = null
+    dndMock.onDragStart = undefined
+    dndMock.onDragEnd = undefined
+  })
+
   it('opens a timed shared mystery with a clear challenge dialog', async () => {
     const user = userEvent.setup()
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000)
     window.history.replaceState(
       {},
       '',
@@ -89,11 +120,15 @@ describe('game interface', () => {
 
     const dialog = await screen.findByRole('dialog', { name: 'T’han enviat un misteri' })
     expect(dialog).toHaveTextContent('01:35')
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    now.mockReturnValue(9_000)
     await user.click(screen.getByRole('button', { name: 'Accepta el repte' }))
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Temps')).toHaveTextContent('00:00')
     expect(window.location.search).toBe('')
+    now.mockRestore()
   })
 
   it('plays by keyboard and click, supports undo and provides a solver hint', async () => {
@@ -124,9 +159,13 @@ describe('game interface', () => {
     render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
     await screen.findByRole('grid', { name: 'Mapa del puzzle' })
+    await user.click(screen.getByRole('button', { name: 'Comprovar' }))
+    expect(screen.getByRole('status')).toHaveTextContent(/Encara hi ha algun amic/u)
     await user.click(screen.getByRole('button', { name: 'Configuració' }))
     await user.selectOptions(screen.getByRole('combobox'), 'en')
     expect(await screen.findByRole('button', { name: 'Check' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/Someone still needs a place/u)
+    expect(screen.getByRole('status')).not.toHaveTextContent(/Encara hi ha/u)
   })
 
   it('returns to the difficulty selector from an active game', async () => {
@@ -157,6 +196,62 @@ describe('game interface', () => {
       screen.queryByRole('button', { name: /^Torna a la safata: /u }),
     ).not.toBeInTheDocument()
     expect(container.querySelector('[data-character-id]')).toBeInTheDocument()
+  })
+
+  it('fits the board by default and only scrolls after explicit zoom', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+
+    const viewport = container.querySelector('.game-board-scroll')
+    const board = await screen.findByRole('grid', { name: 'Mapa del puzzle' })
+    expect(viewport).toHaveClass('game-board-scroll--fit')
+    expect(board).not.toHaveStyle({ width: '150%' })
+
+    await user.click(screen.getByRole('button', { name: 'Amplia el tauler' }))
+    expect(viewport).toHaveClass('game-board-scroll--zoomed')
+    expect(board).toHaveStyle({ width: '150%' })
+
+    await user.click(screen.getByRole('button', { name: 'Encaixa' }))
+    expect(viewport).toHaveClass('game-board-scroll--fit')
+  })
+
+  it('previews the exact drop cell and repositions a placed character', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+
+    const trayToken = container.querySelector('[data-character-id]') as HTMLButtonElement
+    const characterId = trayToken.dataset.characterId
+    if (!characterId) throw new Error('Expected a draggable character id')
+    await user.click(trayToken)
+    const firstTarget = screen.getAllByRole('button', { name: /^Mou /u })[0]!
+    await user.click(firstTarget)
+
+    const targetButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('.location-cell__target:not(:disabled)'),
+    )
+    const secondTarget = targetButtons.find((target) => target.id !== firstTarget.id)
+    if (!secondTarget) throw new Error('Expected another valid drop target')
+    const positionId = secondTarget.id.replace('grid-target-', '')
+    dndMock.overId = `position:${positionId}`
+
+    act(() => dndMock.onDragStart?.({ active: { id: characterId } }))
+    expect(screen.getByRole('grid')).toHaveClass('game-board--dragging')
+    expect(container.querySelector('.location-cell__drop-preview')).toBeInTheDocument()
+
+    act(() =>
+      dndMock.onDragEnd?.({
+        active: { id: characterId },
+        over: { id: `position:${positionId}` },
+      }),
+    )
+
+    const movedToken = screen.getByRole('button', { name: /^Torna a la safata: /u })
+    expect(
+      movedToken.closest('.location-cell')?.querySelector('.location-cell__target'),
+    ).toHaveAttribute('id', secondTarget.id)
+    expect(container.querySelector('.location-cell__drop-preview')).not.toBeInTheDocument()
   })
 
   it('asks which person needs a hint when no person is selected', async () => {

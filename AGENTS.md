@@ -26,6 +26,9 @@ only audience, difficulty, grid size, plan id, generic clue tuples, and difficul
 must never store an answer, profile data, names, localized phrases, or concrete theme objects.
 Keep all 1,000 catalog entries structurally distinct, cover both advanced audiences and every
 difficulty/size combination, and rerun the solver with a limit of two after every runtime theme application.
+Canonical structural identity must ignore clue-list ordering, and catalog checks must reject
+order-only duplicates. Choose advanced grid size uniformly before choosing a template from that
+size so uneven bucket counts cannot couple board size back to difficulty.
 Board size and difficulty are independent. Grade advanced difficulty through the number of
 candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
 to each difficulty.
@@ -41,11 +44,18 @@ Keep all player-facing wording in local template dictionaries. Sentences must be
 simple, and derived from structured clues so they can be reused in Catalan, Spanish, and
 English without changing puzzle logic. Run the multilingual spell checker after wording
 changes and add only intentional domain terms to its project dictionary.
+Reducer, validation, and solver feedback must remain structured data and be localized only by the
+interface; never persist a rendered feedback sentence in game state.
 
 ## Accessibility
 
 Drag-and-drop must always have a click/tap and keyboard alternative. Do not encode
 information using color alone. Respect reduced-motion preferences.
+Keep spatial boards fitted to the available viewport by default. Board panning is allowed only
+after the player explicitly zooms in, and returning to fit mode must remove both scroll axes.
+Dragging an already placed character must ignore its former cell's row/column constraints, retain
+an anchored source, and show an exact in-cell destination preview before drop. Pointer collision
+must resolve from the pointer position so the highlighted cell always matches the final cell.
 Prevent accidental interface-text selection during board interaction, while preserving normal
 selection and editing in input, textarea, and editable controls.
 Keep a visible, keyboard-accessible path from a game and its completion dialog back to the
@@ -115,7 +125,9 @@ obstacle, and direction wording without exposing routes, rows, columns, steps, o
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
 solution or any profile data. A received challenge must explain the benchmark before play and
-offer a return challenge after completion.
+offer a return challenge after completion. Start its timer only after the player accepts the
+challenge, and persist the benchmark with an in-progress game. Store theme identifiers rather
+than localized titles in new history records so history follows the active language.
 
 ## Delivery
 
@@ -132,5 +144,5 @@ production build. A task is not complete while any check fails.
 After changes to boards, icons, labels, clues, or responsive layout, visually inspect teen and
 adult games at a 390x844 mobile viewport for 6x6, 9x9, and 16x16 boards. Check both an empty board
 and a board with a placed character where relevant. Reject clipped or overlapping labels,
-misaligned cells, repeated or semantically wrong icons, unreadable clues, broken horizontal
-scroll restoration, and touch targets obscured by artwork before publishing.
+misaligned cells, repeated or semantically wrong icons, unreadable clues, unexpected scroll in fit
+mode, broken zoom/pan restoration, and touch targets obscured by artwork before publishing.

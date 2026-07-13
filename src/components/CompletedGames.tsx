@@ -1,6 +1,7 @@
 import { formatCounter } from '../game/time'
 import type { Locale } from '../domain/types'
 import type { CompletedGame } from '../storage/statistics'
+import { themeCopy } from '../domain/i18n'
 
 interface CompletedGamesProps {
   readonly games?: readonly CompletedGame[]
@@ -37,7 +38,11 @@ export const CompletedGames = ({
         {games.map((game) => (
           <article key={game.id} className="completed-games__item">
             <div>
-              <strong>{game.title}</strong>
+              <strong>
+                {game.theme
+                  ? themeCopy(locale, game.theme).title
+                  : (game.legacyTitle ?? 'Logic Garden')}
+              </strong>
               <span>{formatDate.format(game.completedAt)}</span>
             </div>
             <p>

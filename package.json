@@ -18,6 +18,7 @@
     "icons:build": "node scripts/generate-fluent-icons.mjs",
     "icons:check": "node scripts/generate-fluent-icons.mjs --check",
     "templates:build": "tsx scripts/generate-puzzle-templates.ts",
+    "templates:repair": "tsx scripts/generate-puzzle-templates.ts --repair",
     "templates:check": "tsx scripts/generate-puzzle-templates.ts --check",
     "terrain:samples": "tsx scripts/generate-terrain-samples.ts",
     "pwa:check": "node scripts/check-pwa.mjs",

@@ -1,5 +1,4 @@
 import { useDraggable } from '@dnd-kit/core'
-import type { CSSProperties } from 'react'
 import type { Character } from '../domain/types'
 import { SceneIcon } from './SceneIcon'
 
@@ -16,19 +15,15 @@ export const CharacterToken = ({
   onSelect,
   actionLabel,
 }: CharacterTokenProps) => {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: character.id,
   })
-  const style: CSSProperties | undefined = transform
-    ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-    : undefined
 
   return (
     <button
       ref={setNodeRef}
       type="button"
       className={`character-token ${selected ? 'character-token--selected' : ''} ${isDragging ? 'character-token--dragging' : ''}`}
-      style={style}
       {...listeners}
       {...attributes}
       aria-pressed={selected}
@@ -43,3 +38,20 @@ export const CharacterToken = ({
     </button>
   )
 }
+
+interface CharacterTokenPreviewProps {
+  readonly character: Character
+  readonly variant: 'drag-overlay' | 'drop-target'
+}
+
+export const CharacterTokenPreview = ({ character, variant }: CharacterTokenPreviewProps) => (
+  <div
+    className={`character-token character-token--preview character-token--${variant}`}
+    aria-hidden="true"
+  >
+    <span className="character-token__emoji">
+      <SceneIcon emoji={character.emoji} />
+    </span>
+    {variant === 'drag-overlay' && <span>{character.name}</span>}
+  </div>
+)

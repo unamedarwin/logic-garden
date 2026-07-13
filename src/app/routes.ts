@@ -1,14 +1,16 @@
 import { isAudience } from '../domain/profile'
-import { seed, type Audience, type Difficulty, type Seed } from '../domain/types'
+import {
+  isChallengeMetadata,
+  isShareableSeed,
+  seed,
+  type Audience,
+  type ChallengeMetadata,
+  type Difficulty,
+  type Seed,
+} from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
 
-export interface SharedGameRoute {
-  readonly difficulty: Difficulty
-  readonly seed: Seed
-  readonly audience: Audience
-  readonly generatorVersion: number
-  readonly benchmarkSeconds?: number
-}
+export type SharedGameRoute = ChallengeMetadata
 
 const isBenchmarkSeconds = (value: unknown): value is number =>
   Number.isSafeInteger(value) && Number(value) >= 0 && Number(value) <= 86_400
@@ -30,13 +32,8 @@ const isSharedPayload = (
   const payload = value as Record<string, unknown>
   return (
     (payload.v === 2 || payload.v === 3) &&
-    typeof payload.difficulty === 'string' &&
-    isDifficulty(payload.difficulty) &&
-    typeof payload.seed === 'string' &&
-    typeof payload.audience === 'string' &&
-    isAudience(payload.audience) &&
-    payload.generatorVersion === GENERATOR_VERSION &&
-    (payload.benchmarkSeconds === undefined || isBenchmarkSeconds(payload.benchmarkSeconds))
+    isChallengeMetadata(payload) &&
+    payload.generatorVersion === GENERATOR_VERSION
   )
 }
 
@@ -64,7 +61,7 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
   if (location.pathname !== import.meta.env.BASE_URL) return null
   const params = new URLSearchParams(location.search)
   const encoded = params.get('p')
-  const decoded = encoded ? decodePayload(encoded) : null
+  const decoded = encoded && encoded.length <= 512 ? decodePayload(encoded) : null
   if (isSharedPayload(decoded)) {
     return {
       difficulty: decoded.difficulty,
@@ -83,7 +80,7 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
   return version === '2' &&
     generatorVersion === GENERATOR_VERSION &&
     isDifficulty(difficulty) &&
-    gameSeed
+    isShareableSeed(gameSeed)
     ? {
         difficulty,
         seed: seed(gameSeed),
@@ -102,6 +99,9 @@ export const shareUrl = (
   audience: Audience,
   benchmarkSeconds?: number,
 ) => {
+  if (!isShareableSeed(puzzle.seed)) {
+    throw new Error('Cannot share a puzzle with an unsafe seed')
+  }
   const url = new URL(import.meta.env.BASE_URL, window.location.origin)
   url.searchParams.set(
     'p',

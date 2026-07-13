@@ -4,6 +4,25 @@ import { seed } from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
 
 describe('shared routes', () => {
+  const encodedLocation = (payload: Record<string, unknown>) => {
+    const asciiJson = Array.from(JSON.stringify(payload), (character) => {
+      const codePoint = character.codePointAt(0) ?? 0
+      if (codePoint <= 0x7f) return character
+      if (codePoint <= 0xffff) return `\\u${codePoint.toString(16).padStart(4, '0')}`
+      const offset = codePoint - 0x10000
+      const high = 0xd800 + (offset >> 10)
+      const low = 0xdc00 + (offset & 0x3ff)
+      return `\\u${high.toString(16)}\\u${low.toString(16)}`
+    }).join('')
+    const encoded = btoa(asciiJson)
+      .replaceAll('+', '-')
+      .replaceAll('/', '_')
+      .replaceAll('=', '')
+    return new URL(
+      `https://unamedarwin.github.io${import.meta.env.BASE_URL}?p=${encoded}`,
+    ) as unknown as Location
+  }
+
   it('uses the GitHub Pages base path for share links', () => {
     const url = shareUrl(
       {
@@ -77,5 +96,34 @@ describe('shared routes', () => {
     valid.searchParams.set('p', btoa(JSON.stringify(decoded)))
 
     expect(parseSharedGameRoute(valid as unknown as Location)).toBeNull()
+  })
+
+  it('rejects oversized or non-URL-safe seeds from shared payloads', () => {
+    const basePayload = {
+      v: 3,
+      difficulty: 'easy',
+      audience: 'children',
+      generatorVersion: GENERATOR_VERSION,
+    }
+
+    expect(
+      parseSharedGameRoute(encodedLocation({ ...basePayload, seed: 'jardí-🌱' })),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(encodedLocation({ ...basePayload, seed: 'x'.repeat(129) })),
+    ).toBeNull()
+  })
+
+  it('refuses to create a share URL from an unsafe internal seed', () => {
+    expect(() =>
+      shareUrl(
+        {
+          difficulty: 'easy',
+          seed: seed('unsafe seed'),
+          generatorVersion: GENERATOR_VERSION,
+        },
+        'children',
+      ),
+    ).toThrow(/unsafe seed/u)
   })
 })

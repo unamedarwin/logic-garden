@@ -671,6 +671,14 @@ summary:focus-visible {
   bottom: 8px;
   left: 8px;
 }
+.location-cell__drop-preview {
+  position: absolute;
+  z-index: 6;
+  inset: 10%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
 .location-cell__remove {
   position: absolute;
   z-index: 3;
@@ -711,8 +719,30 @@ summary:focus-visible {
   color: #fff;
 }
 .character-token--dragging {
-  opacity: 0.72;
-  transform: rotate(-3deg);
+  opacity: 0.28;
+}
+.character-token--preview {
+  pointer-events: none;
+}
+.character-token--drag-overlay {
+  width: clamp(104px, 28vw, 156px);
+  min-height: 52px;
+  border-style: solid;
+  background: var(--sun);
+  box-shadow: 5px 7px 0 rgba(18, 32, 38, 0.42);
+  transform: rotate(-2deg);
+}
+.character-token--drop-target {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  justify-content: center;
+  border: 2px dashed currentColor;
+  padding: 0;
+  background: color-mix(in srgb, var(--sun) 82%, transparent);
+  box-shadow: none;
+  font-size: 0;
+  opacity: 0.88;
 }
 .character-token__emoji {
   display: grid;
@@ -1624,9 +1654,59 @@ summary:focus-visible {
 }
 .game-board-scroll {
   width: 100%;
-  overflow-x: auto;
+  overflow: hidden;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
+}
+.game-board-scroll--zoomed {
+  max-height: min(76dvh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding: 10px;
+}
+.game-board-scroll--zoomed .game-board {
+  margin-inline: 0;
+}
+.board-view-controls {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.board-view-controls button {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--ink) 55%, transparent);
+  border-radius: 999px;
+  padding: 7px 11px;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  color: var(--ink);
+  font-weight: 850;
+}
+.board-view-controls button[aria-pressed='true'] {
+  border-width: 2px;
+  background: var(--ink);
+  color: var(--paper);
+}
+.board-view-controls button:disabled {
+  opacity: 0.42;
+}
+.board-view-controls svg {
+  width: 18px;
+  height: 18px;
+}
+.board-view-controls__value {
+  min-width: 48px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  text-align: center;
 }
 .logic-grid-artwork {
   position: absolute;
@@ -2226,6 +2306,19 @@ summary:focus-visible {
   background: rgba(255, 255, 255, 0.22);
   box-shadow: inset 0 0 0 2px rgba(49, 75, 64, 0.82);
 }
+.game-board--logic-grid.game-board--dragging .location-cell--placeable .location-cell__target {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 252, 245, 0.46);
+}
+.game-board--logic-grid .location-cell--over {
+  background: transparent;
+  transform: none;
+}
+.game-board--logic-grid .location-cell--over .location-cell__target {
+  outline: 3px solid #fff9eb;
+  outline-offset: -3px;
+  background: rgba(255, 255, 255, 0.24);
+}
 .game-board--logic-grid .location-cell--blocked .location-cell__target {
   cursor: not-allowed;
 }
@@ -2304,11 +2397,8 @@ summary:focus-visible {
   .game-screen {
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
-  .game-screen .game-board-scroll {
-    max-height: min(48dvh, 405px);
-    overflow: auto;
-    overscroll-behavior: contain;
-    scroll-padding: 10px;
+  .game-screen .game-board-scroll--zoomed {
+    max-height: min(62dvh, 530px);
   }
   .game-screen .character-clue-rail {
     margin-top: 8px;
@@ -2357,15 +2447,8 @@ summary:focus-visible {
   .grid-object-icons {
     inset: 6px;
   }
-  .game-board-scroll .game-board[data-grid-size='9'] {
-    width: 486px;
-    max-width: none;
-    margin-inline: 0;
-  }
-  .game-board-scroll .game-board[data-grid-size='16'] {
-    width: 720px;
-    max-width: none;
-    margin-inline: 0;
+  .board-view-controls {
+    justify-content: space-between;
   }
   .game-board--logic-grid .location-cell,
   .game-screen .game-board--logic-grid .location-cell,
