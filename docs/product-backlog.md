@@ -14,16 +14,14 @@
 - Regenerate and grade every advanced template with non-overlapping difficulty bands based on that
   trace, while keeping `6 x 6`, `9 x 9`, and `16 x 16` available at every difficulty.
 
-## Advanced three-dimension puzzles
+## Advanced three-dimension puzzles: published foundation
 
-- Model the optional advanced mode as three independent assignment dimensions, such as person,
-  place, and carried object. Dimension lengths may differ, for example `3 x 2 x 4`.
-- Extend constraints, partial evaluation, template tuples, and the solver before designing the
-  renderer. Every themed puzzle must still be checked with a two-solution limit after materializing
-  names, rooms, and objects.
-- Prototype accessible layer or slice navigation that keeps the semantic controls usable without
-  relying on a perspective-only 3D canvas. Keep this mode out of the published difficulty picker
-  until mobile interaction and clue wording pass the same usability checks as the 2D mode.
+- The first model is a `5 x 5 x 3` building with three accessible floor slices, eight semantic
+  home anchors, five residents, and crossing on horizontal, vertical, and height axes.
+- The answer-free catalog reserves 50 hard building templates, split between teen and adult.
+  Runtime materialization is still checked with a two-solution limit.
+- Keep expanding building-specific social clue combinations and visual furnishing only after the
+  published mobile interaction checks remain stable. See `docs/building-system.md`.
 
 ## Catalog verification
 

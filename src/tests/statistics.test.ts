@@ -45,6 +45,7 @@ describe('local completion statistics', () => {
       theme: 'music-studio',
       audience: 'teens',
       difficulty: 'hard',
+      puzzleVariant: 'spatial',
       generatorVersion: GENERATOR_VERSION,
       elapsedSeconds: 90,
       moves: 12,

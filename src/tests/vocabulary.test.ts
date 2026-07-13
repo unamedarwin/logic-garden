@@ -24,7 +24,7 @@ describe('local clue templates', () => {
       type: 'has-item',
       phraseVariant: 0,
       characterId: characterIds.a,
-      itemId: createPuzzle().characters[0]!.itemId,
+      itemId: createPuzzle().characters[0]!.itemId!,
     }
     const puzzle = createPuzzle([clue])
 
@@ -33,5 +33,21 @@ describe('local clue templates', () => {
       emoji: '🌼',
       label: 'flor',
     })
+  })
+
+  it('renders corner clues without exposing grid coordinates', () => {
+    const clue: Clue = {
+      id: 'corner',
+      type: 'in-corner',
+      phraseVariant: 0,
+      characterId: characterIds.a,
+    }
+    const puzzle = createPuzzle([clue])
+
+    for (const locale of ['ca', 'es', 'en'] as const) {
+      const sentence = renderClue(puzzle, clue, locale)
+      expect(sentence).toContain('Aina')
+      expect(sentence).not.toMatch(/\d+[.,:]\d+/u)
+    }
   })
 })

@@ -6,6 +6,7 @@ import {
   type Audience,
   type ChallengeMetadata,
   type Difficulty,
+  type PuzzleVariant,
   type Seed,
 } from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
@@ -21,28 +22,33 @@ const isDifficulty = (value: string | null): value is Difficulty =>
 const isSharedPayload = (
   value: unknown,
 ): value is {
-  readonly v: 2 | 3
+  readonly v: 2 | 3 | 4
   readonly difficulty: Difficulty
   readonly seed: string
   readonly audience: Audience
   readonly generatorVersion: number
+  readonly variant?: PuzzleVariant
   readonly benchmarkSeconds?: number
 } => {
   if (!value || typeof value !== 'object') return false
   const payload = value as Record<string, unknown>
   return (
-    (payload.v === 2 || payload.v === 3) &&
+    (payload.v === 2 || payload.v === 3 || payload.v === 4) &&
     isChallengeMetadata(payload) &&
-    payload.generatorVersion === GENERATOR_VERSION
+    payload.generatorVersion === GENERATOR_VERSION &&
+    (payload.v === 4
+      ? payload.variant === 'spatial' || payload.variant === 'cube'
+      : payload.variant === undefined)
   )
 }
 
 const encodePayload = (payload: {
-  readonly v: 3
+  readonly v: 4
   readonly difficulty: Difficulty
   readonly seed: Seed
   readonly audience: Audience
   readonly generatorVersion: number
+  readonly variant: PuzzleVariant
   readonly benchmarkSeconds?: number
 }) =>
   btoa(JSON.stringify(payload)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '')
@@ -68,6 +74,7 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
       seed: seed(decoded.seed),
       audience: decoded.audience,
       generatorVersion: decoded.generatorVersion,
+      variant: decoded.variant === 'cube' ? 'cube' : 'spatial',
       benchmarkSeconds: decoded.benchmarkSeconds,
     }
   }
@@ -95,6 +102,7 @@ export const shareUrl = (
     readonly difficulty: Difficulty
     readonly seed: Seed
     readonly generatorVersion: number
+    readonly variant?: PuzzleVariant
   },
   audience: Audience,
   benchmarkSeconds?: number,
@@ -102,15 +110,19 @@ export const shareUrl = (
   if (!isShareableSeed(puzzle.seed)) {
     throw new Error('Cannot share a puzzle with an unsafe seed')
   }
+  if (puzzle.variant === 'cube' && (audience === 'children' || puzzle.difficulty !== 'hard')) {
+    throw new Error('Cannot share an invalid 3D challenge')
+  }
   const url = new URL(import.meta.env.BASE_URL, window.location.origin)
   url.searchParams.set(
     'p',
     encodePayload({
-      v: 3,
+      v: 4,
       difficulty: puzzle.difficulty,
       seed: puzzle.seed,
       audience,
       generatorVersion: puzzle.generatorVersion,
+      variant: puzzle.variant === 'cube' ? 'cube' : 'spatial',
       ...(isBenchmarkSeconds(benchmarkSeconds) ? { benchmarkSeconds } : {}),
     }),
   )

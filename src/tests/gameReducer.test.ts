@@ -2,8 +2,44 @@ import { describe, expect, it } from 'vitest'
 import { createGameState, gameReducer } from '../game/gameReducer'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { solve } from '../solver/solver'
+import { shareCubeAxisLine } from '../domain/constraints'
 
 describe('game reducer', () => {
+  it('rejects occupied horizontal, vertical, and height lines in the building', () => {
+    const puzzle = generatePuzzle('hard', 'cube-reducer', 'adults', 'cube')
+    const firstCharacter = puzzle.characters[0]!
+    const secondCharacter = puzzle.characters[1]!
+    const firstPosition = puzzle.positions.find(
+      (position) =>
+        !position.blocked &&
+        puzzle.positions.some(
+          (candidate) =>
+            !candidate.blocked &&
+            candidate.id !== position.id &&
+            shareCubeAxisLine(candidate, position),
+        ),
+    )!
+    const conflictingPlace = puzzle.positions.find(
+      (position) =>
+        !position.blocked &&
+        position.id !== firstPosition.id &&
+        shareCubeAxisLine(position, firstPosition),
+    )!
+    let state = createGameState(puzzle)
+    state = gameReducer(state, {
+      type: 'move-character',
+      characterId: firstCharacter.id,
+      positionId: firstPosition.id,
+    })
+    const rejected = gameReducer(state, {
+      type: 'move-character',
+      characterId: secondCharacter.id,
+      positionId: conflictingPlace.id,
+    })
+
+    expect(rejected).toBe(state)
+  })
+
   it('moves characters with undo, redo, reset, and helpful incomplete feedback', () => {
     const puzzle = generatePuzzle('easy', 'reducer')
     const character = puzzle.characters[0]!

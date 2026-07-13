@@ -370,6 +370,11 @@ export const localizeThemePositionLabel = (
   sourceLabel: string,
 ): string => {
   const match = /^(.*?)(\s·\s\d+(?:\.\d+)?)$/u.exec(sourceLabel)
-  if (!match) return localizeThemeLabel(locale, themeId, sourceLabel)
+  if (!match) {
+    const cubeParts = sourceLabel.split(' · ')
+    return cubeParts.length === 2
+      ? cubeParts.map((part) => localizeThemeLabel(locale, themeId, part)).join(' · ')
+      : localizeThemeLabel(locale, themeId, sourceLabel)
+  }
   return `${localizeThemeLabel(locale, themeId, match[1])}${match[2]}`
 }

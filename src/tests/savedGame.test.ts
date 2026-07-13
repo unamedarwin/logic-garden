@@ -1,7 +1,6 @@
 import { get, set } from 'idb-keyval'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGameState } from '../game/gameReducer'
-import { seed } from '../domain/types'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { GENERATOR_VERSION } from '../generator/version'
 import { loadSavedGame, saveGame } from '../storage/savedGame'
@@ -37,7 +36,7 @@ describe('saved game compatibility', () => {
 
   it('restores and stores only the current generator version', async () => {
     vi.mocked(get).mockResolvedValue({
-      schemaVersion: 3,
+      schemaVersion: 4,
       generatorVersion: GENERATOR_VERSION,
       state,
     })
@@ -45,7 +44,7 @@ describe('saved game compatibility', () => {
 
     const challenge = {
       difficulty: 'easy' as const,
-      seed: seed('saved-challenge'),
+      seed: state.puzzle.seed,
       audience: 'children' as const,
       generatorVersion: GENERATOR_VERSION,
       benchmarkSeconds: 95,
@@ -54,7 +53,7 @@ describe('saved game compatibility', () => {
     expect(set).toHaveBeenCalledWith(
       'logic-garden:saved-game:v1',
       expect.objectContaining({
-        schemaVersion: 3,
+        schemaVersion: 4,
         generatorVersion: GENERATOR_VERSION,
         challenge,
       }),
@@ -64,13 +63,13 @@ describe('saved game compatibility', () => {
   it('restores a current challenge benchmark with the in-progress game', async () => {
     const challenge = {
       difficulty: 'easy' as const,
-      seed: seed('restored-challenge'),
+      seed: state.puzzle.seed,
       audience: 'children' as const,
       generatorVersion: GENERATOR_VERSION,
       benchmarkSeconds: 42,
     }
     vi.mocked(get).mockResolvedValue({
-      schemaVersion: 3,
+      schemaVersion: 4,
       generatorVersion: GENERATOR_VERSION,
       state,
       challenge,

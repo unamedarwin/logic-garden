@@ -46,6 +46,9 @@ export const CompletedGames = ({
               <span>{formatDate.format(game.completedAt)}</span>
             </div>
             <p>
+              {game.puzzleVariant === 'cube' && (
+                <span className="completed-games__mode">5×5×3 · </span>
+              )}
               {formatCounter(game.elapsedSeconds)} · {game.moves} {movesLabel}
             </p>
             <button type="button" onClick={() => onShare(game)}>

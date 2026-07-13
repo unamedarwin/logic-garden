@@ -1,6 +1,7 @@
 import type { CharacterId, PartialAssignment, PositionId, Puzzle } from '../domain/types'
 import { getSolverHint, validateAssignment } from './validation'
 import { solve } from '../solver/solver'
+import { shareCubeAxisLine } from '../domain/constraints'
 import type { GameFeedback } from './feedback'
 
 export interface GameSnapshot {
@@ -120,18 +121,18 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       if (!targetPosition || targetPosition.blocked || !characterExists) return state
       if (state.assignments[action.characterId] === action.positionId) return state
 
-      if (state.puzzle.boardMode === 'logic-grid') {
+      if (state.puzzle.boardMode === 'logic-grid' || state.puzzle.boardMode === 'logic-cube') {
         const conflictsWithGrid = state.puzzle.characters.some((character) => {
           if (character.id === action.characterId) return false
           const assignedPositionId = state.assignments[character.id]
           const assignedPosition = state.puzzle.positions.find(
             (position) => position.id === assignedPositionId,
           )
-          return (
-            assignedPosition !== undefined &&
-            (assignedPosition.row === targetPosition.row ||
-              assignedPosition.column === targetPosition.column)
-          )
+          if (!assignedPosition) return false
+          return state.puzzle.boardMode === 'logic-cube'
+            ? shareCubeAxisLine(assignedPosition, targetPosition)
+            : assignedPosition.row === targetPosition.row ||
+                assignedPosition.column === targetPosition.column
         })
         if (conflictsWithGrid) return state
       }
@@ -226,10 +227,15 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           )
           if (!assignedPosition) return false
           if (assignedPosition.id === targetPosition.id) return true
+          if (state.puzzle.boardMode === 'logic-grid') {
+            return (
+              assignedPosition.row === targetPosition.row ||
+              assignedPosition.column === targetPosition.column
+            )
+          }
           return (
-            state.puzzle.boardMode === 'logic-grid' &&
-            (assignedPosition.row === targetPosition.row ||
-              assignedPosition.column === targetPosition.column)
+            state.puzzle.boardMode === 'logic-cube' &&
+            shareCubeAxisLine(assignedPosition, targetPosition)
           )
         })
         .map((candidate) => candidate.id)

@@ -4,6 +4,7 @@ import { GENERATOR_VERSION, generatePuzzle } from '../generator/puzzleGenerator'
 import {
   canonicalTemplateSignature,
   materializeAdvancedPuzzleTemplate,
+  templateBucketKey,
 } from '../generator/puzzleTemplates'
 import { countSolutions } from '../solver/solver'
 
@@ -12,13 +13,7 @@ describe('validated advanced puzzle templates', () => {
     expect(advancedPuzzleTemplates).toHaveLength(1_000)
     expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(1_000)
     expect(JSON.stringify(advancedPuzzleTemplates)).not.toContain('solution')
-    expect(
-      new Set(
-        advancedPuzzleTemplates.map(
-          (template) => `${template.audience}:${template.difficulty}:${template.gridSize}`,
-        ),
-      ).size,
-    ).toBe(18)
+    expect(new Set(advancedPuzzleTemplates.map(templateBucketKey)).size).toBe(20)
     expect(
       advancedPuzzleTemplates.every(
         (template) => template.generatorVersion === GENERATOR_VERSION,
@@ -29,7 +24,7 @@ describe('validated advanced puzzle templates', () => {
   it('rechecks one themed template per profile bucket with a two-solution limit', () => {
     const samples = new Map<string, (typeof advancedPuzzleTemplates)[number]>()
     for (const template of advancedPuzzleTemplates) {
-      const key = `${template.audience}:${template.difficulty}:${template.gridSize}`
+      const key = templateBucketKey(template)
       if (!samples.has(key)) samples.set(key, template)
     }
 
@@ -52,5 +47,19 @@ describe('validated advanced puzzle templates', () => {
     expect(other.id).not.toBe(first.id)
     expect(countSolutions(first, { limit: 2 })).toBe(1)
     expect([6, 9, 16]).toContain(Math.sqrt(first.positions.length))
+  })
+
+  it('selects a solver-verified 5x5x3 structure for the advanced building', () => {
+    const first = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
+    const repeated = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
+
+    expect(first).toEqual(repeated)
+    expect(first.boardMode).toBe('logic-cube')
+    expect(first.positions).toHaveLength(75)
+    expect(first.characters).toHaveLength(5)
+    expect(new Set(first.positions.map((position) => position.layer))).toEqual(
+      new Set([0, 1, 2]),
+    )
+    expect(countSolutions(first, { limit: 2 })).toBe(1)
   })
 })

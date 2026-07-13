@@ -43,6 +43,28 @@ describe('shared routes', () => {
       audience: 'teens',
       generatorVersion: GENERATOR_VERSION,
       benchmarkSeconds: 95,
+      variant: 'spatial',
+    })
+  })
+
+  it('keeps the 5x5x3 variant in a shared challenge', () => {
+    const shared = new URL(
+      shareUrl(
+        {
+          difficulty: 'hard',
+          seed: seed('CUBE-125'),
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'cube',
+        },
+        'adults',
+      ),
+    )
+
+    expect(parseSharedGameRoute(shared as unknown as Location)).toMatchObject({
+      difficulty: 'hard',
+      seed: 'CUBE-125',
+      audience: 'adults',
+      variant: 'cube',
     })
   })
 
@@ -73,6 +95,30 @@ describe('shared routes', () => {
     ) as unknown as Location
 
     expect(parseSharedGameRoute(location)).toBeNull()
+  })
+
+  it('rejects malformed or age-incompatible 3D payloads', () => {
+    const basePayload = {
+      v: 4,
+      seed: 'BUILDING-3D',
+      difficulty: 'hard',
+      audience: 'adults',
+      generatorVersion: GENERATOR_VERSION,
+    }
+    expect(parseSharedGameRoute(encodedLocation(basePayload))).toBeNull()
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({ ...basePayload, variant: 'cube', audience: 'children' }),
+      ),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({ ...basePayload, variant: 'cube', difficulty: 'medium' }),
+      ),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(encodedLocation({ ...basePayload, v: 3, variant: 'cube' })),
+    ).toBeNull()
   })
 
   it('rejects unsafe completion marks instead of trusting URL data', () => {

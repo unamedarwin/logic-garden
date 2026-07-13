@@ -1,5 +1,5 @@
 import { get, set } from 'idb-keyval'
-import type { Audience, Difficulty, ThemeId } from '../domain/types'
+import type { Audience, Difficulty, PuzzleVariant, ThemeId } from '../domain/types'
 
 const key = 'logic-garden:statistics:v1'
 const historyLimit = 12
@@ -11,6 +11,7 @@ export interface CompletedGame {
   readonly legacyTitle?: string
   readonly audience: Audience
   readonly difficulty: Difficulty
+  readonly puzzleVariant?: PuzzleVariant
   readonly generatorVersion: number
   readonly completedAt: number
   readonly elapsedSeconds: number
@@ -23,6 +24,7 @@ export interface CompletionInput {
   readonly theme: ThemeId
   readonly audience: Audience
   readonly difficulty: Difficulty
+  readonly puzzleVariant: PuzzleVariant
   readonly generatorVersion: number
   readonly elapsedSeconds: number
   readonly moves: number

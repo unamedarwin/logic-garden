@@ -1,4 +1,11 @@
-import { areAdjacent, isStrictlyBetween, manhattanDistance } from '../domain/constraints'
+import {
+  areAdjacent,
+  isStrictlyBetween,
+  manhattanDistance,
+  isCornerPosition,
+  shareCubeAxisLine,
+} from '../domain/constraints'
+import { buildingUnitsAreNeighbors, isBuildingAbove } from '../domain/buildingPlan'
 import type { CharacterId, Clue, PartialAssignment, Position, Puzzle } from '../domain/types'
 
 const positionFor = (
@@ -12,8 +19,21 @@ const positionFor = (
     : undefined
 }
 
-const characterHasItem = (puzzle: Puzzle, characterId: CharacterId, itemId: string) =>
-  puzzle.characters.find((character) => character.id === characterId)?.itemId === itemId
+const characterHasItem = (puzzle: Puzzle, characterId: CharacterId, itemId: string) => {
+  return puzzle.characters.find((character) => character.id === characterId)?.itemId === itemId
+}
+
+const itemPlaceMatches = (
+  puzzle: Puzzle,
+  assignment: PartialAssignment,
+  itemId: string,
+  placeId: string,
+) => {
+  const assignedPosition = Object.values(assignment)
+    .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
+    .find((position) => position?.itemId === itemId)
+  return !assignedPosition || assignedPosition.placeId === placeId
+}
 
 export const isClueSatisfiedByPartialAssignment = (
   puzzle: Puzzle,
@@ -37,6 +57,13 @@ export const isClueSatisfiedByPartialAssignment = (
       const position = positionFor(puzzle, assignment, clue.characterId)
       return !position || position.placeId !== clue.placeId
     }
+    case 'in-corner':
+    case 'not-in-corner': {
+      const position = positionFor(puzzle, assignment, clue.characterId)
+      if (!position) return true
+      const corner = isCornerPosition(puzzle.positions, position)
+      return clue.type === 'in-corner' ? corner : !corner
+    }
     case 'character-next-to-obstacle': {
       const position = positionFor(puzzle, assignment, clue.characterId)
       const obstacle = puzzle.positions.find(
@@ -53,6 +80,14 @@ export const isClueSatisfiedByPartialAssignment = (
       return characterHasItem(puzzle, clue.characterId, clue.itemId)
     case 'does-not-have-item':
       return !characterHasItem(puzzle, clue.characterId, clue.itemId)
+    case 'item-in-place':
+      return itemPlaceMatches(puzzle, assignment, clue.itemId, clue.placeId)
+    case 'item-not-in-place': {
+      const assignedPosition = Object.values(assignment)
+        .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
+        .find((position) => position?.itemId === clue.itemId)
+      return !assignedPosition || assignedPosition.placeId !== clue.placeId
+    }
     case 'adjacent':
     case 'not-adjacent':
     case 'same-row':
@@ -70,9 +105,13 @@ export const isClueSatisfiedByPartialAssignment = (
 
       switch (clue.type) {
         case 'adjacent':
-          return areAdjacent(first, second)
+          return puzzle.boardMode === 'logic-cube'
+            ? buildingUnitsAreNeighbors(first, second)
+            : areAdjacent(first, second)
         case 'not-adjacent':
-          return !areAdjacent(first, second)
+          return puzzle.boardMode === 'logic-cube'
+            ? !buildingUnitsAreNeighbors(first, second)
+            : !areAdjacent(first, second)
         case 'same-row':
           return first.row === second.row
         case 'different-row':
@@ -82,26 +121,39 @@ export const isClueSatisfiedByPartialAssignment = (
         case 'different-column':
           return first.column !== second.column
         case 'left-of':
-          return puzzle.boardMode === 'logic-grid'
-            ? first.column < second.column
-            : first.row === second.row && first.column < second.column
+          return puzzle.boardMode === 'map'
+            ? first.row === second.row && first.column < second.column
+            : first.column < second.column
         case 'right-of':
-          return puzzle.boardMode === 'logic-grid'
-            ? first.column > second.column
-            : first.row === second.row && first.column > second.column
+          return puzzle.boardMode === 'map'
+            ? first.row === second.row && first.column > second.column
+            : first.column > second.column
         case 'above':
-          return puzzle.boardMode === 'logic-grid'
-            ? first.row < second.row
-            : first.column === second.column && first.row < second.row
+          return puzzle.boardMode === 'logic-cube'
+            ? isBuildingAbove(first, second)
+            : puzzle.boardMode === 'map'
+              ? first.column === second.column && first.row < second.row
+              : first.row < second.row
         case 'below':
-          return puzzle.boardMode === 'logic-grid'
-            ? first.row > second.row
-            : first.column === second.column && first.row > second.row
+          return puzzle.boardMode === 'logic-cube'
+            ? isBuildingAbove(second, first)
+            : puzzle.boardMode === 'map'
+              ? first.column === second.column && first.row > second.row
+              : first.row > second.row
         case 'distance':
           return manhattanDistance(first, second) === clue.distance
         default:
           return false
       }
+    }
+    case 'same-floor':
+    case 'different-floor': {
+      const first = positionFor(puzzle, assignment, clue.firstCharacterId)
+      const second = positionFor(puzzle, assignment, clue.secondCharacterId)
+      if (!first || !second) return true
+      return clue.type === 'same-floor'
+        ? first.layer === second.layer
+        : first.layer !== second.layer
     }
     case 'between': {
       const middle = positionFor(puzzle, assignment, clue.characterId)
@@ -122,6 +174,18 @@ export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssi
       .filter((position): position is Position => Boolean(position))
     if (new Set(occupied.map((position) => position.row)).size !== occupied.length) return false
     if (new Set(occupied.map((position) => position.column)).size !== occupied.length)
+      return false
+  }
+
+  if (puzzle.boardMode === 'logic-cube') {
+    const occupied = assignedPositions
+      .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
+      .filter((position): position is Position => Boolean(position))
+    if (
+      occupied.some((position, index) =>
+        occupied.slice(index + 1).some((other) => shareCubeAxisLine(position, other)),
+      )
+    )
       return false
   }
 

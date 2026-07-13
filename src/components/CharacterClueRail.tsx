@@ -23,9 +23,14 @@ const clueReferencesCharacter = (clue: Clue, characterId: CharacterId) => {
     case 'character-in-place':
     case 'character-not-in-place':
     case 'character-next-to-obstacle':
+    case 'in-corner':
+    case 'not-in-corner':
     case 'has-item':
     case 'does-not-have-item':
       return clue.characterId === characterId
+    case 'item-in-place':
+    case 'item-not-in-place':
+      return false
     case 'between':
       return (
         clue.characterId === characterId ||
@@ -43,6 +48,8 @@ const clueReferencesCharacter = (clue: Clue, characterId: CharacterId) => {
     case 'above':
     case 'below':
     case 'distance':
+    case 'same-floor':
+    case 'different-floor':
       return clue.firstCharacterId === characterId || clue.secondCharacterId === characterId
   }
 }

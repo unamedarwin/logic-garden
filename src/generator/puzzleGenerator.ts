@@ -4,6 +4,7 @@ import {
   type Audience,
   type Difficulty,
   type Puzzle,
+  type PuzzleVariant,
   type Seed,
 } from '../domain/types'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
@@ -26,9 +27,17 @@ const isRecoverableGenerationError = (error: unknown) =>
   error instanceof Error && error.message.startsWith('No s’ha pogut')
 
 const isNarrativeGridClue = (clue: Puzzle['clues'][number]) =>
-  ['adjacent', 'not-adjacent', 'left-of', 'right-of', 'above', 'below', 'between'].includes(
-    clue.type,
-  )
+  [
+    'adjacent',
+    'not-adjacent',
+    'left-of',
+    'right-of',
+    'above',
+    'below',
+    'between',
+    'same-floor',
+    'different-floor',
+  ].includes(clue.type)
 
 const difficultyScore = (puzzle: Puzzle) => {
   const negativeClues = puzzle.clues.filter(
@@ -38,6 +47,8 @@ const difficultyScore = (puzzle: Puzzle) => {
       clue.type === 'not-adjacent' ||
       clue.type === 'different-row' ||
       clue.type === 'different-column' ||
+      clue.type === 'different-floor' ||
+      clue.type === 'not-in-corner' ||
       clue.type === 'does-not-have-item',
   ).length
   const relationalClues = puzzle.clues.filter((clue) =>
@@ -54,6 +65,8 @@ const difficultyScore = (puzzle: Puzzle) => {
       'below',
       'distance',
       'between',
+      'same-floor',
+      'different-floor',
     ].includes(clue.type),
   ).length
   const landmarkClues = puzzle.clues.filter(
@@ -105,6 +118,16 @@ export const generatePuzzleDirect = (
         generateCandidateClues(basePuzzle, world.solution, random),
       )
       const orderedCandidates = (() => {
+        if (world.boardMode === 'logic-cube') {
+          return [
+            ...shuffledCandidates.filter((clue) => clue.type === 'same-floor'),
+            ...shuffledCandidates.filter(
+              (clue) => clue.type === 'above' || clue.type === 'below',
+            ),
+            ...shuffledCandidates.filter((clue) => clue.type === 'adjacent'),
+            ...shuffledCandidates.filter((clue) => !isNarrativeGridClue(clue)),
+          ]
+        }
         if (world.boardMode !== 'logic-grid') return shuffledCandidates
         const landmarkCandidates = shuffledCandidates.filter(
           (clue) => clue.type === 'character-next-to-obstacle',
@@ -123,11 +146,21 @@ export const generatePuzzleDirect = (
         world.boardMode === 'logic-grid'
           ? orderedCandidates.filter((clue) => clue.type === 'character-next-to-obstacle')
           : []
+      const cubeAnchors =
+        world.boardMode === 'logic-cube'
+          ? [
+              ...orderedCandidates.filter((clue) => clue.type === 'same-floor').slice(0, 1),
+              ...orderedCandidates
+                .filter((clue) => clue.type === 'above' || clue.type === 'below')
+                .slice(0, 1),
+              ...orderedCandidates.filter((clue) => clue.type === 'adjacent').slice(0, 1),
+            ]
+          : []
       // Landmark clues keep each initial domain small. Exact cells are a fallback,
       // never the main clue list, so the player still has a real deduction to make.
       const maximumExactClues = Math.max(1, basePuzzle.characters.length - 1)
       const spatialFallbacks =
-        world.boardMode === 'logic-grid'
+        world.boardMode === 'logic-grid' || world.boardMode === 'logic-cube'
           ? orderedCandidates
               .filter((clue) => clue.type === 'character-at-position')
               .slice(0, maximumExactClues)
@@ -139,8 +172,14 @@ export const generatePuzzleDirect = (
               .filter(isNarrativeGridClue)
               .slice(0, difficulty === 'easy' ? 1 : 2)
           : []
+      const cornerAnchors =
+        world.boardMode !== 'map' && random.next() < 0.4
+          ? orderedCandidates
+              .filter((clue) => clue.type === 'in-corner' || clue.type === 'not-in-corner')
+              .slice(0, 1)
+          : []
       const candidates =
-        world.boardMode === 'logic-grid'
+        world.boardMode === 'logic-grid' || world.boardMode === 'logic-cube'
           ? [
               ...orderedCandidates.filter((clue) => clue.type !== 'character-at-position'),
               ...orderedCandidates.filter((clue) => spatialFallbackIds.has(clue.id)),
@@ -149,6 +188,8 @@ export const generatePuzzleDirect = (
       const clues = selectMinimalUniqueClues(basePuzzle, candidates, [
         ...landmarkAnchors,
         ...narrativeAnchors,
+        ...cubeAnchors,
+        ...cornerAnchors,
       ])
       const candidate: Puzzle = {
         ...basePuzzle,
@@ -178,17 +219,27 @@ export const generatePuzzle = (
   difficulty: Difficulty,
   source: Seed | string,
   audience: Audience = 'children',
+  variant: PuzzleVariant = 'spatial',
 ): Puzzle => {
   if (audience === 'children') return generatePuzzleDirect(difficulty, source, audience)
 
   const puzzleSeed = seed(source)
-  const templates = advancedTemplateCandidates(difficulty, puzzleSeed, audience)
+  const templates = advancedTemplateCandidates(difficulty, puzzleSeed, audience, variant)
   for (const template of templates) {
     try {
       return materializeAdvancedPuzzleTemplate(template, puzzleSeed)
     } catch {
       // Try another structure of the same independently selected size.
     }
+  }
+
+  if (variant === 'cube') {
+    return generatePuzzleDirect('hard', source, audience, {
+      boardMode: 'logic-cube',
+      gridSize: 5,
+      depth: 3,
+      characterCount: 5,
+    })
   }
 
   const fallbackRandom = new SeededRandom(deriveSeed(puzzleSeed, 101))
@@ -216,15 +267,18 @@ const advancedTemplateCandidates = (
   difficulty: Difficulty,
   puzzleSeed: Seed,
   audience: Exclude<Audience, 'children'>,
+  variant: PuzzleVariant,
 ) => {
   const templates = advancedPuzzleTemplates.filter(
     (template) =>
       template.generatorVersion === GENERATOR_VERSION &&
       template.audience === audience &&
-      template.difficulty === difficulty,
+      template.difficulty === difficulty &&
+      template.boardMode === (variant === 'cube' ? 'logic-cube' : 'logic-grid'),
   )
   if (templates.length === 0) return []
   const selector = new SeededRandom(deriveSeed(puzzleSeed, 97))
+  if (variant === 'cube') return selector.shuffle(templates)
   const availableSizes = advancedGridSizes.filter((gridSize) =>
     templates.some((template) => template.gridSize === gridSize),
   )
@@ -237,4 +291,5 @@ export const selectAdvancedPuzzleTemplate = (
   difficulty: Difficulty,
   source: Seed | string,
   audience: Exclude<Audience, 'children'>,
-) => advancedTemplateCandidates(difficulty, seed(source), audience)[0] ?? null
+  variant: PuzzleVariant = 'spatial',
+) => advancedTemplateCandidates(difficulty, seed(source), audience, variant)[0] ?? null

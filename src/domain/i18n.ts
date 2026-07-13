@@ -39,6 +39,7 @@ type UiKey =
   | 'emptyPlace'
   | 'map'
   | 'logicGrid'
+  | 'logicCube'
   | 'board'
   | 'gameViews'
   | 'hintsUsed'
@@ -51,6 +52,7 @@ type UiKey =
   | 'adventure'
   | 'mapInstruction'
   | 'logicGridInstruction'
+  | 'logicCubeInstruction'
   | 'profileEyebrow'
   | 'profileTitle'
   | 'profileDescription'
@@ -114,6 +116,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Espai lliure',
     map: 'Mapa del puzzle',
     logicGrid: 'Graella de deducció',
+    logicCube: 'Edifici de deducció 5×5×3',
     board: 'Tauler',
     gameViews: 'Vistes del joc',
     hintsUsed: 'pistes',
@@ -127,6 +130,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Aventura',
     mapInstruction: 'Tria un amic i després un lloc del mapa.',
     logicGridInstruction: 'Tria una persona i una casella lliure.',
+    logicCubeInstruction: "Tria una persona i una llar lliure de l'edifici.",
     profileEyebrow: 'El teu racó de lògica',
     profileTitle: 'Abans de començar, crea el teu perfil.',
     profileDescription:
@@ -190,6 +194,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Espacio libre',
     map: 'Mapa del puzzle',
     logicGrid: 'Cuadrícula de deducción',
+    logicCube: 'Edificio de deducción 5×5×3',
     board: 'Tablero',
     gameViews: 'Vistas del juego',
     hintsUsed: 'pistas',
@@ -203,6 +208,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Aventura',
     mapInstruction: 'Elige un amigo y después un lugar del mapa.',
     logicGridInstruction: 'Elige una persona y una casilla libre.',
+    logicCubeInstruction: 'Elige una persona y un hogar libre del edificio.',
     profileEyebrow: 'Tu rincón de lógica',
     profileTitle: 'Antes de empezar, crea tu perfil.',
     profileDescription:
@@ -266,6 +272,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Empty place',
     map: 'Puzzle map',
     logicGrid: 'Logic grid',
+    logicCube: '5×5×3 deduction building',
     board: 'Board',
     gameViews: 'Game views',
     hintsUsed: 'hints',
@@ -279,6 +286,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Adventure',
     mapInstruction: 'Choose a friend, then choose a place on the map.',
     logicGridInstruction: 'Choose a person and an empty space.',
+    logicCubeInstruction: 'Choose a person and an available home in the building.',
     profileEyebrow: 'Your logic corner',
     profileTitle: 'Create your profile before you start.',
     profileDescription:

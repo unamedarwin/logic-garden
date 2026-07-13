@@ -1,5 +1,11 @@
 import { themesForAudience, type Theme, type ThemeItem } from '../domain/themes'
 import {
+  buildingCellAt,
+  buildingPlaceIndex,
+  buildingUnitsAreNeighbors,
+} from '../domain/buildingPlan'
+import { shareCubeAxisLine } from '../domain/constraints'
+import {
   type Audience,
   characterId,
   itemId,
@@ -27,7 +33,7 @@ import { SeededRandom } from './seededRandom'
 
 export interface GeneratedWorld {
   readonly theme: Theme
-  readonly boardMode: 'map' | 'logic-grid'
+  readonly boardMode: 'map' | 'logic-grid' | 'logic-cube'
   readonly spatialPlanId?: SpatialPlanId
   readonly characters: readonly Character[]
   readonly items: readonly Item[]
@@ -35,11 +41,21 @@ export interface GeneratedWorld {
   readonly solution: Assignment
 }
 
-export interface AdvancedWorldStructure {
+export interface SpatialWorldStructure {
+  readonly boardMode?: 'logic-grid'
   readonly gridSize: 6 | 9 | 16
   readonly characterCount: number
   readonly spatialPlanId: SpatialPlanId
 }
+
+export interface CubeWorldStructure {
+  readonly boardMode: 'logic-cube'
+  readonly gridSize: 5
+  readonly depth: 3
+  readonly characterCount: 5
+}
+
+export type AdvancedWorldStructure = SpatialWorldStructure | CubeWorldStructure
 
 const selectNonConflictingPositions = (
   candidates: readonly Position[],
@@ -73,6 +89,40 @@ const selectNonConflictingPositions = (
     if (matchedByColumn.size >= count) return [...matchedByColumn.values()].slice(0, count)
   }
   return []
+}
+
+const selectBuildingPositions = (
+  positions: readonly Position[],
+  random: SeededRandom,
+): readonly Position[] => {
+  const homes = positions.filter((position) => !position.blocked)
+  const communities: Position[][] = []
+  const visit = (start: number, selected: readonly Position[]) => {
+    if (selected.length === 5) {
+      const hasVerticalRelation = selected.some((first, index) =>
+        selected
+          .slice(index + 1)
+          .some(
+            (second) =>
+              first.buildingUnitId === second.buildingUnitId && first.layer !== second.layer,
+          ),
+      )
+      const hasNeighborRelation = selected.some((first, index) =>
+        selected.slice(index + 1).some((second) => buildingUnitsAreNeighbors(first, second)),
+      )
+      if (hasVerticalRelation && hasNeighborRelation) communities.push([...selected])
+      return
+    }
+    for (let index = start; index < homes.length; index += 1) {
+      const candidate = homes[index]!
+      if (selected.some((position) => shareCubeAxisLine(position, candidate))) continue
+      visit(index + 1, [...selected, candidate])
+    }
+  }
+  visit(0, [])
+  if (communities.length > 0) return random.shuffle(random.pick(communities))
+
+  throw new Error('No s’ha pogut construir una comunitat de veïns coherent.')
 }
 
 const waterObstacleCount = (size: number) => {
@@ -187,19 +237,26 @@ export const generateWorld = (
   structure?: AdvancedWorldStructure,
 ): GeneratedWorld => {
   const config = difficultyConfigs[difficulty]
-  const boardMode = audience === 'children' ? 'map' : 'logic-grid'
+  const boardMode =
+    audience === 'children'
+      ? 'map'
+      : structure?.boardMode === 'logic-cube'
+        ? 'logic-cube'
+        : 'logic-grid'
   const spatialAudience = audience === 'children' ? 'teens' : audience
   const characterCount =
-    boardMode === 'logic-grid'
-      ? (structure?.characterCount ?? logicGridCharacterCounts[difficulty])
-      : config.characterCount
+    boardMode === 'map'
+      ? config.characterCount
+      : (structure?.characterCount ?? logicGridCharacterCounts[difficulty])
   const invertedMap =
     boardMode === 'map' && config.rows !== config.columns && random.next() < 0.5
   const mapColumns = invertedMap ? config.rows : config.columns
   const theme = random.pick(themesForAudience(audience))
   const spatialPlanId =
     boardMode === 'logic-grid'
-      ? (structure?.spatialPlanId ?? random.pick(spatialPlanIdsForAudience(spatialAudience)))
+      ? 'spatialPlanId' in (structure ?? {})
+        ? (structure as SpatialWorldStructure).spatialPlanId
+        : random.pick(spatialPlanIdsForAudience(spatialAudience))
       : undefined
   const items = random
     .shuffle(theme.items)
@@ -294,13 +351,31 @@ export const generateWorld = (
             }
           })
         })()
-      : theme.places.slice(0, characterCount).map((label, index) => ({
-          id: positionId(`position-${index}`),
-          placeId: placeId(`place-${index}`),
-          row: Math.floor(index / mapColumns),
-          column: index % mapColumns,
-          label,
-        }))
+      : boardMode === 'logic-cube'
+        ? Array.from({ length: 3 * 5 * 5 }, (_, index) => {
+            const layer = Math.floor(index / 25)
+            const row = Math.floor((index % 25) / 5)
+            const column = index % 5
+            const cell = buildingCellAt(layer, row, column)
+            return {
+              id: positionId(`position-${layer}-${row}-${column}`),
+              placeId: placeId(`place-${buildingPlaceIndex(layer, cell.unitId)}`),
+              layer,
+              row,
+              column,
+              label: `building:${cell.unitId}:${layer}`,
+              buildingUnitId: cell.unitId,
+              buildingKind: cell.kind,
+              blocked: cell.blocked,
+            }
+          })
+        : theme.places.slice(0, characterCount).map((label, index) => ({
+            id: positionId(`position-${index}`),
+            placeId: placeId(`place-${index}`),
+            row: Math.floor(index / mapColumns),
+            column: index % mapColumns,
+            label,
+          }))
   const solution =
     boardMode === 'logic-grid'
       ? (() => {
@@ -333,12 +408,22 @@ export const generateWorld = (
 
           throw new Error('No s’ha pogut construir una posició de graella.')
         })()
-      : (() => {
-          const shuffledPositionIds = random.shuffle(positions.map((position) => position.id))
-          return Object.fromEntries(
-            characters.map((character, index) => [character.id, shuffledPositionIds[index]!]),
-          ) as Assignment
-        })()
+      : boardMode === 'logic-cube'
+        ? (() => {
+            if (positions.length !== 75 || characters.length !== 5) {
+              throw new Error('No s’ha pogut construir l’edifici lògic 5×5×3.')
+            }
+            const selected = selectBuildingPositions(positions, random)
+            return Object.fromEntries(
+              characters.map((character, index) => [character.id, selected[index]!.id]),
+            ) as Assignment
+          })()
+        : (() => {
+            const shuffledPositionIds = random.shuffle(positions.map((position) => position.id))
+            return Object.fromEntries(
+              characters.map((character, index) => [character.id, shuffledPositionIds[index]!]),
+            ) as Assignment
+          })()
 
   return {
     theme: theme as Theme,

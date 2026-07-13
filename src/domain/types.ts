@@ -15,7 +15,8 @@ export const itemId = (value: string) => value as ItemId
 export const seed = (value: string) => value as Seed
 
 export type Difficulty = 'easy' | 'medium' | 'hard'
-export type BoardMode = 'map' | 'logic-grid'
+export type BoardMode = 'map' | 'logic-grid' | 'logic-cube'
+export type PuzzleVariant = 'spatial' | 'cube'
 export type Locale = 'ca' | 'es' | 'en'
 export type Audience = 'children' | 'teens' | 'adults'
 export type AvatarId = 'leaf' | 'kite' | 'music' | 'puzzle' | 'moon' | 'ball' | 'paint' | 'book'
@@ -42,6 +43,7 @@ export interface ChallengeMetadata {
   readonly seed: Seed
   readonly audience: Audience
   readonly generatorVersion: number
+  readonly variant?: PuzzleVariant
   readonly benchmarkSeconds?: number
 }
 
@@ -61,6 +63,11 @@ export const isChallengeMetadata = (value: unknown): value is ChallengeMetadata 
       candidate.audience === 'adults') &&
     Number.isSafeInteger(candidate.generatorVersion) &&
     Number(candidate.generatorVersion) > 0 &&
+    (candidate.variant === undefined ||
+      candidate.variant === 'spatial' ||
+      candidate.variant === 'cube') &&
+    (candidate.variant !== 'cube' ||
+      (candidate.difficulty === 'hard' && candidate.audience !== 'children')) &&
     (candidate.benchmarkSeconds === undefined ||
       (Number.isSafeInteger(candidate.benchmarkSeconds) &&
         Number(candidate.benchmarkSeconds) >= 0 &&
@@ -73,7 +80,8 @@ export interface Character {
   readonly name: string
   readonly emoji: string
   readonly description: string
-  readonly itemId: ItemId
+  /** Two-dimensional games can keep a fixed carried item. Cube games infer it. */
+  readonly itemId?: ItemId
 }
 
 export interface Item {
@@ -88,6 +96,14 @@ export interface Position {
   readonly row: number
   readonly column: number
   readonly label: string
+  /** Cube layer owned by one character; absent on two-dimensional boards. */
+  readonly layer?: number
+  readonly layerCharacterId?: CharacterId
+  /** The object represented by this row in a cube layer. */
+  readonly itemId?: ItemId
+  /** Semantic unit shared by the cells of one home, shop, or circulation area. */
+  readonly buildingUnitId?: string
+  readonly buildingKind?: 'home' | 'shop' | 'landing' | 'stairs' | 'entrance'
   /** A visible piece of scenery occupies this grid position. */
   readonly blocked?: boolean
   readonly obstacleEmoji?: string
@@ -121,6 +137,10 @@ export type Clue =
       readonly placeId: PlaceId
     })
   | (ClueBase & {
+      readonly type: 'in-corner' | 'not-in-corner'
+      readonly characterId: CharacterId
+    })
+  | (ClueBase & {
       readonly type: 'character-next-to-obstacle'
       readonly characterId: CharacterId
       readonly obstaclePositionId: PositionId
@@ -133,6 +153,11 @@ export type Clue =
         | 'different-row'
         | 'same-column'
         | 'different-column'
+      readonly firstCharacterId: CharacterId
+      readonly secondCharacterId: CharacterId
+    })
+  | (ClueBase & {
+      readonly type: 'same-floor' | 'different-floor'
       readonly firstCharacterId: CharacterId
       readonly secondCharacterId: CharacterId
     })
@@ -157,6 +182,11 @@ export type Clue =
       readonly type: 'has-item' | 'does-not-have-item'
       readonly characterId: CharacterId
       readonly itemId: ItemId
+    })
+  | (ClueBase & {
+      readonly type: 'item-in-place' | 'item-not-in-place'
+      readonly itemId: ItemId
+      readonly placeId: PlaceId
     })
 
 export type PartialAssignment = Readonly<Partial<Record<CharacterId, PositionId>>>

@@ -32,6 +32,9 @@ size so uneven bucket counts cannot couple board size back to difficulty.
 Board size and difficulty are independent. Grade advanced difficulty through the number of
 candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
 to each difficulty.
+Keep the structural catalog split at 950 spatial entries and 50 hard `5 x 5 x 3` building entries,
+with 25 building entries for teens and 25 for adults. The building subset must use generator
+version 13 or later and remain answer-free under the same canonical-identity rules.
 
 ## TypeScript
 
@@ -139,6 +142,19 @@ Every spatial position must inherit its `placeId` from the room polygon that con
 Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
+The advanced building board contains three `5 x 5` floor slices, 75 visual cells, eight playable
+home anchors, and five residents. Shops, entrance cells, landings, stairs, and non-anchor home
+cells are blocked scenery in every layer of the architecture. Placed residents conflict across the
+complete row and column of their current floor. A height conflict at the same row and column reaches
+only the immediately adjacent floor above and below, so adding more floors does not create an
+unbounded full-height exclusion.
+Render each floor as semantic DOM controls and use the other-floor miniatures only as context.
+Corner clues are secondary variety and must retain the same positive social wording rule as other
+advanced spatial clues.
+Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
+must not consume either cell, alter solver geometry, obscure a target, or receive pointer events.
+Home and shop doors should face a landing, stair, or entrance route where the floor plan allows it.
+
 Profile names and avatars are local-only. Shared URLs may contain a version, audience,
 difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
 solution or any profile data. A received challenge must explain the benchmark before play and
@@ -168,3 +184,7 @@ mode, broken zoom/pan restoration, and touch targets obscured by artwork before 
 During drag QA, compare the pixel center of every fixed object and placed avatar with its semantic
 cell, and verify that every valid destination has the same visible overlay while invalid and
 blocked cells remain clearly distinct.
+Also inspect every floor of the `5 x 5 x 3` building at 390x844. Verify centered wall doors, floor
+switching, 25 cells per slice, exact avatar/drop-preview centers, and crossed destinations on the
+horizontal and vertical axes plus the neighboring-floor height axis, without unintended fit-mode
+panning. A non-adjacent floor at the same row and column must remain available.

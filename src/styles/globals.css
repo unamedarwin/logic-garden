@@ -1266,7 +1266,12 @@ summary:focus-visible {
   .game-screen .map-area__heading {
     margin: 0 2px 4px;
   }
+  .game-screen .map-area__heading > div {
+    width: 100%;
+    min-width: 0;
+  }
   .game-screen .map-area__heading h2 {
+    max-width: 100%;
     margin: 0;
     overflow: hidden;
     font-family: 'Trebuchet MS', 'Avenir Next', sans-serif;
@@ -2253,8 +2258,31 @@ summary:focus-visible {
 }
 .grid-object-icons__zone,
 .grid-object-icons__label,
-.grid-object-icons__obstacle {
+.grid-object-icons__obstacle,
+.grid-object-icons__door-marker {
   position: absolute;
+}
+.grid-object-icons__door-marker {
+  z-index: 4;
+  display: grid;
+  width: clamp(16px, calc(58cqi / var(--grid-columns)), 28px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(33, 45, 48, 0.45);
+  border-radius: 4px 4px 1px 1px;
+  background: #f8f0df;
+  color: #3d4c49;
+  box-shadow: 0 1px 3px rgba(19, 28, 31, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.grid-object-icons__door-marker--horizontal {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.grid-object-icons__door-marker svg {
+  width: 78%;
+  height: 78%;
+  stroke-width: 1.8;
 }
 .grid-object-icons__zone {
   position: static;
@@ -2577,5 +2605,485 @@ summary:focus-visible {
     color: CanvasText;
     filter: none;
     forced-color-adjust: auto;
+  }
+}
+
+/* The 5x5x3 building keeps all three floors visible while one floor stays interactive. */
+.logic-cube {
+  width: min(100%, 700px);
+  margin-inline: auto;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 22px;
+  padding: 12px;
+  background:
+    radial-gradient(circle at 86% 8%, rgba(242, 82, 135, 0.18), transparent 25%),
+    linear-gradient(145deg, #19162d, #27243d);
+  color: #fff9eb;
+  box-shadow: 0 14px 28px rgba(19, 18, 37, 0.24);
+  container-type: inline-size;
+}
+.completed-games__mode {
+  font-weight: 900;
+}
+.logic-cube__heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 9px;
+}
+.logic-cube__heading > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.logic-cube__heading strong {
+  font-size: 0.9rem;
+}
+.logic-cube__heading span {
+  color: #bbb5d0;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.logic-cube__mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: #f05287;
+}
+.logic-cube__mark svg {
+  width: 20px;
+}
+.logic-cube__layers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 10px;
+  perspective: 600px;
+}
+.logic-cube__layer {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 96px;
+  place-items: center;
+  gap: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px 10px 6px 6px;
+  padding: 4px 2px;
+  background: #302c49;
+  color: #fff9eb;
+  transform: rotateX(-3deg);
+}
+.logic-cube__layer--active {
+  border-color: #ffe06e;
+  background: #fff9eb;
+  color: #17152c;
+  box-shadow: 0 0 0 2px #f05287;
+  transform: translateY(-2px);
+}
+.logic-cube__layer .scene-icon {
+  width: 24px;
+  height: 24px;
+}
+.logic-cube__layer span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(0.55rem, 2.1cqi, 0.72rem);
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logic-cube__layer-preview {
+  display: grid;
+  width: min(64px, 88%);
+  aspect-ratio: 1;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 1px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 2px;
+  opacity: 0.78;
+}
+.logic-cube__layer-preview i {
+  position: relative;
+  display: block;
+  min-width: 0;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.16;
+}
+.logic-cube__layer-preview i[data-kind='home'] {
+  background: #e2b678;
+}
+.logic-cube__layer-preview i[data-kind='shop'] {
+  background: #66c8bd;
+}
+.logic-cube__layer-preview i[data-kind='landing'],
+.logic-cube__layer-preview i[data-kind='entrance'] {
+  background: #ddd6ca;
+  opacity: 0.48;
+}
+.logic-cube__layer-preview i[data-kind='stairs'] {
+  background: #17152c;
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: 1;
+}
+.logic-cube__layer-preview .logic-cube__layer-preview-cell--crossed {
+  background:
+    linear-gradient(45deg, transparent 38%, #f05287 40% 60%, transparent 62%),
+    linear-gradient(-45deg, transparent 38%, #f05287 40% 60%, transparent 62%);
+  opacity: 1;
+}
+.logic-cube__layer-preview .logic-cube__layer-preview-cell--placed {
+  background: #ffe06e;
+  box-shadow: 0 0 0 1px #17152c;
+  opacity: 1;
+}
+.logic-cube__layer > svg {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  padding: 1px;
+  background: #2bc9b8;
+  color: #17152c;
+}
+.logic-cube__matrix {
+  display: block;
+}
+.logic-cube__floor-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin: 0 0 7px 2px;
+  color: #fff9eb;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+.logic-cube__floor-title svg {
+  width: 17px;
+  height: 17px;
+}
+.logic-cube__corner {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 11px 0 0;
+  background: #302c49;
+}
+.logic-cube__corner .scene-icon {
+  width: 30px;
+  height: 30px;
+}
+.logic-cube__places {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-left: 0;
+  border-radius: 0 11px 0 0;
+  background: #302c49;
+}
+.logic-cube__places span {
+  display: -webkit-box;
+  overflow: hidden;
+  align-self: center;
+  padding: 3px 2px;
+  color: #fff9eb;
+  font-size: clamp(0.48rem, 1.8cqi, 0.68rem);
+  font-weight: 900;
+  line-height: 1.05;
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.logic-cube__items {
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-top: 0;
+  border-radius: 0 0 0 11px;
+  background: #302c49;
+}
+.logic-cube__items span {
+  display: grid;
+  min-height: 0;
+  place-items: center;
+}
+.logic-cube__items .scene-icon {
+  width: min(68%, 34px);
+  height: min(68%, 34px);
+}
+.logic-cube__surface {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid #fff9eb;
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, rgba(43, 201, 184, 0.18), rgba(240, 82, 135, 0.2)), #211e36;
+  box-shadow:
+    6px 6px 0 rgba(43, 201, 184, 0.28),
+    11px 11px 0 rgba(240, 82, 135, 0.14);
+}
+.logic-cube__surface .game-board__cells {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  height: 100%;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 0;
+}
+.logic-cube__doors {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+}
+.logic-cube__door {
+  position: absolute;
+  display: grid;
+  width: clamp(18px, 7cqi, 32px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(23, 21, 44, 0.55);
+  border-radius: 5px 5px 1px 1px;
+  background: #fff8e9;
+  color: #332c48;
+  box-shadow: 0 2px 5px rgba(20, 18, 37, 0.22);
+  transform: translate(-50%, -50%);
+}
+.logic-cube__door--horizontal {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.logic-cube__door svg {
+  width: 78%;
+  height: 78%;
+  stroke-width: 1.8;
+}
+.logic-cube__cell,
+.logic-cube .location-cell {
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0;
+  background-color: rgba(255, 255, 255, 0.025);
+}
+.logic-cube__cell--home {
+  background:
+    linear-gradient(90deg, rgba(91, 58, 36, 0.12) 1px, transparent 1px) 0 0 / 16px 100%,
+    repeating-linear-gradient(0deg, #dcae75 0 7px, #e8bf88 7px 14px);
+}
+.logic-cube__cell--shop {
+  background:
+    linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.16) 25%,
+        transparent 25% 75%,
+        rgba(255, 255, 255, 0.16) 75%
+      )
+      0 0 / 18px 18px,
+    #55afa9;
+}
+.logic-cube__cell--landing {
+  background:
+    radial-gradient(circle, rgba(55, 60, 70, 0.24) 1px, transparent 1.5px) 0 0 / 11px 11px,
+    #d8d2c5;
+}
+.logic-cube__cell--stairs {
+  background: repeating-linear-gradient(0deg, #302c49 0 9px, #a9a1b9 9px 11px);
+}
+.logic-cube__cell--entrance {
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(60, 78, 73, 0.22) 48% 52%, transparent 52%),
+    #b8c8c1;
+}
+.logic-cube .location-cell__target {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+.logic-cube .location-cell__target:disabled {
+  cursor: not-allowed;
+}
+.logic-cube__zone-label {
+  position: absolute;
+  z-index: 2;
+  top: 4px;
+  left: 4px;
+  display: flex;
+  width: max-content;
+  max-width: calc(200% - 8px);
+  align-items: center;
+  gap: 3px;
+  border: 1px solid rgba(23, 21, 44, 0.32);
+  border-radius: 5px;
+  padding: 2px 4px;
+  background: rgba(255, 250, 240, 0.88);
+  color: #242039;
+  font-size: clamp(0.46rem, 1.75cqi, 0.66rem);
+  font-weight: 900;
+  line-height: 1.05;
+  pointer-events: none;
+}
+.logic-cube__zone-label svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+}
+.logic-cube .location-cell--placeable .location-cell__target:hover,
+.logic-cube .location-cell--placeable .location-cell__target:focus-visible {
+  outline: 3px solid #ffe06e;
+  outline-offset: -3px;
+  background: rgba(255, 224, 110, 0.2);
+}
+.logic-cube .location-cell--crossed::before,
+.logic-cube .location-cell--crossed::after {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  height: 2px;
+  border-radius: 99px;
+  background: #f05287;
+  content: '';
+  opacity: 0.72;
+  pointer-events: none;
+}
+.logic-cube .location-cell--crossed::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.logic-cube .location-cell--crossed::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+.logic-cube .location-cell__token {
+  z-index: 5;
+  inset: 12%;
+  display: grid;
+  height: auto;
+  place-items: center;
+}
+.logic-cube .character-token {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  justify-content: center;
+  border: 1px solid #17152c;
+  padding: 0;
+  background: #fff9eb;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+.logic-cube .character-token__name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+.logic-cube .character-token__emoji {
+  font-size: min(1.35rem, calc(48cqi / 5));
+}
+.audience--adults .logic-cube {
+  border-color: #596761;
+  background:
+    radial-gradient(circle at 88% 5%, rgba(191, 154, 87, 0.2), transparent 28%),
+    linear-gradient(145deg, #f4eddf, #dce4dc);
+  color: #26352f;
+}
+.audience--adults .logic-cube__heading span {
+  color: #65726b;
+}
+.audience--adults .logic-cube__mark {
+  border-color: #435d59;
+  background: #cda45d;
+  color: #26352f;
+}
+.audience--adults .logic-cube__layer,
+.audience--adults .logic-cube__corner,
+.audience--adults .logic-cube__places,
+.audience--adults .logic-cube__items {
+  border-color: rgba(53, 73, 66, 0.28);
+  background: #f9f4e9;
+  color: #26352f;
+}
+.audience--adults .logic-cube__floor-title {
+  color: #26352f;
+}
+.audience--adults .logic-cube__places span {
+  color: #26352f;
+}
+.audience--adults .logic-cube__layer--active {
+  border-color: #435d59;
+  background: #435d59;
+  color: #fffaf2;
+  box-shadow: 0 0 0 2px #cda45d;
+}
+.audience--adults .logic-cube__surface {
+  border-color: #596761;
+  background:
+    linear-gradient(135deg, rgba(198, 215, 198, 0.45), rgba(227, 207, 171, 0.48)), #f8f2e7;
+  box-shadow:
+    6px 6px 0 rgba(67, 93, 89, 0.24),
+    11px 11px 0 rgba(205, 164, 93, 0.15);
+}
+.audience--adults .logic-cube__cell,
+.audience--adults .logic-cube .location-cell {
+  border-color: rgba(67, 93, 89, 0.28);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 540px) {
+  .logic-cube {
+    width: min(100%, 250px);
+    border-radius: 15px;
+    padding: 7px;
+  }
+  .logic-cube__heading {
+    margin-bottom: 4px;
+  }
+  .logic-cube__heading strong {
+    font-size: 0.76rem;
+  }
+  .logic-cube__heading span {
+    font-size: 0.62rem;
+  }
+  .logic-cube__mark {
+    width: 28px;
+    height: 28px;
+  }
+  .logic-cube__mark svg {
+    width: 17px;
+  }
+  .logic-cube__layers {
+    gap: 3px;
+    margin-bottom: 4px;
+  }
+  .logic-cube__layer {
+    min-height: 44px;
+    border-radius: 8px 8px 4px 4px;
+  }
+  .logic-cube__layer-preview {
+    width: min(26px, 70%);
+  }
+  .logic-cube__floor-title {
+    margin-bottom: 3px;
+    font-size: 0.7rem;
+  }
+  .logic-cube__matrix {
+    display: block;
   }
 }

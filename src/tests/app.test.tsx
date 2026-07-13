@@ -60,16 +60,18 @@ vi.mock('../pwa/registerServiceWorker', () => ({
 
 vi.mock('../storage/preferences', () => ({
   defaultPreferences: {
-    schemaVersion: 1,
+    schemaVersion: 2,
     difficulty: 'easy',
+    puzzleVariant: 'spatial',
     locale: 'ca',
     soundEnabled: false,
     reducedMotion: false,
   },
   loadPreferences: () =>
     Promise.resolve({
-      schemaVersion: 1,
+      schemaVersion: 2,
       difficulty: 'easy',
+      puzzleVariant: 'spatial',
       locale: 'ca',
       soundEnabled: false,
       reducedMotion: false,
@@ -274,6 +276,26 @@ describe('game interface', () => {
     ).toHaveAttribute('id', secondTarget.id)
     expect(container.querySelector('.game-board__drop-grid')).not.toBeInTheDocument()
     expect(container.querySelector('.location-cell__drop-preview')).not.toBeInTheDocument()
+  })
+
+  it('starts the advanced 5x5x3 building from an adult profile', async () => {
+    profileMock.audience = 'adults'
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('radio', { name: 'Avançat 3D · edifici 5×5×3' }))
+    await user.click(screen.getByRole('button', { name: 'Juga' }))
+
+    expect(
+      await screen.findByRole('grid', { name: /Edifici de deducció 5×5×3:/u }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    expect(screen.getAllByRole('gridcell')).toHaveLength(25)
+    expect(
+      screen.getByRole('heading', {
+        name: "Tria una persona i una llar lliure de l'edifici.",
+      }),
+    ).toBeInTheDocument()
   })
 
   it('asks which person needs a hint when no person is selected', async () => {

@@ -2,11 +2,13 @@ import { del, get, set } from 'idb-keyval'
 import { isChallengeMetadata, type ChallengeMetadata } from '../domain/types'
 import type { GameState } from '../game/gameReducer'
 import { GENERATOR_VERSION } from '../generator/version'
+import { analyzeSolutions } from '../solver/solver'
+import { isPartialAssignmentValid } from '../solver/constraintEvaluator'
 
 const key = 'logic-garden:saved-game:v1'
 
 interface SavedGame {
-  readonly schemaVersion: 3
+  readonly schemaVersion: 4
   readonly generatorVersion: number
   readonly state: GameState
   readonly challenge?: ChallengeMetadata
@@ -17,17 +19,50 @@ export interface SavedGameSession {
   readonly challenge?: ChallengeMetadata
 }
 
+const isCompatibleState = (value: unknown): value is GameState => {
+  if (!value || typeof value !== 'object') return false
+  const state = value as GameState
+  const puzzle = state.puzzle
+  if (
+    !puzzle ||
+    puzzle.metadata?.generatorVersion !== GENERATOR_VERSION ||
+    !Array.isArray(puzzle.characters) ||
+    !Array.isArray(puzzle.positions) ||
+    !Array.isArray(puzzle.clues) ||
+    !state.assignments ||
+    typeof state.assignments !== 'object'
+  )
+    return false
+  if (puzzle.boardMode === 'logic-cube') {
+    const layers = new Set(puzzle.positions.map((position) => position.layer))
+    if (
+      puzzle.positions.length !== 75 ||
+      puzzle.characters.length !== 5 ||
+      puzzle.positions.filter((position) => !position.blocked).length !== 8 ||
+      layers.size !== 3 ||
+      ![0, 1, 2].every((layer) => layers.has(layer))
+    )
+      return false
+  }
+  if (!isPartialAssignmentValid(puzzle, state.assignments)) return false
+  const validation = analyzeSolutions(puzzle, { limit: 2 })
+  return validation.count === 1 && !validation.reachedNodeLimit
+}
+
 const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
   return (
-    candidate.schemaVersion === 3 &&
+    candidate.schemaVersion === 4 &&
     candidate.generatorVersion === GENERATOR_VERSION &&
-    Boolean(candidate.state) &&
-    typeof candidate.state === 'object' &&
+    isCompatibleState(candidate.state) &&
     (candidate.challenge === undefined ||
       (isChallengeMetadata(candidate.challenge) &&
-        candidate.challenge.generatorVersion === GENERATOR_VERSION))
+        candidate.challenge.generatorVersion === GENERATOR_VERSION &&
+        candidate.challenge.seed === (candidate.state as GameState).puzzle.seed &&
+        candidate.challenge.difficulty === (candidate.state as GameState).puzzle.difficulty &&
+        (candidate.challenge.variant === 'cube') ===
+          ((candidate.state as GameState).puzzle.boardMode === 'logic-cube')))
   )
 }
 
@@ -45,7 +80,7 @@ export const loadSavedGame = async (): Promise<SavedGameSession | null> => {
 export const saveGame = async (state: GameState, challenge?: ChallengeMetadata) => {
   try {
     await set(key, {
-      schemaVersion: 3,
+      schemaVersion: 4,
       generatorVersion: GENERATOR_VERSION,
       state,
       ...(challenge ? { challenge } : {}),

@@ -1,0 +1,174 @@
+import type { Locale, Position } from './types'
+
+export type BuildingCellKind = 'home' | 'shop' | 'landing' | 'stairs' | 'entrance'
+
+interface BuildingCellDefinition {
+  readonly unitId: string
+  readonly kind: BuildingCellKind
+  readonly blocked: boolean
+}
+
+const groundFloor = [
+  ['shop-left', 'shop-left', 'landing', 'shop-right', 'shop-right'],
+  ['shop-left', 'shop-left', 'landing', 'shop-right', 'shop-right'],
+  ['shop-left', 'shop-left', 'stairs', 'shop-right', 'shop-right'],
+  ['shop-left', 'shop-left', 'landing', 'shop-right', 'shop-right'],
+  ['entrance', 'entrance', 'landing', 'entrance', 'entrance'],
+] as const
+
+const residentialFloor = [
+  ['home-a', 'home-a', 'landing', 'home-b', 'home-b'],
+  ['home-a', 'home-a', 'landing', 'home-b', 'home-b'],
+  ['home-a', 'home-a', 'stairs', 'home-b', 'home-b'],
+  ['home-c', 'home-c', 'landing', 'home-d', 'home-d'],
+  ['home-c', 'home-c', 'landing', 'home-d', 'home-d'],
+] as const
+
+const unitAt = (layer: number, row: number, column: number) =>
+  (layer === 0 ? groundFloor : residentialFloor)[row]?.[column]
+
+const homeAnchors = new Set([
+  '1:0:0',
+  '1:0:4',
+  '1:4:0',
+  '1:4:4',
+  '2:0:0',
+  '2:1:4',
+  '2:4:1',
+  '2:3:3',
+])
+
+export const buildingCellAt = (
+  layer: number,
+  row: number,
+  column: number,
+): BuildingCellDefinition => {
+  const unitId = unitAt(layer, row, column)
+  if (!unitId) throw new Error(`Cel·la d'edifici desconeguda: ${layer}:${row}:${column}`)
+  const kind: BuildingCellKind = unitId.startsWith('home-')
+    ? 'home'
+    : unitId.startsWith('shop-')
+      ? 'shop'
+      : unitId === 'stairs'
+        ? 'stairs'
+        : unitId === 'entrance'
+          ? 'entrance'
+          : 'landing'
+  return { unitId, kind, blocked: !homeAnchors.has(`${layer}:${row}:${column}`) }
+}
+
+const floorNames: Record<Locale, readonly string[]> = {
+  ca: ['Planta baixa', 'Primer pis', 'Segon pis'],
+  es: ['Planta baja', 'Primer piso', 'Segundo piso'],
+  en: ['Ground floor', 'First floor', 'Second floor'],
+}
+
+const unitNames: Record<Locale, Record<string, string>> = {
+  ca: {
+    'shop-left': 'La botiga del xamfrà',
+    'shop-right': 'La botiga del pati',
+    'home-a': 'La llar assolellada',
+    'home-b': 'La llar del balcó',
+    'home-c': 'La llar tranquil·la',
+    'home-d': 'La llar verda',
+    landing: 'El replà',
+    stairs: "L'escala",
+    entrance: "L'entrada",
+  },
+  es: {
+    'shop-left': 'La tienda de la esquina',
+    'shop-right': 'La tienda del patio',
+    'home-a': 'El hogar soleado',
+    'home-b': 'El hogar del balcón',
+    'home-c': 'El hogar tranquilo',
+    'home-d': 'El hogar verde',
+    landing: 'El rellano',
+    stairs: 'La escalera',
+    entrance: 'La entrada',
+  },
+  en: {
+    'shop-left': 'The corner shop',
+    'shop-right': 'The courtyard shop',
+    'home-a': 'The sunny home',
+    'home-b': 'The balcony home',
+    'home-c': 'The quiet home',
+    'home-d': 'The green home',
+    landing: 'The landing',
+    stairs: 'The stairs',
+    entrance: 'The entrance',
+  },
+}
+
+export const buildingFloorLabel = (locale: Locale, layer: number) =>
+  floorNames[locale][layer] ?? floorNames[locale][0]!
+
+export const buildingSummary = (locale: Locale) =>
+  ({
+    ca: '3 plantes · 8 llars',
+    es: '3 plantas · 8 hogares',
+    en: '3 floors · 8 homes',
+  })[locale]
+
+export const buildingUnitLabel = (locale: Locale, unitId: string, layer: number) => {
+  const unit = unitNames[locale][unitId] ?? unitId
+  return `${unit} · ${buildingFloorLabel(locale, layer)}`
+}
+
+const buildingUnits = [
+  'shop-left',
+  'shop-right',
+  'entrance',
+  'landing',
+  'stairs',
+  'home-a',
+  'home-b',
+  'home-c',
+  'home-d',
+] as const
+
+export const buildingPlaceIndex = (layer: number, unitId: string) => {
+  const unitIndex = buildingUnits.indexOf(unitId as (typeof buildingUnits)[number])
+  if (unitIndex < 0) throw new Error(`Unitat d'edifici desconeguda: ${unitId}`)
+  return layer * buildingUnits.length + unitIndex
+}
+
+export const buildingUnitsAreNeighbors = (first: Position, second: Position) => {
+  if (
+    first.layer === undefined ||
+    second.layer === undefined ||
+    first.layer !== second.layer ||
+    !first.buildingUnitId ||
+    !second.buildingUnitId ||
+    first.buildingUnitId === second.buildingUnitId
+  ) {
+    return false
+  }
+  const layer = first.layer
+  for (let row = 0; row < 5; row += 1) {
+    for (let column = 0; column < 5; column += 1) {
+      if (unitAt(layer, row, column) !== first.buildingUnitId) continue
+      const neighbors = [
+        [row - 1, column],
+        [row + 1, column],
+        [row, column - 1],
+        [row, column + 1],
+      ] as const
+      if (
+        neighbors.some(
+          ([nextRow, nextColumn]) =>
+            unitAt(layer, nextRow, nextColumn) === second.buildingUnitId,
+        )
+      ) {
+        return true
+      }
+    }
+  }
+  return false
+}
+
+export const isBuildingAbove = (first: Position, second: Position) =>
+  first.layer !== undefined &&
+  second.layer !== undefined &&
+  first.layer === second.layer + 1 &&
+  first.buildingUnitId !== undefined &&
+  first.buildingUnitId === second.buildingUnitId

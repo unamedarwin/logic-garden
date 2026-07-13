@@ -9,6 +9,7 @@ import type {
   Puzzle,
 } from './types'
 import { localizeThemeLabel } from './themeVocabulary'
+import { buildingUnitLabel } from './buildingPlan'
 
 type Templates = Record<Clue['type'], readonly string[]>
 
@@ -18,6 +19,8 @@ const mapTemplates: Record<Locale, Templates> = {
     'character-not-at-position': ['{a} no és a {p}.', 'No posis {a} a {p}.'],
     'character-in-place': ['{a} és a {p}.', 'Busca {a} a {p}.'],
     'character-not-in-place': ['{a} no és a {p}.', 'No busquis {a} a {p}.'],
+    'in-corner': ['{a} és en una cantonada acollidora.'],
+    'not-in-corner': ['{a} no és en cap cantonada.'],
     'character-next-to-obstacle': ['{a} és al costat de {o}, a {p}.'],
     adjacent: ['{a} és al costat de {b}.', '{a} té {b} de veí.'],
     'not-adjacent': ['{a} no és al costat de {b}.', '{a} i {b} no són veïns.'],
@@ -36,12 +39,18 @@ const mapTemplates: Record<Locale, Templates> = {
     between: ['{a} és entre {b} i {c}.', 'Busca {a} al mig de {b} i {c}.'],
     'has-item': ['{a} porta {i}.', '{a} té {i}.'],
     'does-not-have-item': ['{a} no porta {i}.', '{i} no és de {a}.'],
+    'item-in-place': ['{i} és a {p}.'],
+    'item-not-in-place': ['{i} no és a {p}.'],
+    'same-floor': ['{a} i {b} comparteixen zona.'],
+    'different-floor': ['{a} i {b} són en zones diferents.'],
   },
   es: {
     'character-at-position': ['{a} está en {p}.', '{a} espera en {p}.'],
     'character-not-at-position': ['{a} no está en {p}.', 'No pongas a {a} en {p}.'],
     'character-in-place': ['{a} está en {p}.', 'Busca a {a} en {p}.'],
     'character-not-in-place': ['{a} no está en {p}.', 'No busques a {a} en {p}.'],
+    'in-corner': ['{a} está en un rincón acogedor.'],
+    'not-in-corner': ['{a} no está en ningún rincón.'],
     'character-next-to-obstacle': ['{a} está junto a {o}, en {p}.'],
     adjacent: ['{a} está junto a {b}.', '{a} y {b} son vecinos.'],
     'not-adjacent': ['{a} no está junto a {b}.', '{a} y {b} no son vecinos.'],
@@ -60,12 +69,18 @@ const mapTemplates: Record<Locale, Templates> = {
     between: ['{a} está entre {b} y {c}.', 'Busca a {a} entre {b} y {c}.'],
     'has-item': ['{a} lleva {i}.', '{a} tiene {i}.'],
     'does-not-have-item': ['{a} no lleva {i}.', '{i} no es de {a}.'],
+    'item-in-place': ['{i} está en {p}.'],
+    'item-not-in-place': ['{i} no está en {p}.'],
+    'same-floor': ['{a} y {b} comparten zona.'],
+    'different-floor': ['{a} y {b} están en zonas distintas.'],
   },
   en: {
     'character-at-position': ['{a} is at {p}.', '{a} waits at {p}.'],
     'character-not-at-position': ['{a} is not at {p}.', 'Do not place {a} at {p}.'],
     'character-in-place': ['{a} is at {p}.', 'Find {a} at {p}.'],
     'character-not-in-place': ['{a} is not at {p}.', 'Do not find {a} at {p}.'],
+    'in-corner': ['{a} is in a welcoming corner.'],
+    'not-in-corner': ['{a} is not in a corner.'],
     'character-next-to-obstacle': ['{a} is next to {o}, in {p}.'],
     adjacent: ['{a} is next to {b}.', '{a} and {b} are neighbors.'],
     'not-adjacent': ['{a} is not next to {b}.', '{a} and {b} are not neighbors.'],
@@ -87,6 +102,10 @@ const mapTemplates: Record<Locale, Templates> = {
     between: ['{a} is between {b} and {c}.', 'Find {a} between {b} and {c}.'],
     'has-item': ['{a} has {i}.', '{a} carries {i}.'],
     'does-not-have-item': ['{a} does not have {i}.', '{i} is not with {a}.'],
+    'item-in-place': ['{i} is in {p}.'],
+    'item-not-in-place': ['{i} is not in {p}.'],
+    'same-floor': ['{a} and {b} share a zone.'],
+    'different-floor': ['{a} and {b} are in different zones.'],
   },
 }
 
@@ -100,8 +119,13 @@ const gridTemplates: Record<Locale, Templates> = {
     'character-not-at-position': [
       '{a} prefereix donar un cop de mà en un altre espai: no és a la casella {d} del marcador {o}, a «{p}».',
     ],
-    'character-in-place': ['{a} se sent a gust a «{p}» i hi porta {i}.'],
+    'character-in-place': [
+      '{a} entra per la porta de «{p}» amb {i} i saluda tothom.',
+      '{a} se sent a gust a «{p}» i hi porta {i}.',
+    ],
     'character-not-in-place': ['{a} prefereix ajudar en un altre espai, no a «{p}».'],
+    'in-corner': ['{a}, amb {i}, prepara una cantonada lluminosa de l’espai.'],
+    'not-in-corner': ['{a}, amb {i}, treballa lluny de les cantonades.'],
     'character-next-to-obstacle': [
       '{a} prepara amb il·lusió la zona «{p}», al costat de {o}, i hi porta {i}.',
       'A «{p}», {a} dona un cop de mà al costat de {o} i porta {i}.',
@@ -121,6 +145,10 @@ const gridTemplates: Record<Locale, Templates> = {
     between: ['{a}, amb {i}, ajuda des d’un espai entre {b} i {c}.'],
     'has-item': ['{a} porta {i}.'],
     'does-not-have-item': ['{i} no acompanya {a}.'],
+    'item-in-place': ['A «{p}» tenen preparat {i} per a l’activitat.'],
+    'item-not-in-place': ['A «{p}» han triat una altra cosa, no {i}.'],
+    'same-floor': ['{a} i {b} comparteixen la mateixa zona.'],
+    'different-floor': ['{a} i {b} preparen zones diferents.'],
   },
   es: {
     'character-at-position': [
@@ -131,8 +159,13 @@ const gridTemplates: Record<Locale, Templates> = {
     'character-not-at-position': [
       '{a} prefiere colaborar en otro espacio: no está en la casilla {d} del marcador {o}, en «{p}».',
     ],
-    'character-in-place': ['{a} se siente a gusto en «{p}» y lleva {i}.'],
+    'character-in-place': [
+      '{a} entra por la puerta de «{p}» con {i} y saluda a todos.',
+      '{a} se siente a gusto en «{p}» y lleva {i}.',
+    ],
     'character-not-in-place': ['{a} prefiere ayudar en otro espacio, no en «{p}».'],
+    'in-corner': ['{a}, con {i}, prepara un rincón luminoso del espacio.'],
+    'not-in-corner': ['{a}, con {i}, trabaja lejos de los rincones.'],
     'character-next-to-obstacle': [
       '{a} prepara con ilusión la zona «{p}», junto a {o}, y lleva {i}.',
       'En «{p}», {a} echa una mano junto a {o} y lleva {i}.',
@@ -152,6 +185,10 @@ const gridTemplates: Record<Locale, Templates> = {
     between: ['{a}, con {i}, ayuda desde un espacio entre {b} y {c}.'],
     'has-item': ['{a} lleva {i}.'],
     'does-not-have-item': ['{i} no acompaña a {a}.'],
+    'item-in-place': ['En «{p}» tienen preparado {i} para la actividad.'],
+    'item-not-in-place': ['En «{p}» han elegido otra cosa, no {i}.'],
+    'same-floor': ['{a} y {b} comparten la misma zona.'],
+    'different-floor': ['{a} y {b} preparan zonas distintas.'],
   },
   en: {
     'character-at-position': [
@@ -162,8 +199,13 @@ const gridTemplates: Record<Locale, Templates> = {
     'character-not-at-position': [
       '{a} would rather help elsewhere and is not in the cell {d} the {o} marker in “{p}”.',
     ],
-    'character-in-place': ['{a} feels at home in “{p}” and carries {i}.'],
+    'character-in-place': [
+      '{a} comes through the door of “{p}” with {i} and greets everyone.',
+      '{a} feels at home in “{p}” and carries {i}.',
+    ],
     'character-not-in-place': ['{a} would rather help elsewhere, not in “{p}”.'],
+    'in-corner': ['{a}, with {i}, prepares a bright corner of the space.'],
+    'not-in-corner': ['{a}, with {i}, works away from the corners.'],
     'character-next-to-obstacle': [
       '{a} is excited to prepare “{p}” beside {o}, carrying {i}.',
       'In “{p}”, {a} lends a hand beside {o} and carries {i}.',
@@ -183,6 +225,77 @@ const gridTemplates: Record<Locale, Templates> = {
     between: ['{a}, with {i}, helps from a space between {b} and {c}.'],
     'has-item': ['{a} carries {i}.'],
     'does-not-have-item': ['{i} is not with {a}.'],
+    'item-in-place': ['The activity in “{p}” has {i} ready.'],
+    'item-not-in-place': ['The team in “{p}” chose something else, not {i}.'],
+    'same-floor': ['{a} and {b} share the same zone.'],
+    'different-floor': ['{a} and {b} prepare different zones.'],
+  },
+}
+
+const cubeTemplates: Record<Locale, Templates> = {
+  ca: {
+    ...gridTemplates.ca,
+    'character-at-position': [
+      '{a} viu a «{p}» i sempre hi té {i} a punt per compartir.',
+      '{a} fa comunitat a «{p}» i hi guarda {i}.',
+    ],
+    'character-not-at-position': ['{a} viu en una altra llar, no a «{p}».'],
+    'character-in-place': ['La porta de {a} s’obre a «{p}», on sempre saluda el veïnat.'],
+    'character-not-in-place': ['{a} viu en una altra zona de l’edifici, no a «{p}».'],
+    'in-corner': ['La llar de {a} fa cantonada i rep llum per dos costats.'],
+    'not-in-corner': ['La llar de {a} no fa cantonada; té veïns als dos costats.'],
+    'has-item': ['{a} té cura de {i} a casa.'],
+    'does-not-have-item': ['{a} té un altre objecte preferit, no {i}.'],
+    adjacent: ['{a} i {b} obren portes veïnes al mateix replà.'],
+    'not-adjacent': ['Les portes de {a} i {b} no són veïnes.'],
+    above: ['{a} viu al pis de sobre de {b}, a la mateixa ala.'],
+    below: ['{a} viu al pis de sota de {b}, a la mateixa ala.'],
+    'same-floor': ['{a} i {b} comparteixen replà i sempre es saluden.'],
+    'different-floor': ['{a} i {b} viuen en pisos diferents i es troben a l’entrada.'],
+  },
+  es: {
+    ...gridTemplates.es,
+    'character-at-position': [
+      '{a} vive en «{p}» y siempre tiene {i} listo para compartir.',
+      '{a} hace comunidad en «{p}» y guarda allí {i}.',
+    ],
+    'character-not-at-position': ['{a} vive en otro hogar, no en «{p}».'],
+    'character-in-place': [
+      'La puerta de {a} se abre en «{p}», donde siempre saluda al vecindario.',
+    ],
+    'character-not-in-place': ['{a} vive en otra zona del edificio, no en «{p}».'],
+    'in-corner': ['El hogar de {a} hace esquina y recibe luz por dos lados.'],
+    'not-in-corner': ['El hogar de {a} no hace esquina; tiene vecinos a ambos lados.'],
+    'has-item': ['{a} cuida de {i} en casa.'],
+    'does-not-have-item': ['{a} tiene otro objeto favorito, no {i}.'],
+    adjacent: ['{a} y {b} abren puertas vecinas en el mismo rellano.'],
+    'not-adjacent': ['Las puertas de {a} y {b} no son vecinas.'],
+    above: ['{a} vive en el piso de encima de {b}, en la misma ala.'],
+    below: ['{a} vive en el piso de debajo de {b}, en la misma ala.'],
+    'same-floor': ['{a} y {b} comparten rellano y siempre se saludan.'],
+    'different-floor': ['{a} y {b} viven en pisos distintos y se encuentran en la entrada.'],
+  },
+  en: {
+    ...gridTemplates.en,
+    'character-at-position': [
+      '{a} lives in “{p}” and keeps {i} ready to share.',
+      '{a} builds community in “{p}” and keeps {i} there.',
+    ],
+    'character-not-at-position': ['{a} lives in another home, not in “{p}”.'],
+    'character-in-place': [
+      "{a}'s door opens into “{p}”, where they always greet the neighbors.",
+    ],
+    'character-not-in-place': ['{a} lives elsewhere in the building, not in “{p}”.'],
+    'in-corner': ["{a}'s home is on a corner and gets light from two sides."],
+    'not-in-corner': ["{a}'s home is not on a corner and has neighbors on both sides."],
+    'has-item': ['{a} looks after {i} at home.'],
+    'does-not-have-item': ['{a} has another favorite object, not {i}.'],
+    adjacent: ['{a} and {b} open neighboring doors on the same landing.'],
+    'not-adjacent': ["{a} and {b}'s doors are not neighbors."],
+    above: ['{a} lives one floor above {b}, in the same wing.'],
+    below: ['{a} lives one floor below {b}, in the same wing.'],
+    'same-floor': ['{a} and {b} share a landing and always say hello.'],
+    'different-floor': ['{a} and {b} live on different floors and meet by the entrance.'],
   },
 }
 
@@ -195,9 +308,11 @@ const valueOrFallback = <Id extends string>(
   'here'
 
 const placeLabel = (puzzle: Puzzle, placeId: PlaceId, locale: Locale) => {
-  const label = puzzle.positions.find((position) => position.placeId === placeId)?.label
-  return label
-    ? localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(label))
+  const position = puzzle.positions.find((candidate) => candidate.placeId === placeId)
+  return position
+    ? position.buildingUnitId !== undefined && position.layer !== undefined
+      ? buildingUnitLabel(locale, position.buildingUnitId, position.layer)
+      : localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(position.label))
     : { ca: 'aquí', es: 'aquí', en: 'here' }[locale]
 }
 
@@ -255,15 +370,17 @@ const clueValues = (puzzle: Puzzle, clue: Clue, locale: Locale) => {
         }
       : textValue('object')
   }
-  const localizedPlace = (label: string) =>
-    localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(label))
+  const localizedPlace = (position: Position) =>
+    position.buildingUnitId !== undefined && position.layer !== undefined
+      ? buildingUnitLabel(locale, position.buildingUnitId, position.layer)
+      : localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(position.label))
   const obstacleValue = (position: Position, fallback: string): ClueValue => ({
     text: localizeThemeLabel(locale, puzzle.theme, position.obstacleLabel ?? fallback),
     emoji: position.obstacleEmoji,
   })
   const itemForCharacter = (id: CharacterId): ClueValue => {
     const character = puzzle.characters.find((candidate) => candidate.id === id)
-    return character ? itemValue(character.itemId) : textValue('object')
+    return character?.itemId ? itemValue(character.itemId) : textValue('object')
   }
   const values: Record<string, ClueValue> = {}
 
@@ -272,8 +389,10 @@ const clueValues = (puzzle: Puzzle, clue: Clue, locale: Locale) => {
     case 'character-not-at-position': {
       const position = positionFor(clue.positionId)
       values.a = textValue(characterName(clue.characterId))
-      values.i = itemForCharacter(clue.characterId)
-      values.p = textValue(position ? localizedPlace(position.label) : 'here')
+      values.i = position?.itemId
+        ? itemValue(position.itemId)
+        : itemForCharacter(clue.characterId)
+      values.p = textValue(position ? localizedPlace(position) : 'here')
       const obstacle = position
         ? puzzle.positions.find(
             (candidate) =>
@@ -297,11 +416,16 @@ const clueValues = (puzzle: Puzzle, clue: Clue, locale: Locale) => {
       values.i = itemForCharacter(clue.characterId)
       values.p = textValue(placeLabel(puzzle, clue.placeId, locale))
       break
+    case 'in-corner':
+    case 'not-in-corner':
+      values.a = textValue(characterName(clue.characterId))
+      values.i = itemForCharacter(clue.characterId)
+      break
     case 'character-next-to-obstacle': {
       const obstacle = positionFor(clue.obstaclePositionId)
       values.a = textValue(characterName(clue.characterId))
       values.i = itemForCharacter(clue.characterId)
-      values.p = textValue(obstacle ? localizedPlace(obstacle.label) : 'here')
+      values.p = textValue(obstacle ? localizedPlace(obstacle) : 'here')
       values.o = obstacle ? obstacleValue(obstacle, values.p.text) : values.p
       break
     }
@@ -309,6 +433,11 @@ const clueValues = (puzzle: Puzzle, clue: Clue, locale: Locale) => {
     case 'does-not-have-item':
       values.a = textValue(characterName(clue.characterId))
       values.i = itemValue(clue.itemId)
+      break
+    case 'item-in-place':
+    case 'item-not-in-place':
+      values.i = itemValue(clue.itemId)
+      values.p = textValue(placeLabel(puzzle, clue.placeId, locale))
       break
     case 'between':
       values.a = textValue(characterName(clue.characterId))
@@ -337,7 +466,12 @@ export const renderClueParts = (
   locale: Locale = 'ca',
 ): readonly CluePart[] => {
   const values = clueValues(puzzle, clue, locale)
-  const templateSet = puzzle.boardMode === 'logic-grid' ? gridTemplates : mapTemplates
+  const templateSet =
+    puzzle.boardMode === 'logic-cube'
+      ? cubeTemplates
+      : puzzle.boardMode === 'logic-grid'
+        ? gridTemplates
+        : mapTemplates
   const variants = templateSet[locale][clue.type]
   const template = variants[clue.phraseVariant % variants.length]
   const parts: CluePart[] = []

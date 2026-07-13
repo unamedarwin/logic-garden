@@ -1,4 +1,10 @@
-import { areAdjacent, isStrictlyBetween, manhattanDistance } from '../domain/constraints'
+import {
+  areAdjacent,
+  isCornerPosition,
+  isStrictlyBetween,
+  manhattanDistance,
+} from '../domain/constraints'
+import { buildingUnitsAreNeighbors, isBuildingAbove } from '../domain/buildingPlan'
 import type { Assignment, CharacterId, Clue, Position, Puzzle } from '../domain/types'
 import { preferredLandmark } from './landmarkDomains'
 import { SeededRandom } from './seededRandom'
@@ -33,7 +39,9 @@ export const generateCandidateClues = (
       (candidate) =>
         candidate.id !== position.id &&
         !candidate.blocked &&
+        (puzzle.boardMode !== 'logic-cube' || candidate.placeId !== position.placeId) &&
         (puzzle.boardMode === 'map' ||
+          puzzle.boardMode === 'logic-cube' ||
           puzzle.positions.some(
             (obstacle) =>
               obstacle.blocked &&
@@ -43,6 +51,16 @@ export const generateCandidateClues = (
           )),
     )
     const otherItem = puzzle.items.find((item) => item.id !== character.itemId)
+
+    add({
+      ...clueBase(
+        random,
+        isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
+        character.id,
+      ),
+      type: isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
+      characterId: character.id,
+    })
 
     if (puzzle.boardMode === 'logic-grid') {
       const adjacentObstacle = preferredLandmark(puzzle.positions, position, puzzle.difficulty)
@@ -69,6 +87,25 @@ export const generateCandidateClues = (
         type: 'character-in-place',
         characterId: character.id,
         placeId: position.placeId,
+      })
+    } else if (puzzle.boardMode === 'logic-cube') {
+      add({
+        ...clueBase(random, 'character-at-position', character.id),
+        type: 'character-at-position',
+        characterId: character.id,
+        positionId: position.id,
+      })
+      add({
+        ...clueBase(random, 'character-in-place', character.id),
+        type: 'character-in-place',
+        characterId: character.id,
+        placeId: position.placeId,
+      })
+      add({
+        ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
+        type: 'has-item',
+        characterId: character.id,
+        itemId: character.itemId!,
       })
     } else if (random.next() < 0.5) {
       add({
@@ -112,7 +149,19 @@ export const generateCandidateClues = (
       }
     }
 
-    if (puzzle.boardMode === 'map') {
+    if (puzzle.boardMode === 'logic-cube' && character.itemId) {
+      const otherCubeItem = puzzle.items.find((item) => item.id !== character.itemId)
+      if (otherCubeItem) {
+        add({
+          ...clueBase(random, 'does-not-have-item', `${character.id}:${otherCubeItem.id}`),
+          type: 'does-not-have-item',
+          characterId: character.id,
+          itemId: otherCubeItem.id,
+        })
+      }
+    }
+
+    if (puzzle.boardMode === 'map' && character.itemId) {
       add({
         ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
         type: 'has-item',
@@ -142,9 +191,13 @@ export const generateCandidateClues = (
       const second = solutionPosition(puzzle, solution, secondCharacter.id)
       const pairKey = `${firstCharacter.id}:${secondCharacter.id}`
 
+      const neighbors =
+        puzzle.boardMode === 'logic-cube'
+          ? buildingUnitsAreNeighbors(first, second)
+          : areAdjacent(first, second)
       add({
-        ...clueBase(random, areAdjacent(first, second) ? 'adjacent' : 'not-adjacent', pairKey),
-        type: areAdjacent(first, second) ? 'adjacent' : 'not-adjacent',
+        ...clueBase(random, neighbors ? 'adjacent' : 'not-adjacent', pairKey),
+        type: neighbors ? 'adjacent' : 'not-adjacent',
         firstCharacterId: firstCharacter.id,
         secondCharacterId: secondCharacter.id,
       })
@@ -163,6 +216,26 @@ export const generateCandidateClues = (
           firstCharacterId: firstCharacter.id,
           secondCharacterId: secondCharacter.id,
         })
+      } else if (puzzle.boardMode === 'logic-cube') {
+        add({
+          ...clueBase(
+            random,
+            first.layer === second.layer ? 'same-floor' : 'different-floor',
+            pairKey,
+          ),
+          type: first.layer === second.layer ? 'same-floor' : 'different-floor',
+          firstCharacterId: firstCharacter.id,
+          secondCharacterId: secondCharacter.id,
+        })
+        if (isBuildingAbove(first, second) || isBuildingAbove(second, first)) {
+          const verticalType = isBuildingAbove(first, second) ? 'above' : 'below'
+          add({
+            ...clueBase(random, verticalType, pairKey),
+            type: verticalType,
+            firstCharacterId: firstCharacter.id,
+            secondCharacterId: secondCharacter.id,
+          })
+        }
       } else {
         add({
           ...clueBase(random, first.row === second.row ? 'same-row' : 'different-row', pairKey),
@@ -210,40 +283,41 @@ export const generateCandidateClues = (
     }
   }
 
-  for (const middleCharacter of puzzle.characters) {
-    for (let firstIndex = 0; firstIndex < puzzle.characters.length; firstIndex += 1) {
-      for (
-        let secondIndex = firstIndex + 1;
-        secondIndex < puzzle.characters.length;
-        secondIndex += 1
-      ) {
-        const firstCharacter = puzzle.characters[firstIndex]!
-        const secondCharacter = puzzle.characters[secondIndex]!
-        if (
-          middleCharacter.id === firstCharacter.id ||
-          middleCharacter.id === secondCharacter.id
+  if (puzzle.boardMode !== 'logic-cube')
+    for (const middleCharacter of puzzle.characters) {
+      for (let firstIndex = 0; firstIndex < puzzle.characters.length; firstIndex += 1) {
+        for (
+          let secondIndex = firstIndex + 1;
+          secondIndex < puzzle.characters.length;
+          secondIndex += 1
         ) {
-          continue
-        }
-        const middle = solutionPosition(puzzle, solution, middleCharacter.id)
-        const first = solutionPosition(puzzle, solution, firstCharacter.id)
-        const second = solutionPosition(puzzle, solution, secondCharacter.id)
-        if (isStrictlyBetween(middle, first, second)) {
-          add({
-            ...clueBase(
-              random,
-              'between',
-              `${middleCharacter.id}:${firstCharacter.id}:${secondCharacter.id}`,
-            ),
-            type: 'between',
-            characterId: middleCharacter.id,
-            firstCharacterId: firstCharacter.id,
-            secondCharacterId: secondCharacter.id,
-          })
+          const firstCharacter = puzzle.characters[firstIndex]!
+          const secondCharacter = puzzle.characters[secondIndex]!
+          if (
+            middleCharacter.id === firstCharacter.id ||
+            middleCharacter.id === secondCharacter.id
+          ) {
+            continue
+          }
+          const middle = solutionPosition(puzzle, solution, middleCharacter.id)
+          const first = solutionPosition(puzzle, solution, firstCharacter.id)
+          const second = solutionPosition(puzzle, solution, secondCharacter.id)
+          if (isStrictlyBetween(middle, first, second)) {
+            add({
+              ...clueBase(
+                random,
+                'between',
+                `${middleCharacter.id}:${firstCharacter.id}:${secondCharacter.id}`,
+              ),
+              type: 'between',
+              characterId: middleCharacter.id,
+              firstCharacterId: firstCharacter.id,
+              secondCharacterId: secondCharacter.id,
+            })
+          }
         }
       }
     }
-  }
 
   return candidates
 }

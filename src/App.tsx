@@ -31,6 +31,7 @@ import { CluePanel } from './components/CluePanel'
 import { CompletedGames } from './components/CompletedGames'
 import { DifficultySelector } from './components/DifficultySelector'
 import { GameBoard } from './components/GameBoard'
+import { LogicCubeBoard } from './components/LogicCubeBoard'
 import { GameHeader } from './components/GameHeader'
 import { GameTimer } from './components/GameTimer'
 import { HintCharacterDialog } from './components/HintCharacterDialog'
@@ -51,7 +52,13 @@ import {
 } from './domain/i18n'
 import { avatarOptions, type PlayerProfile } from './domain/profile'
 import { getTheme } from './domain/themes'
-import { seed, type Audience, type CharacterId, type Difficulty } from './domain/types'
+import {
+  seed,
+  type Audience,
+  type CharacterId,
+  type Difficulty,
+  type PuzzleVariant,
+} from './domain/types'
 import {
   gameReducer,
   createGameState,
@@ -233,11 +240,16 @@ export default function App() {
   const startGame = (
     difficulty: Difficulty = preferences.difficulty,
     source = createSeed(),
+    variant: PuzzleVariant = preferences.puzzleVariant,
   ) => {
     if (!profile) return
     setGenerating(true)
     try {
-      const nextGame = createGameState(generatePuzzle(difficulty, source, profile.audience))
+      const effectiveVariant = profile.audience === 'children' ? 'spatial' : variant
+      const effectiveDifficulty = effectiveVariant === 'cube' ? 'hard' : difficulty
+      const nextGame = createGameState(
+        generatePuzzle(effectiveDifficulty, source, profile.audience, effectiveVariant),
+      )
       setGame(nextGame)
       setSharedChallenge(null)
       setShowChallengeIntro(false)
@@ -288,6 +300,7 @@ export default function App() {
             sharedChallenge.difficulty,
             sharedChallenge.seed,
             sharedChallenge.audience,
+            sharedChallenge.variant ?? 'spatial',
           ),
         ),
       )
@@ -323,6 +336,7 @@ export default function App() {
         theme: nextGame.puzzle.theme,
         audience: activeAudience,
         difficulty: nextGame.puzzle.difficulty,
+        puzzleVariant: nextGame.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial',
         generatorVersion: nextGame.puzzle.metadata.generatorVersion,
         elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
         moves: nextGame.moves,
@@ -388,6 +402,7 @@ export default function App() {
           difficulty: game.puzzle.difficulty,
           seed: game.puzzle.seed,
           generatorVersion: game.puzzle.metadata.generatorVersion,
+          variant: game.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial',
         },
         activeAudience,
         completedSeconds,
@@ -415,6 +430,7 @@ export default function App() {
           difficulty: completedGame.difficulty,
           seed: seed(completedGame.seed),
           generatorVersion: completedGame.generatorVersion,
+          variant: completedGame.puzzleVariant ?? 'spatial',
         },
         completedGame.audience,
         completedGame.elapsedSeconds,
@@ -502,8 +518,12 @@ export default function App() {
               value={preferences.difficulty}
               locale={preferences.locale}
               audience={profile.audience}
+              variant={preferences.puzzleVariant}
               label={t(preferences.locale, 'difficulty')}
               onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
+              onVariantChange={(puzzleVariant) =>
+                setPreferences({ ...preferences, puzzleVariant })
+              }
             />
             <div className="home-hero__actions">
               <button
@@ -562,12 +582,22 @@ export default function App() {
   const boardActions = boardActionCopy(preferences.locale)
   const boardTitle = t(
     preferences.locale,
-    game.puzzle.boardMode === 'logic-grid' ? 'logicGrid' : 'map',
+    game.puzzle.boardMode === 'logic-cube'
+      ? 'logicCube'
+      : game.puzzle.boardMode === 'logic-grid'
+        ? 'logicGrid'
+        : 'map',
   )
   const boardInstruction = t(
     preferences.locale,
-    game.puzzle.boardMode === 'logic-grid' ? 'logicGridInstruction' : 'mapInstruction',
+    game.puzzle.boardMode === 'logic-cube'
+      ? 'logicCubeInstruction'
+      : game.puzzle.boardMode === 'logic-grid'
+        ? 'logicGridInstruction'
+        : 'mapInstruction',
   )
+  const currentPuzzleVariant: PuzzleVariant =
+    game.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial'
   const activeBoardCharacterId = activeDragCharacterId ?? game.selectedCharacterId
   const activeDragCharacter = game.puzzle.characters.find(
     (character) => character.id === activeDragCharacterId,
@@ -695,41 +725,72 @@ export default function App() {
               ref={boardScrollRef}
               className={`game-board-scroll ${boardZoom > 1 ? 'game-board-scroll--zoomed' : 'game-board-scroll--fit'}`}
             >
-              <GameBoard
-                positions={game.puzzle.positions}
-                characters={game.puzzle.characters}
-                assignments={game.assignments}
-                selectedCharacterId={activeBoardCharacterId}
-                draggedCharacterId={activeDragCharacterId ?? undefined}
-                boardLabel={boardTitle}
-                emptyLabel={t(preferences.locale, 'emptyPlace')}
-                returnLabel={t(preferences.locale, 'returnToTray')}
-                moveToPositionLabel={boardActions.moveToPosition}
-                selectPositionLabel={boardActions.selectPosition}
-                boardMode={game.puzzle.boardMode}
-                audience={activeAudience}
-                locale={preferences.locale}
-                puzzleSeed={game.puzzle.seed}
-                themeId={game.puzzle.theme}
-                spatialPlanId={game.puzzle.spatialPlanId}
-                zoom={boardZoom}
-                onMoveToPosition={(positionId) => {
-                  if (game.selectedCharacterId) {
-                    runGameAction({
-                      type: 'move-character',
-                      characterId: game.selectedCharacterId,
-                      positionId,
-                    })
-                  } else {
-                    setNotice(t(preferences.locale, 'selectPersonFirst'))
+              {game.puzzle.boardMode === 'logic-cube' ? (
+                <LogicCubeBoard
+                  positions={game.puzzle.positions}
+                  characters={game.puzzle.characters}
+                  assignments={game.assignments}
+                  selectedCharacterId={activeBoardCharacterId}
+                  draggedCharacterId={activeDragCharacterId ?? undefined}
+                  boardLabel={boardTitle}
+                  returnLabel={t(preferences.locale, 'returnToTray')}
+                  moveToPositionLabel={boardActions.moveToPosition}
+                  selectPositionLabel={boardActions.selectPosition}
+                  locale={preferences.locale}
+                  themeId={game.puzzle.theme}
+                  zoom={boardZoom}
+                  onMoveToPosition={(positionId) => {
+                    if (game.selectedCharacterId) {
+                      runGameAction({
+                        type: 'move-character',
+                        characterId: game.selectedCharacterId,
+                        positionId,
+                      })
+                    } else {
+                      setNotice(t(preferences.locale, 'selectPersonFirst'))
+                    }
+                  }}
+                  onRemoveCharacter={(characterId) =>
+                    runGameAction({ type: 'remove-character', characterId })
                   }
-                }}
-                onRemoveCharacter={(characterId) =>
-                  runGameAction({ type: 'remove-character', characterId })
-                }
-              />
+                />
+              ) : (
+                <GameBoard
+                  positions={game.puzzle.positions}
+                  characters={game.puzzle.characters}
+                  assignments={game.assignments}
+                  selectedCharacterId={activeBoardCharacterId}
+                  draggedCharacterId={activeDragCharacterId ?? undefined}
+                  boardLabel={boardTitle}
+                  emptyLabel={t(preferences.locale, 'emptyPlace')}
+                  returnLabel={t(preferences.locale, 'returnToTray')}
+                  moveToPositionLabel={boardActions.moveToPosition}
+                  selectPositionLabel={boardActions.selectPosition}
+                  boardMode={game.puzzle.boardMode}
+                  audience={activeAudience}
+                  locale={preferences.locale}
+                  puzzleSeed={game.puzzle.seed}
+                  themeId={game.puzzle.theme}
+                  spatialPlanId={game.puzzle.spatialPlanId}
+                  zoom={boardZoom}
+                  onMoveToPosition={(positionId) => {
+                    if (game.selectedCharacterId) {
+                      runGameAction({
+                        type: 'move-character',
+                        characterId: game.selectedCharacterId,
+                        positionId,
+                      })
+                    } else {
+                      setNotice(t(preferences.locale, 'selectPersonFirst'))
+                    }
+                  }}
+                  onRemoveCharacter={(characterId) =>
+                    runGameAction({ type: 'remove-character', characterId })
+                  }
+                />
+              )}
             </div>
-            {game.puzzle.boardMode === 'logic-grid' ? (
+            {game.puzzle.boardMode !== 'map' ? (
               <CharacterClueRail
                 puzzle={game.puzzle}
                 assignments={game.assignments}
@@ -808,7 +869,12 @@ export default function App() {
             <Home aria-hidden="true" />
             {t(preferences.locale, 'changeDifficulty')}
           </button>
-          <button type="button" onClick={() => startGame()}>
+          <button
+            type="button"
+            onClick={() =>
+              startGame(game.puzzle.difficulty, createSeed(), currentPuzzleVariant)
+            }
+          >
             <Shuffle aria-hidden="true" />
             {t(preferences.locale, 'newGame')}
           </button>
@@ -868,7 +934,9 @@ export default function App() {
           timeLabel={t(preferences.locale, 'timer').toLowerCase()}
           challengeMessage={challengeResult?.message}
           challengeShareHint={challengeResult?.share}
-          onNewGame={() => startGame()}
+          onNewGame={() =>
+            startGame(game.puzzle.difficulty, createSeed(), currentPuzzleVariant)
+          }
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}
         />

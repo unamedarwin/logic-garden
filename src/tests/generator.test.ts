@@ -12,6 +12,28 @@ const bannedTerms =
   /murder|death|weapon|violence|threat|punishment|assassinat|mort|arma|violència|amenaça|càstig|asesinato|muerte|arma|violencia|amenaza|castigo/iu
 
 describe('seeded puzzle generator', () => {
+  it('builds a deterministic 5x5x3 building with three spatial axes', () => {
+    const puzzle = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
+    const repeated = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
+    const solution = solve(puzzle)
+
+    expect(repeated).toEqual(puzzle)
+    expect(puzzle.boardMode).toBe('logic-cube')
+    expect(puzzle.positions).toHaveLength(75)
+    expect(puzzle.characters).toHaveLength(5)
+    expect(solution).not.toBeNull()
+    expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+    expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
+      new Set([0, 1, 2]),
+    )
+    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(8)
+    expect(
+      puzzle.clues.every((clue) =>
+        solution ? isClueSatisfiedByPartialAssignment(puzzle, clue, solution) : false,
+      ),
+    ).toBe(true)
+  })
+
   it('keeps character identities visually separate from object markers in every theme', () => {
     for (const theme of themes) {
       const objectEmojis = new Set(theme.items.map((item) => item.emoji))

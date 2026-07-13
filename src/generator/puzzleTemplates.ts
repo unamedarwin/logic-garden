@@ -11,36 +11,56 @@ import { landmarkCandidateCount } from './landmarkDomains'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
 
-export type TemplateGridSize = 6 | 9 | 16
+export type TemplateGridSize = 5 | 6 | 9 | 16
 
 type TemplatePairCode = 'a' | 'A' | 'l' | 'r' | 'u' | 'd'
 
 export type TemplateClue =
   | readonly ['p' | 'P', character: number, row: number, column: number]
+  | readonly ['c' | 'C', character: number, layer: number, row: number, column: number]
   | readonly ['z' | 'Z', character: number, place: number]
+  | readonly ['k' | 'K', character: number]
   | readonly ['o', character: number, row: number, column: number]
+  | readonly ['i' | 'I', character: number, item: number]
+  | readonly ['q' | 'Q', item: number, place: number]
+  | readonly ['s' | 'S', firstCharacter: number, secondCharacter: number]
   | readonly [TemplatePairCode, firstCharacter: number, secondCharacter: number]
   | readonly ['b', character: number, firstCharacter: number, secondCharacter: number]
 
-export interface AdvancedPuzzleTemplate {
-  readonly v: 1
+interface PuzzleTemplateBase {
+  readonly v: 2
   readonly generatorVersion: number
   readonly id: string
   readonly audience: Exclude<Audience, 'children'>
   readonly difficulty: Difficulty
-  readonly gridSize: TemplateGridSize
   readonly characterCount: number
-  readonly spatialPlanId: string
   readonly clues: readonly TemplateClue[]
   readonly landmarkCandidateCounts: readonly number[]
   readonly exactClueCount: number
 }
 
+export type AdvancedPuzzleTemplate =
+  | (PuzzleTemplateBase & {
+      readonly boardMode: 'logic-grid'
+      readonly gridSize: 6 | 9 | 16
+      readonly spatialPlanId: string
+    })
+  | (PuzzleTemplateBase & {
+      readonly boardMode: 'logic-cube'
+      readonly gridSize: 5
+      readonly depth: 3
+    })
+
+export const templateBucketKey = (template: AdvancedPuzzleTemplate) =>
+  `${template.audience}:${template.difficulty}:${template.boardMode}:${template.gridSize}`
+
 export const canonicalTemplateSignature = (template: AdvancedPuzzleTemplate) =>
   JSON.stringify({
     audience: template.audience,
+    boardMode: template.boardMode,
     gridSize: template.gridSize,
-    spatialPlanId: template.spatialPlanId,
+    depth: template.boardMode === 'logic-cube' ? template.depth : undefined,
+    spatialPlanId: template.boardMode === 'logic-grid' ? template.spatialPlanId : undefined,
     clues: [...template.clues].sort((first, second) =>
       JSON.stringify(first).localeCompare(JSON.stringify(second)),
     ),
@@ -62,16 +82,34 @@ const serializeClue = (puzzle: Puzzle, clue: Clue): TemplateClue => {
   switch (clue.type) {
     case 'character-at-position': {
       const [row, column] = positionCoordinates(puzzle, clue.positionId)
+      if (puzzle.boardMode === 'logic-cube') {
+        const layer = puzzle.positions.find(
+          (position) => position.id === clue.positionId,
+        )?.layer
+        if (layer === undefined) throw new Error('La casella de l’edifici no té pis.')
+        return ['c', numericSuffix(clue.characterId), layer, row, column]
+      }
       return ['p', numericSuffix(clue.characterId), row, column]
     }
     case 'character-not-at-position': {
       const [row, column] = positionCoordinates(puzzle, clue.positionId)
+      if (puzzle.boardMode === 'logic-cube') {
+        const layer = puzzle.positions.find(
+          (position) => position.id === clue.positionId,
+        )?.layer
+        if (layer === undefined) throw new Error('La casella de l’edifici no té pis.')
+        return ['C', numericSuffix(clue.characterId), layer, row, column]
+      }
       return ['P', numericSuffix(clue.characterId), row, column]
     }
     case 'character-in-place':
       return ['z', numericSuffix(clue.characterId), numericSuffix(clue.placeId)]
     case 'character-not-in-place':
       return ['Z', numericSuffix(clue.characterId), numericSuffix(clue.placeId)]
+    case 'in-corner':
+      return ['k', numericSuffix(clue.characterId)]
+    case 'not-in-corner':
+      return ['K', numericSuffix(clue.characterId)]
     case 'character-next-to-obstacle': {
       const [row, column] = positionCoordinates(puzzle, clue.obstaclePositionId)
       return ['o', numericSuffix(clue.characterId), row, column]
@@ -95,14 +133,24 @@ const serializeClue = (puzzle: Puzzle, clue: Clue): TemplateClue => {
         numericSuffix(clue.firstCharacterId),
         numericSuffix(clue.secondCharacterId),
       ]
+    case 'has-item':
+      return ['i', numericSuffix(clue.characterId), numericSuffix(clue.itemId)]
+    case 'does-not-have-item':
+      return ['I', numericSuffix(clue.characterId), numericSuffix(clue.itemId)]
+    case 'item-in-place':
+      return ['q', numericSuffix(clue.itemId), numericSuffix(clue.placeId)]
+    case 'item-not-in-place':
+      return ['Q', numericSuffix(clue.itemId), numericSuffix(clue.placeId)]
+    case 'same-floor':
+      return ['s', numericSuffix(clue.firstCharacterId), numericSuffix(clue.secondCharacterId)]
+    case 'different-floor':
+      return ['S', numericSuffix(clue.firstCharacterId), numericSuffix(clue.secondCharacterId)]
     case 'same-row':
     case 'different-row':
     case 'same-column':
     case 'different-column':
     case 'distance':
-    case 'has-item':
-    case 'does-not-have-item':
-      throw new Error(`Pista no admesa en una plantilla espacial: ${clue.type}`)
+      throw new Error(`Pista no admesa en una plantilla avançada: ${clue.type}`)
   }
 }
 
@@ -111,13 +159,21 @@ export const extractAdvancedPuzzleTemplate = (
   audience: Exclude<Audience, 'children'>,
   id: string,
 ): AdvancedPuzzleTemplate => {
-  if (puzzle.boardMode !== 'logic-grid' || !puzzle.spatialPlanId) {
-    throw new Error('Només es poden catalogar puzzles espacials.')
+  if (
+    (puzzle.boardMode !== 'logic-grid' && puzzle.boardMode !== 'logic-cube') ||
+    (puzzle.boardMode === 'logic-grid' && !puzzle.spatialPlanId)
+  ) {
+    throw new Error('Només es poden catalogar puzzles espacials o cúbics.')
   }
-  const gridSize = Math.sqrt(puzzle.positions.length)
-  if (gridSize !== 6 && gridSize !== 9 && gridSize !== 16) {
+
+  const gridSize =
+    puzzle.boardMode === 'logic-cube'
+      ? Math.max(...puzzle.positions.map((position) => position.column)) + 1
+      : Math.sqrt(puzzle.positions.length)
+  if (gridSize !== 5 && gridSize !== 6 && gridSize !== 9 && gridSize !== 16) {
     throw new Error(`Mida espacial no admesa: ${gridSize}`)
   }
+
   const landmarkCandidateCounts = puzzle.clues.flatMap((clue) => {
     if (clue.type !== 'character-next-to-obstacle') return []
     const obstacle = puzzle.positions.find(
@@ -125,20 +181,29 @@ export const extractAdvancedPuzzleTemplate = (
     )
     return obstacle ? [landmarkCandidateCount(puzzle.positions, obstacle)] : []
   })
-
-  return {
-    v: 1,
+  const base = {
+    v: 2 as const,
     generatorVersion: puzzle.metadata.generatorVersion,
     id,
     audience,
     difficulty: puzzle.difficulty,
-    gridSize,
     characterCount: puzzle.characters.length,
-    spatialPlanId: puzzle.spatialPlanId,
     clues: puzzle.clues.map((clue) => serializeClue(puzzle, clue)),
-    landmarkCandidateCounts,
+    landmarkCandidateCounts:
+      puzzle.boardMode === 'logic-cube'
+        ? puzzle.characters.map(() => 5)
+        : landmarkCandidateCounts,
     exactClueCount: puzzle.clues.filter((clue) => clue.type === 'character-at-position').length,
   }
+
+  return puzzle.boardMode === 'logic-cube'
+    ? { ...base, boardMode: 'logic-cube', gridSize: 5, depth: 3 }
+    : {
+        ...base,
+        boardMode: 'logic-grid',
+        gridSize: gridSize as 6 | 9 | 16,
+        spatialPlanId: puzzle.spatialPlanId!,
+      }
 }
 
 const pairTypes: Record<
@@ -164,9 +229,12 @@ const materializeClue = (
     if (!found) throw new Error(`Personatge de plantilla desconegut: ${characterIndex}`)
     return found.id
   }
-  const position = (row: number, column: number) => {
+  const position = (row: number, column: number, layer?: number) => {
     const found = puzzle.positions.find(
-      (candidate) => candidate.row === row && candidate.column === column,
+      (candidate) =>
+        candidate.row === row &&
+        candidate.column === column &&
+        (layer === undefined || candidate.layer === layer),
     )
     if (!found) throw new Error(`Casella de plantilla desconeguda: ${row}.${column}`)
     return found.id
@@ -178,22 +246,45 @@ const materializeClue = (
     if (!found) throw new Error(`Sala de plantilla desconeguda: ${placeIndex}`)
     return found.placeId
   }
+  const item = (itemIndex: number) => {
+    const found = puzzle.items[itemIndex]
+    if (!found) throw new Error(`Objecte de plantilla desconegut: ${itemIndex}`)
+    return found.id
+  }
   const base = { id: `template-clue-${index}`, phraseVariant: random.integer(0, 2) }
 
   switch (clue[0]) {
-    case 'p':
+    case 'p': {
+      const characterId = character(clue[1])
+      return {
+        ...base,
+        type: 'character-at-position',
+        characterId,
+        positionId: position(clue[2], clue[3]),
+      }
+    }
+    case 'P': {
+      const characterId = character(clue[1])
+      return {
+        ...base,
+        type: 'character-not-at-position',
+        characterId,
+        positionId: position(clue[2], clue[3]),
+      }
+    }
+    case 'c':
       return {
         ...base,
         type: 'character-at-position',
         characterId: character(clue[1]),
-        positionId: position(clue[2], clue[3]),
+        positionId: position(clue[3], clue[4], clue[2]),
       }
-    case 'P':
+    case 'C':
       return {
         ...base,
         type: 'character-not-at-position',
         characterId: character(clue[1]),
-        positionId: position(clue[2], clue[3]),
+        positionId: position(clue[3], clue[4], clue[2]),
       }
     case 'z':
       return {
@@ -209,12 +300,53 @@ const materializeClue = (
         characterId: character(clue[1]),
         placeId: place(clue[2]),
       }
+    case 'k':
+      return { ...base, type: 'in-corner', characterId: character(clue[1]) }
+    case 'K':
+      return { ...base, type: 'not-in-corner', characterId: character(clue[1]) }
     case 'o':
       return {
         ...base,
         type: 'character-next-to-obstacle',
         characterId: character(clue[1]),
         obstaclePositionId: position(clue[2], clue[3]),
+      }
+    case 'i':
+      return {
+        ...base,
+        type: 'has-item',
+        characterId: character(clue[1]),
+        itemId: item(clue[2]),
+      }
+    case 'I':
+      return {
+        ...base,
+        type: 'does-not-have-item',
+        characterId: character(clue[1]),
+        itemId: item(clue[2]),
+      }
+    case 'q':
+      return { ...base, type: 'item-in-place', itemId: item(clue[1]), placeId: place(clue[2]) }
+    case 'Q':
+      return {
+        ...base,
+        type: 'item-not-in-place',
+        itemId: item(clue[1]),
+        placeId: place(clue[2]),
+      }
+    case 's':
+      return {
+        ...base,
+        type: 'same-floor',
+        firstCharacterId: character(clue[1]),
+        secondCharacterId: character(clue[2]),
+      }
+    case 'S':
+      return {
+        ...base,
+        type: 'different-floor',
+        firstCharacterId: character(clue[1]),
+        secondCharacterId: character(clue[2]),
       }
     case 'b':
       return {
@@ -245,17 +377,25 @@ export const materializeAdvancedPuzzleTemplate = (
 ): Puzzle => {
   const puzzleSeed = seed(source)
   const random = new SeededRandom(deriveSeed(puzzleSeed, 41))
-  const world = generateWorld(template.difficulty, random, template.audience, {
-    gridSize: template.gridSize,
-    characterCount: template.characterCount,
-    spatialPlanId: template.spatialPlanId,
-  })
+  const world = generateWorld(
+    template.difficulty,
+    random,
+    template.audience,
+    template.boardMode === 'logic-cube'
+      ? { boardMode: 'logic-cube', gridSize: 5, depth: 3, characterCount: 5 }
+      : {
+          boardMode: 'logic-grid',
+          gridSize: template.gridSize,
+          characterCount: template.characterCount,
+          spatialPlanId: template.spatialPlanId,
+        },
+  )
   const shell: Puzzle = {
     id: puzzleId(`puzzle-${puzzleSeed}-${template.id}`),
     seed: puzzleSeed,
     difficulty: template.difficulty,
-    boardMode: 'logic-grid',
-    spatialPlanId: template.spatialPlanId,
+    boardMode: template.boardMode,
+    spatialPlanId: template.boardMode === 'logic-grid' ? template.spatialPlanId : undefined,
     theme: world.theme.id,
     title: world.theme.title,
     introduction: random.pick(world.theme.introductions),

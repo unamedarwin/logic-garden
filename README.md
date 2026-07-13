@@ -65,11 +65,12 @@ code.
 ## Unique seeded puzzles
 
 `src/generator/seededRandom.ts` implements a deterministic PRNG. Theme, characters,
-positions, solution, clue variants, and clue ordering all come from one seeded stream. The
-same generator version, difficulty, and seed therefore create the same puzzle.
+positions, solution, clue variants, and clue ordering all come from seeded streams. The same
+generator version, variant, audience, difficulty, and seed therefore create the same puzzle.
 
-Teen and adult games select one of 1,000 pre-generated structural templates. The catalog balances
-both audiences, all three difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans. A template
+Teen and adult games select one of 1,000 pre-generated structural templates. The catalog contains
+950 spatial templates across both audiences, all three difficulties, and `6 x 6`, `9 x 9`, and
+`16 x 16` plans, plus 50 hard `5 x 5 x 3` building templates split between teen and adult. A template
 contains compact generic clue tuples, geometry references, and difficulty metrics, but never an
 answer, name, avatar, localized phrase, concrete object, or profile value. The public seed then
 selects new people, room names, objects, and phrase variants. The solver always validates the
@@ -83,6 +84,14 @@ catalog never contain the internal answer.
 The solver uses backtracking with partial-constraint pruning, unique positions, and a
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
+
+The optional building mode presents 75 visual cells as three accessible floor slices. Only eight
+reviewed home anchors are logical destinations for five residents; shops, entrances, landings,
+stairs, and non-anchor cells are scenery and are blocked throughout generation, solving, reducer
+actions, and the DOM. Placing a resident crosses the complete row and column on that floor plus the
+same position one floor above and below; non-adjacent floors remain independent so the building can
+grow in height. Doors are non-interactive wall fixtures centered between adjacent cells, never objects
+that occupy a destination. See [`docs/building-system.md`](docs/building-system.md).
 
 ## Profiles, difficulty, and play
 
@@ -217,8 +226,8 @@ an offline status only when connectivity is lost. On a first mobile
 visit, Android receives the native install action when available; iPhone and iPad receive the
 short Share > Add to Home Screen instruction.
 
-Share links never contain the answer or profile data. They store a payload version, generator
-version, difficulty, seed, audience, and an optional bounded completion-time benchmark
+Share links never contain the answer or profile data. Payload schema 4 stores a generator version,
+variant, difficulty, seed, audience, and an optional bounded completion-time benchmark
 in a URL-safe Base64 payload:
 
 ```text
@@ -236,7 +245,7 @@ copy, creating a safe back-and-forth challenge without transmitting a player nam
 ## Persistence
 
 The local profile, preferences, statistics, and in-progress game are stored in IndexedDB
-through small safe wrappers. The schemas are versioned. An in-progress game is restored only
+through small safe wrappers. The schemas are versioned; in-progress games currently use schema 4. An in-progress game is restored only
 when its persistence schema and generator version are current, preventing old clues or geometry
 from leaking into a new release. If browser storage is unavailable, play still works without
 persistence.
@@ -252,7 +261,8 @@ When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:b
 `pnpm templates:repair` when a canonical integrity check finds duplicate clue sets whose only
 difference is clue order. The catalog
 builder may generate extra candidates and discard impossible geometry or duplicates, but it must
-stop at exactly 1,000 valid structures and retain all 18 audience/difficulty/size buckets.
+stop at exactly 1,000 valid structures and retain all 18 spatial audience/difficulty/size buckets
+plus the two hard building audience buckets.
 
 Planned product work is tracked in [`docs/product-backlog.md`](docs/product-backlog.md).
 

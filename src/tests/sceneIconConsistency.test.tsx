@@ -6,6 +6,28 @@ import { spatialPlanForGrid, spatialPlanForId } from '../domain/spatialPlan'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 
 describe('scene icon consistency', () => {
+  it('places scalable door icons on shared room boundaries', () => {
+    const puzzle = generatePuzzle('easy', 'room-doors', 'teens')
+    const sourcePlan = spatialPlanForId(puzzle.spatialPlanId)
+    if (!sourcePlan) throw new Error('Expected a spatial plan')
+    const size = Math.max(...puzzle.positions.map((position) => position.column)) + 1
+    const plan = spatialPlanForGrid(sourcePlan, size, size)
+    const { container } = render(
+      <GridObjectIcons
+        plan={plan}
+        positions={puzzle.positions}
+        assignments={{}}
+        locale="ca"
+        themeId={puzzle.theme}
+      />,
+    )
+
+    expect(
+      container.querySelectorAll('.grid-object-icons__door-marker').length,
+    ).toBeGreaterThan(0)
+    expect(container.querySelector('.grid-object-icons__door-marker svg')).toBeInTheDocument()
+  })
+
   it('uses the same local SVG key in an exact clue and on the board', async () => {
     const puzzle = generatePuzzle('easy', 'same-scene-icon', 'adults')
     const clue = puzzle.clues.find(

@@ -1,12 +1,14 @@
 import { difficultyConfigs } from '../generator/difficulty'
-import type { Audience, Difficulty, Locale } from '../domain/types'
+import type { Audience, Difficulty, Locale, PuzzleVariant } from '../domain/types'
 
 interface DifficultySelectorProps {
   readonly value: Difficulty
   readonly locale: Locale
   readonly audience: Audience
+  readonly variant: PuzzleVariant
   readonly label: string
   readonly onChange: (difficulty: Difficulty) => void
+  readonly onVariantChange: (variant: PuzzleVariant) => void
 }
 
 const labels: Record<Locale, Record<Difficulty, string>> = {
@@ -37,8 +39,10 @@ export const DifficultySelector = ({
   value,
   locale,
   audience,
+  variant,
   label,
   onChange,
+  onVariantChange,
 }: DifficultySelectorProps) => {
   const copy = audience === 'children' ? labels[locale] : logicGridLabels[locale]
 
@@ -48,18 +52,44 @@ export const DifficultySelector = ({
       {(Object.keys(difficultyConfigs) as Difficulty[]).map((difficulty) => (
         <label
           key={difficulty}
-          className={value === difficulty ? 'difficulty-selector__selected' : ''}
+          className={
+            value === difficulty && variant === 'spatial' ? 'difficulty-selector__selected' : ''
+          }
         >
           <input
             type="radio"
             name="difficulty"
             value={difficulty}
-            checked={value === difficulty}
-            onChange={() => onChange(difficulty)}
+            checked={value === difficulty && variant === 'spatial'}
+            onChange={() => {
+              onVariantChange('spatial')
+              onChange(difficulty)
+            }}
           />
           {copy[difficulty]}
         </label>
       ))}
+      {audience !== 'children' && (
+        <label className={variant === 'cube' ? 'difficulty-selector__selected' : ''}>
+          <input
+            type="radio"
+            name="difficulty"
+            value="cube"
+            checked={variant === 'cube'}
+            onChange={() => {
+              onChange('hard')
+              onVariantChange('cube')
+            }}
+          />
+          {
+            {
+              ca: 'Avançat 3D · edifici 5×5×3',
+              es: 'Avanzado 3D · edificio 5×5×3',
+              en: 'Advanced 3D · 5×5×3 building',
+            }[locale]
+          }
+        </label>
+      )}
     </fieldset>
   )
 }

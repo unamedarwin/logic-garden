@@ -1,19 +1,21 @@
 import { get, set } from 'idb-keyval'
-import type { Difficulty, Locale } from '../domain/types'
+import type { Difficulty, Locale, PuzzleVariant } from '../domain/types'
 
 const key = 'logic-garden:preferences:v1'
 
 export interface Preferences {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 2
   readonly difficulty: Difficulty
+  readonly puzzleVariant: PuzzleVariant
   readonly locale: Locale
   readonly soundEnabled: boolean
   readonly reducedMotion: boolean
 }
 
 export const defaultPreferences: Preferences = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   difficulty: 'easy',
+  puzzleVariant: 'spatial',
   locale: 'ca',
   soundEnabled: false,
   reducedMotion: false,
@@ -21,10 +23,18 @@ export const defaultPreferences: Preferences = {
 
 export const loadPreferences = async (): Promise<Preferences> => {
   try {
-    const stored = await get<Preferences>(key)
-    return stored?.schemaVersion === 1
-      ? { ...defaultPreferences, ...stored }
-      : defaultPreferences
+    const stored = await get<unknown>(key)
+    if (!stored || typeof stored !== 'object') return defaultPreferences
+    const candidate = stored as Record<string, unknown>
+    if (candidate.schemaVersion !== 1 && candidate.schemaVersion !== 2) {
+      return defaultPreferences
+    }
+    return {
+      ...defaultPreferences,
+      ...(candidate as Partial<Preferences>),
+      schemaVersion: 2,
+      puzzleVariant: candidate.puzzleVariant === 'cube' ? 'cube' : 'spatial',
+    }
   } catch {
     return defaultPreferences
   }
