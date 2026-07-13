@@ -9,10 +9,10 @@ players. A compact elevator changes floors without turning the board into a pers
 - The building contains 125 visual cells: 25 cells on each of five floors.
 - The ground floor contains shops, an entrance, a landing, and the stair core.
 - Floors one through four contain homes, shared landings, and the stair core.
-- Sixteen reviewed home anchors are solver destinations. Eight residents occupy eight of those
-  anchors; all other cells are blocked semantic scenery.
-- Shops, entrances, landings, stairs, and non-anchor home cells are rejected by the generator,
-  solver, reducer, and accessible controls.
+- Sixteen reviewed home anchors and two reviewed shop anchors are solver destinations. Every game
+  places two shopkeepers on the ground floor and six residents across all four residential floors.
+- Entrances, landings, stairs, shop fixtures, and non-anchor home or shop cells are rejected by the
+  generator, solver, reducer, and accessible controls.
 - Each floor is a complete orthogonal partition. Units touch along shared walls and never overlap
   or leave a gap.
 
@@ -21,17 +21,21 @@ conflict across the complete row and column. At the same row and column, the hei
 only the immediately adjacent floor above and below. Non-adjacent floors remain independent, which
 keeps the deduction load bounded if the model grows taller.
 
+Crossed anchors communicate that an existing placement conflicts with that destination; they do not
+form a dead end. Choosing one gives the new placement priority, returns every conflicting person to
+the waiting rail, announces the change, and records the whole operation as one reversible move.
+
 ## Elevator and scenery
 
 The elevator is visually independent from the active-floor frame, leaving the full mobile width for
 the `5 x 5` plan. It exposes floor buttons in ascending `PB, 1, 2, 3, 4` order, with lower-floor and
-upper-floor controls at the corresponding ends. The active floor, placed-resident count, and
+upper-floor controls at the corresponding ends. The active floor, placed-person count, and
 disabled limits are available without color, and arrow-key floor switching follows the same
 non-wrapping order. Switching floors never changes placements or timer state.
 
 Blocked cells use deterministic furniture, storage, plants, and shop fixtures from the same local
 Fluent SVG subset as the rest of the scene. The selection is seeded by the puzzle, respects each
-space type, remains behind the semantic controls, and never uses an icon carried by a resident.
+space type, remains behind the semantic controls, and never uses an icon carried by a person.
 Stairs stay visually clear, shared routes use sparse decoration, and decorations do not become
 solver objects or destinations.
 
@@ -47,7 +51,8 @@ plans.
 
 Building clues are structured facts localized only by the interface. The current families cover:
 
-- exact home and floor;
+- exact homes, shops, and floors;
+- shop opening, neighborhood service, and window-display details;
 - neighbors on the same landing;
 - directly above or below another resident;
 - the same or a different floor;
@@ -60,31 +65,36 @@ bare coordinates. Catalan, Spanish, and English use the same structured clue dat
 
 ## Generation and persistence
 
-Generator version 14 selects the plan, structural template, residents, objects, furniture, and
+Generator version 15 selects the plan, structural template, people, objects, furniture, and
 wording from seeded streams. The answer-free template catalog contains 950 spatial structures and
 50 building structures. The building subset contains 25 teen-themed and 25 adult-themed internal
 content structures while the player sees one unified 3D collection. Runtime materialization always
 reruns the solver with a two-solution limit before a puzzle is shown.
 
 Share payload schema 4 records the `cube` variant; saved-game schema 4 validates the 125-cell board,
-16 home anchors, eight residents, generator version, partial placements, and uniqueness before
+18 playable anchors, eight people, generator version, partial placements, and uniqueness before
 restoration. Neither format stores a solution or personal data.
+
+The in-game action rail exposes a native share action before completion. Its URL reproduces the
+current seed, audience, difficulty, variant, and generator version for testing or challenging
+someone, but deliberately omits placements and the answer.
 
 ## Quality gates
 
-- Assert exactly five layers, 125 visual cells, 16 playable anchors, and eight residents.
-- Assert that all generated assignments are unique, cover every residential floor, include a real
-  adjacent-floor relation, obey complete same-floor row/column lines, and apply height conflicts
+- Assert exactly five layers, 125 visual cells, 18 playable anchors, and eight people.
+- Assert that every solution uses both shop anchors, contains six home anchors, covers every
+  residential floor, includes a real adjacent-floor relation, obeys complete same-floor row/column
+  lines, and applies height conflicts
   only to immediately neighboring floors.
 - Verify that blocked building cells are never accepted by generation, solving, reducer actions,
   or semantic controls.
-- At `390 x 844`, inspect every floor with an empty board and a placed resident. The title, timer,
+- At `390 x 844`, inspect every floor with an empty board and a placed person. The title, timer,
   instruction, and fit/zoom controls must share compact rows above the detached elevator. Doors must remain
   centered on boundaries, cells and avatars must share one origin, and fit mode must not introduce
   horizontal or vertical board panning.
 - Keep mobile fit-mode cells at least 44 CSS pixels wide. The elevator and contextual clue rail must
   remain above the fixed action rail, including with wrapped clue copy.
 - Verify all five elevator destinations, contextual clues, click placement, keyboard placement,
-  dragging an already placed resident, exact drop preview, crossing on all three axes, and return
+  dragging an already placed person, exact drop preview, crossing on all three axes, and return
   navigation. A non-adjacent floor at the same row and column must remain available.
-- Reject furniture that covers a label, door, resident, destination, or carried-item icon.
+- Reject furniture that covers a label, door, person, destination, or carried-item icon.

@@ -54,7 +54,12 @@ describe('seeded puzzle generator', () => {
     expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
       new Set([0, 1, 2, 3, 4]),
     )
-    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(16)
+    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(18)
+    const occupied = Object.values(solution ?? {}).map((positionId) =>
+      puzzle.positions.find((position) => position.id === positionId),
+    )
+    expect(occupied.filter((position) => position?.buildingKind === 'shop')).toHaveLength(2)
+    expect(occupied.filter((position) => position?.buildingKind === 'home')).toHaveLength(6)
     expect(
       new Set(
         Object.values(solution ?? {}).map(
@@ -62,7 +67,23 @@ describe('seeded puzzle generator', () => {
             puzzle.positions.find((position) => position.id === positionId)?.layer,
         ),
       ),
-    ).toEqual(new Set([1, 2, 3, 4]))
+    ).toEqual(new Set([0, 1, 2, 3, 4]))
+    const shopClues = puzzle.clues.filter(
+      (clue) =>
+        clue.type === 'character-at-position' &&
+        puzzle.positions.find((position) => position.id === clue.positionId)?.buildingKind ===
+          'shop',
+    )
+    expect(shopClues).toHaveLength(2)
+    expect(
+      shopClues.every((clue) => /obre|botiga|atén/u.test(renderClue(puzzle, clue, 'ca'))),
+    ).toBe(true)
+    expect(
+      shopClues.every((clue) => /abre|tienda|atiende/u.test(renderClue(puzzle, clue, 'es'))),
+    ).toBe(true)
+    expect(
+      shopClues.every((clue) => /opens|shop|customers/u.test(renderClue(puzzle, clue, 'en'))),
+    ).toBe(true)
     expect(
       puzzle.clues.every((clue) =>
         solution ? isClueSatisfiedByPartialAssignment(puzzle, clue, solution) : false,

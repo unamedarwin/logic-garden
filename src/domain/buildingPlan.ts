@@ -51,7 +51,11 @@ const homeAnchors = new Set([
   '4:3:4',
 ])
 
+const shopAnchors = new Set(['0:1:0', '0:3:4'])
+
 export const BUILDING_HOME_COUNT = homeAnchors.size
+export const BUILDING_SHOP_COUNT = shopAnchors.size
+export const BUILDING_PLAYABLE_COUNT = BUILDING_HOME_COUNT + BUILDING_SHOP_COUNT
 
 export const buildingCellAt = (
   layer: number,
@@ -72,7 +76,8 @@ export const buildingCellAt = (
         : unitId === 'entrance'
           ? 'entrance'
           : 'landing'
-  return { unitId, kind, blocked: !homeAnchors.has(`${layer}:${row}:${column}`) }
+  const key = `${layer}:${row}:${column}`
+  return { unitId, kind, blocked: !homeAnchors.has(key) && !shopAnchors.has(key) }
 }
 
 const floorNames: Record<Locale, readonly string[]> = {
@@ -131,9 +136,9 @@ export const buildingFloorShortLabel = (locale: Locale, layer: number) =>
 
 export const buildingSummary = (locale: Locale) =>
   ({
-    ca: '5 plantes · 16 llars',
-    es: '5 plantas · 16 hogares',
-    en: '5 floors · 16 homes',
+    ca: '16 llars + 2 botigues',
+    es: '16 hogares + 2 tiendas',
+    en: '16 homes + 2 shops',
   })[locale]
 
 export const buildingUnitLabel = (locale: Locale, unitId: string, layer: number) => {

@@ -299,6 +299,136 @@ const cubeTemplates: Record<Locale, Templates> = {
   },
 }
 
+const cubeShopTemplates: Record<Locale, Templates> = {
+  ca: {
+    ...cubeTemplates.ca,
+    'character-at-position': [
+      '{a} obre «{p}» cada matí i prepara {i} per rebre el barri.',
+      'A «{p}», {a} atén el veïnat i té {i} a punt.',
+    ],
+    'character-not-at-position': ['{a} obre una altra botiga, no «{p}».'],
+    'character-in-place': ['{a} prepara l’aparador de «{p}» abans d’obrir.'],
+    'character-not-in-place': ['{a} treballa en una altra botiga de l’edifici, no «{p}».'],
+    'has-item': ['{a} prepara {i} per a l’aparador de la botiga.'],
+    'does-not-have-item': ['Avui, {a} mostra un altre objecte a l’aparador, no {i}.'],
+    adjacent: ['{a} i {b} atenen dos espais veïns i es donen un cop de mà.'],
+    'not-adjacent': ['{a} i {b} col·laboren, però els seus espais no tenen portes veïnes.'],
+    'same-floor': ['{a} i {b} obren les dues botigues de la planta baixa i s’ajuden.'],
+    'different-floor': [
+      'Una de les dues persones treballa a la planta baixa; {a} i {b} es troben a l’entrada.',
+    ],
+  },
+  es: {
+    ...cubeTemplates.es,
+    'character-at-position': [
+      '{a} abre «{p}» cada mañana y prepara {i} para recibir al barrio.',
+      'En «{p}», {a} atiende al vecindario y tiene {i} a punto.',
+    ],
+    'character-not-at-position': ['{a} abre otra tienda, no «{p}».'],
+    'character-in-place': ['{a} prepara el escaparate de «{p}» antes de abrir.'],
+    'character-not-in-place': ['{a} trabaja en otra tienda del edificio, no en «{p}».'],
+    'has-item': ['{a} prepara {i} para el escaparate de la tienda.'],
+    'does-not-have-item': ['Hoy, {a} muestra otro objeto en el escaparate, no {i}.'],
+    adjacent: ['{a} y {b} atienden dos espacios vecinos y se ayudan.'],
+    'not-adjacent': ['{a} y {b} colaboran, pero sus espacios no tienen puertas vecinas.'],
+    'same-floor': ['{a} y {b} abren las dos tiendas de la planta baja y se ayudan.'],
+    'different-floor': [
+      'Una de las dos personas trabaja en la planta baja; {a} y {b} se encuentran en la entrada.',
+    ],
+  },
+  en: {
+    ...cubeTemplates.en,
+    'character-at-position': [
+      '{a} opens “{p}” each morning and prepares {i} to welcome the neighborhood.',
+      'At “{p}”, {a} helps customers and keeps {i} ready.',
+    ],
+    'character-not-at-position': ['{a} opens another shop, not “{p}”.'],
+    'character-in-place': ['{a} prepares the window display at “{p}” before opening.'],
+    'character-not-in-place': ['{a} works in another shop in the building, not “{p}”.'],
+    'has-item': ['{a} prepares {i} for the shop window.'],
+    'does-not-have-item': ['Today, {a} displays another object, not {i}.'],
+    adjacent: ['{a} and {b} look after neighboring spaces and help each other.'],
+    'not-adjacent': [
+      '{a} and {b} work together, but their spaces do not have neighboring doors.',
+    ],
+    'same-floor': ['{a} and {b} open the two ground-floor shops and help each other.'],
+    'different-floor': [
+      'One of them works on the ground floor; {a} and {b} meet by the entrance.',
+    ],
+  },
+}
+
+const clueCharacterIds = (clue: Clue): readonly CharacterId[] => {
+  switch (clue.type) {
+    case 'character-at-position':
+    case 'character-not-at-position':
+    case 'character-in-place':
+    case 'character-not-in-place':
+    case 'in-corner':
+    case 'not-in-corner':
+    case 'character-next-to-obstacle':
+    case 'has-item':
+    case 'does-not-have-item':
+      return [clue.characterId]
+    case 'adjacent':
+    case 'not-adjacent':
+    case 'same-row':
+    case 'different-row':
+    case 'same-column':
+    case 'different-column':
+    case 'same-floor':
+    case 'different-floor':
+    case 'left-of':
+    case 'right-of':
+    case 'above':
+    case 'below':
+    case 'distance':
+      return [clue.firstCharacterId, clue.secondCharacterId]
+    case 'between':
+      return [clue.characterId, clue.firstCharacterId, clue.secondCharacterId]
+    case 'item-in-place':
+    case 'item-not-in-place':
+      return []
+  }
+}
+
+const isShopPlace = (puzzle: Puzzle, placeId: PlaceId) =>
+  puzzle.positions.some(
+    (position) => position.placeId === placeId && position.buildingKind === 'shop',
+  )
+
+const sellerCharacterIds = (puzzle: Puzzle) =>
+  new Set(
+    puzzle.clues.flatMap((clue) => {
+      if (clue.type === 'character-at-position') {
+        const position = puzzle.positions.find((candidate) => candidate.id === clue.positionId)
+        return position?.buildingKind === 'shop' ? [clue.characterId] : []
+      }
+      if (clue.type === 'character-in-place' && isShopPlace(puzzle, clue.placeId)) {
+        return [clue.characterId]
+      }
+      return []
+    }),
+  )
+
+const clueUsesShopCopy = (puzzle: Puzzle, clue: Clue) => {
+  if (clue.type === 'character-at-position' || clue.type === 'character-not-at-position') {
+    const position = puzzle.positions.find((candidate) => candidate.id === clue.positionId)
+    if (position?.buildingKind === 'shop') return true
+  }
+  if (
+    (clue.type === 'character-in-place' ||
+      clue.type === 'character-not-in-place' ||
+      clue.type === 'item-in-place' ||
+      clue.type === 'item-not-in-place') &&
+    isShopPlace(puzzle, clue.placeId)
+  ) {
+    return true
+  }
+  const sellers = sellerCharacterIds(puzzle)
+  return clueCharacterIds(clue).some((characterId) => sellers.has(characterId))
+}
+
 const valueOrFallback = <Id extends string>(
   values: readonly { readonly id: Id; readonly name?: string; readonly label?: string }[],
   id: Id,
@@ -468,7 +598,9 @@ export const renderClueParts = (
   const values = clueValues(puzzle, clue, locale)
   const templateSet =
     puzzle.boardMode === 'logic-cube'
-      ? cubeTemplates
+      ? clueUsesShopCopy(puzzle, clue)
+        ? cubeShopTemplates
+        : cubeTemplates
       : puzzle.boardMode === 'logic-grid'
         ? gridTemplates
         : mapTemplates

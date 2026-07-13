@@ -52,15 +52,17 @@ export const generateCandidateClues = (
     )
     const otherItem = puzzle.items.find((item) => item.id !== character.itemId)
 
-    add({
-      ...clueBase(
-        random,
-        isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
-        character.id,
-      ),
-      type: isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
-      characterId: character.id,
-    })
+    if (position.buildingKind !== 'shop') {
+      add({
+        ...clueBase(
+          random,
+          isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
+          character.id,
+        ),
+        type: isCornerPosition(puzzle.positions, position) ? 'in-corner' : 'not-in-corner',
+        characterId: character.id,
+      })
+    }
 
     if (puzzle.boardMode === 'logic-grid') {
       const adjacentObstacle = preferredLandmark(puzzle.positions, position, puzzle.difficulty)

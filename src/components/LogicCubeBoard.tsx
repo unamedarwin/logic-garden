@@ -229,11 +229,7 @@ export const LogicCubeBoard = ({
   const occupiedByOthers = placedPositions.filter(
     ({ characterId }) => characterId !== requestedCharacterId,
   )
-  const positionIsUnavailable = (position: Position) =>
-    Boolean(
-      position.blocked ||
-      occupiedByOthers.some((placement) => shareCubeAxisLine(placement.position, position)),
-    )
+  const positionIsUnavailable = (position: Position) => Boolean(position.blocked)
   const firstFocusable = visiblePositions.find((position) => !positionIsUnavailable(position))
   const [focusedPositionId, setFocusedPositionId] = useState<PositionId | undefined>()
   const focusTargetId = visiblePositions.some(
@@ -479,7 +475,7 @@ export const LogicCubeBoard = ({
                         selectedCharacterId={selectedCharacterId}
                         draggedCharacter={draggedCharacter}
                         decorativeEmoji={zoneAnchor ? undefined : decorativeFurniture(position)}
-                        crossed={!character && isCrossedByCubeAxes(position, placedPositions)}
+                        crossed={!character && isCrossedByCubeAxes(position, occupiedByOthers)}
                         disabled={positionIsUnavailable(position)}
                         zoneAnchor={zoneAnchor}
                         tabIndex={focusTargetId === position.id ? 0 : -1}

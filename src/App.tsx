@@ -833,6 +833,7 @@ export default function App() {
         <div className="game-actions__secondary">
           <button
             type="button"
+            className="game-action game-action--undo"
             onClick={() => runGameAction({ type: 'undo' })}
             disabled={game.past.length === 0}
           >
@@ -841,32 +842,46 @@ export default function App() {
           </button>
           <button
             type="button"
+            className="game-action game-action--redo"
             onClick={() => runGameAction({ type: 'redo' })}
             disabled={game.future.length === 0}
           >
             <Redo2 aria-hidden="true" />
             {t(preferences.locale, 'redo')}
           </button>
-          <button type="button" onClick={() => runGameAction({ type: 'reset' })}>
+          <button
+            type="button"
+            className="game-action game-action--restart"
+            onClick={() => runGameAction({ type: 'reset' })}
+          >
             <RotateCcw aria-hidden="true" />
             {t(preferences.locale, 'restart')}
           </button>
-          <button type="button" onClick={requestHint}>
+          <button type="button" className="game-action game-action--hint" onClick={requestHint}>
             <Lightbulb aria-hidden="true" />
             {t(preferences.locale, 'hint')}
           </button>
-          <button type="button" onClick={shareCurrentGame}>
+          <button
+            type="button"
+            className="game-action game-action--share"
+            onClick={shareCurrentGame}
+          >
             <Share2 aria-hidden="true" />
-            {t(preferences.locale, 'challengeSomeone')}
+            {t(preferences.locale, 'share')}
           </button>
         </div>
         <div className="game-actions__primary">
-          <button type="button" onClick={returnToHome}>
+          <button
+            type="button"
+            className="game-action game-action--home"
+            onClick={returnToHome}
+          >
             <Home aria-hidden="true" />
             {t(preferences.locale, 'changeDifficulty')}
           </button>
           <button
             type="button"
+            className="game-action game-action--new"
             onClick={() =>
               startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
             }
@@ -876,7 +891,7 @@ export default function App() {
           </button>
           <button
             type="button"
-            className="button"
+            className="button game-action game-action--check"
             onClick={() => runGameAction({ type: 'check' })}
           >
             <Check aria-hidden="true" />

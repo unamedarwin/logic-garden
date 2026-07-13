@@ -5,7 +5,7 @@ import { solve } from '../solver/solver'
 import { shareCubeAxisLine } from '../domain/constraints'
 
 describe('game reducer', () => {
-  it('rejects occupied horizontal, vertical, and height lines in the building', () => {
+  it('returns conflicting building occupants to waiting when a new placement takes priority', () => {
     const puzzle = generatePuzzle('hard', 'cube-reducer', 'adults', 'cube')
     const firstCharacter = puzzle.characters[0]!
     const secondCharacter = puzzle.characters[1]!
@@ -31,13 +31,22 @@ describe('game reducer', () => {
       characterId: firstCharacter.id,
       positionId: firstPosition.id,
     })
-    const rejected = gameReducer(state, {
+    const replaced = gameReducer(state, {
       type: 'move-character',
       characterId: secondCharacter.id,
       positionId: conflictingPlace.id,
     })
 
-    expect(rejected).toBe(state)
+    expect(replaced.assignments[firstCharacter.id]).toBeUndefined()
+    expect(replaced.assignments[secondCharacter.id]).toBe(conflictingPlace.id)
+    expect(replaced.feedback).toEqual({
+      type: 'placement-conflicts-cleared',
+      characterName: secondCharacter.name,
+      clearedCount: 1,
+    })
+    expect(gameReducer(replaced, { type: 'undo' }).assignments[firstCharacter.id]).toBe(
+      firstPosition.id,
+    )
   })
 
   it('moves characters with undo, redo, reset, and helpful incomplete feedback', () => {
@@ -169,7 +178,7 @@ describe('game reducer', () => {
     expect(unchanged.past).toHaveLength(1)
   })
 
-  it('rejects deduction-grid moves that reuse an occupied row or column', () => {
+  it('returns conflicting 2D occupants to waiting when a new placement takes priority', () => {
     const puzzle = generatePuzzle('easy', 'logic-grid-guard', 'teens')
     const [firstCharacter, secondCharacter] = puzzle.characters
     const firstPosition = puzzle.positions.find((position) => !position.blocked)
@@ -190,12 +199,17 @@ describe('game reducer', () => {
       characterId: firstCharacter.id,
       positionId: firstPosition.id,
     })
-    const guardedState = gameReducer(state, {
+    const replaced = gameReducer(state, {
       type: 'move-character',
       characterId: secondCharacter.id,
       positionId: blockedPosition.id,
     })
 
-    expect(guardedState).toBe(state)
+    expect(replaced.assignments[firstCharacter.id]).toBeUndefined()
+    expect(replaced.assignments[secondCharacter.id]).toBe(blockedPosition.id)
+    expect(replaced.feedback).toMatchObject({
+      type: 'placement-conflicts-cleared',
+      clearedCount: 1,
+    })
   })
 })

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
-import { shareUrl } from '../app/routes'
+import { parseSharedGameRoute, shareUrl } from '../app/routes'
 import { seed } from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
 
@@ -13,6 +13,7 @@ const dndMock = vi.hoisted(() => ({
   onDragEnd: undefined as
     ((event: { active: { id: string }; over: { id: string } | null }) => void) | undefined,
 }))
+const clipboardWriteText = vi.fn<(url: string) => Promise<void>>(() => Promise.resolve())
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({
@@ -103,6 +104,15 @@ describe('game interface', () => {
     dndMock.overId = null
     dndMock.onDragStart = undefined
     dndMock.onDragEnd = undefined
+    clipboardWriteText.mockClear()
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    })
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: undefined,
+    })
   })
 
   it('opens a timed shared mystery with a clear challenge dialog', async () => {
@@ -291,7 +301,7 @@ describe('game interface', () => {
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     expect(
       screen.getByRole('heading', {
-        name: "Tria una persona i una llar lliure de l'edifici.",
+        name: "Tria una persona i un espai lliure de l'edifici.",
       }),
     ).toBeInTheDocument()
   })
@@ -320,6 +330,30 @@ describe('game interface', () => {
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent(/Pista aplicada/u)
+  })
+
+  it('shares the reproducible puzzle link before the game is complete', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    })
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+
+    const hintButton = screen.getByRole('button', { name: 'Pista' })
+    const shareButton = screen.getByRole('button', { name: 'Compartir' })
+    expect(hintButton).toHaveClass('game-action--hint')
+    expect(shareButton).toHaveClass('game-action--share')
+
+    await user.click(shareButton)
+    await waitFor(() => expect(clipboardWriteText).toHaveBeenCalledOnce())
+    const sharedUrl = clipboardWriteText.mock.calls[0]?.[0]
+    if (!sharedUrl) throw new Error('Expected an in-progress share URL')
+    expect(parseSharedGameRoute(new URL(sharedUrl) as unknown as Location)).toMatchObject({
+      benchmarkSeconds: undefined,
+      generatorVersion: GENERATOR_VERSION,
+    })
   })
 
   it('keeps keyboard focus inside dialogs and restores it after Escape', async () => {

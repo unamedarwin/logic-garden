@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { LogicCubeBoard } from '../components/LogicCubeBoard'
+import { buildingFloorLabel } from '../domain/buildingPlan'
+import { shareCubeAxisLine } from '../domain/constraints'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 
 describe('5x5x5 building board', () => {
@@ -40,7 +42,7 @@ describe('5x5x5 building board', () => {
     ])
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     expect(container.querySelector('[data-grid-depth="5"]')).toBeInTheDocument()
-    expect(screen.getByText('5 plantes · 16 llars')).toBeInTheDocument()
+    expect(screen.getByText('16 llars + 2 botigues')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Ascensor' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
@@ -58,6 +60,9 @@ describe('5x5x5 building board', () => {
     const groundFloor = screen.getByRole('tab', { name: /Planta baixa/u })
     fireEvent.click(groundFloor)
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(2)
+    expect(
+      container.querySelectorAll('.logic-cube__cell--shop:not(.location-cell--blocked)'),
+    ).toHaveLength(2)
     fireEvent.keyDown(groundFloor, { key: 'ArrowRight' })
     expect(screen.getByRole('tab', { name: /Primer pis/u })).toHaveAttribute(
       'aria-selected',
@@ -68,14 +73,24 @@ describe('5x5x5 building board', () => {
   it('crosses the horizontal, vertical, and depth lines after a placement', () => {
     const puzzle = generatePuzzle('hard', 'cube-three-axes', 'teens', 'cube')
     const first = puzzle.characters[0]!
-    const firstPosition = puzzle.positions.find((position) => !position.blocked)!
+    const second = puzzle.characters[1]!
+    const firstPosition = puzzle.positions.find(
+      (position) =>
+        !position.blocked &&
+        puzzle.positions.some(
+          (candidate) =>
+            !candidate.blocked &&
+            candidate.id !== position.id &&
+            shareCubeAxisLine(position, candidate),
+        ),
+    )!
     const { container } = render(
       <LogicCubeBoard
         positions={puzzle.positions}
         characters={puzzle.characters}
         items={puzzle.items}
         assignments={{ [first.id]: firstPosition.id }}
-        selectedCharacterId={first.id}
+        selectedCharacterId={second.id}
         locale="ca"
         themeId={puzzle.theme}
         puzzleSeed={puzzle.seed}
@@ -91,8 +106,16 @@ describe('5x5x5 building board', () => {
       />,
     )
 
+    fireEvent.click(
+      screen.getByRole('tab', { name: buildingFloorLabel('ca', firstPosition.layer ?? 0) }),
+    )
     // Eight cells form the horizontal and vertical axes around the placed triple.
     expect(container.querySelectorAll('.location-cell--crossed')).toHaveLength(8)
+    expect(
+      container.querySelector<HTMLButtonElement>(
+        '.location-cell--crossed:not(.location-cell--blocked) .location-cell__target',
+      ),
+    ).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__layer--placed')).toHaveLength(1)
 
     const otherFloor = firstPosition.layer === 1 ? /Segon pis/u : /Primer pis/u

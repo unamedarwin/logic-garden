@@ -3,7 +3,7 @@ import {
   BUILDING_CHARACTER_COUNT,
   BUILDING_COLUMNS,
   BUILDING_DEPTH,
-  BUILDING_HOME_COUNT,
+  BUILDING_PLAYABLE_COUNT,
   BUILDING_ROWS,
   buildingCellAt,
   buildingPlaceIndex,
@@ -101,12 +101,23 @@ const selectBuildingPositions = (
   positions: readonly Position[],
   random: SeededRandom,
 ): readonly Position[] => {
-  const homes = positions.filter((position) => !position.blocked)
+  const shops = positions.filter(
+    (position) => !position.blocked && position.buildingKind === 'shop',
+  )
+  const homes = positions.filter(
+    (position) => !position.blocked && position.buildingKind === 'home',
+  )
+  if (shops.length !== 2) throw new Error('No s’han pogut preparar les dues botigues.')
   const communities: Position[][] = []
   const visit = (start: number, selected: readonly Position[]) => {
     if (selected.length === BUILDING_CHARACTER_COUNT) {
       const coversEveryResidentialFloor =
-        new Set(selected.map((position) => position.layer)).size === BUILDING_DEPTH - 1
+        new Set(
+          selected
+            .filter((position) => (position.layer ?? 0) > 0)
+            .map((position) => position.layer),
+        ).size ===
+        BUILDING_DEPTH - 1
       const hasVerticalRelation = selected.some((first, index) =>
         selected
           .slice(index + 1)
@@ -126,7 +137,7 @@ const selectBuildingPositions = (
       visit(index + 1, [...selected, candidate])
     }
   }
-  visit(0, [])
+  visit(0, shops)
   if (communities.length > 0) return random.shuffle(random.pick(communities))
 
   throw new Error('No s’ha pogut construir una comunitat de veïns coherent.')
@@ -424,7 +435,8 @@ export const generateWorld = (
             if (
               positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
               characters.length !== BUILDING_CHARACTER_COUNT ||
-              positions.filter((position) => !position.blocked).length !== BUILDING_HOME_COUNT
+              positions.filter((position) => !position.blocked).length !==
+                BUILDING_PLAYABLE_COUNT
             ) {
               throw new Error('No s’ha pogut construir l’edifici lògic 5×5×5.')
             }

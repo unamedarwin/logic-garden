@@ -124,7 +124,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Aventura',
     mapInstruction: 'Tria un amic i després un lloc del mapa.',
     logicGridInstruction: 'Tria una persona i una casella lliure.',
-    logicCubeInstruction: "Tria una persona i una llar lliure de l'edifici.",
+    logicCubeInstruction: "Tria una persona i un espai lliure de l'edifici.",
     returnToTray: 'Torna a la safata',
     noCharacterClue: 'Mira les pistes dels altres personatges.',
     timer: 'Temps',
@@ -195,7 +195,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Aventura',
     mapInstruction: 'Elige un amigo y después un lugar del mapa.',
     logicGridInstruction: 'Elige una persona y una casilla libre.',
-    logicCubeInstruction: 'Elige una persona y un hogar libre del edificio.',
+    logicCubeInstruction: 'Elige una persona y un espacio libre del edificio.',
     returnToTray: 'Volver a la bandeja',
     noCharacterClue: 'Mira las pistas de las otras personas.',
     timer: 'Tiempo',
@@ -266,7 +266,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     adventure: 'Adventure',
     mapInstruction: 'Choose a friend, then choose a place on the map.',
     logicGridInstruction: 'Choose a person and an empty space.',
-    logicCubeInstruction: 'Choose a person and an available home in the building.',
+    logicCubeInstruction: 'Choose a person and an available space in the building.',
     returnToTray: 'Return to tray',
     noCharacterClue: 'Check the clues for the other people.',
     timer: 'Time',
@@ -303,6 +303,7 @@ const gameFeedbackTemplates: Record<
     readonly assignmentIncomplete: string
     readonly assignmentIncorrect: string
     readonly assignmentCorrect: string
+    readonly placementConflictsCleared: (name: string, count: number) => string
     readonly hintPersonRequired: string
     readonly hintLimitReached: string
     readonly hintPuzzlePreparing: string
@@ -318,6 +319,8 @@ const gameFeedbackTemplates: Record<
     assignmentIncomplete: 'Encara hi ha algun amic sense lloc. Continua quan vulguis!',
     assignmentIncorrect: 'Gairebé! Revisa les pistes i prova una combinació diferent.',
     assignmentCorrect: 'Fantàstic! Has resolt el puzzle amb una gran deducció.',
+    placementConflictsCleared: (name, count) =>
+      `Hem fet lloc per a ${name}: ${count === 1 ? 'una persona torna' : `${count} persones tornen`} a l’espera. Pots desfer el canvi.`,
     hintPersonRequired: 'Tria la persona que necessita una pista.',
     hintLimitReached: 'Ja tens prou pistes per trobar l’últim lloc.',
     hintPuzzlePreparing: 'Aquest puzzle s’està preparant. Torna-ho a provar en un moment.',
@@ -335,6 +338,8 @@ const gameFeedbackTemplates: Record<
     assignmentIncomplete: '¡Aún falta colocar a alguien! Continúa cuando quieras.',
     assignmentIncorrect: '¡Casi! Revisa las pistas y prueba una combinación diferente.',
     assignmentCorrect: '¡Fantástico! Has resuelto el puzle con una gran deducción.',
+    placementConflictsCleared: (name, count) =>
+      `Hemos hecho sitio para ${name}: ${count === 1 ? 'una persona vuelve' : `${count} personas vuelven`} a la espera. Puedes deshacer el cambio.`,
     hintPersonRequired: 'Elige a la persona que necesita una pista.',
     hintLimitReached: 'Ya tienes suficientes pistas para encontrar el último lugar.',
     hintPuzzlePreparing: 'Este puzle se está preparando. Inténtalo de nuevo en un momento.',
@@ -352,6 +357,8 @@ const gameFeedbackTemplates: Record<
     assignmentIncomplete: 'Someone still needs a place. Keep going when you are ready!',
     assignmentIncorrect: 'Almost! Check the clues and try a different combination.',
     assignmentCorrect: 'Fantastic! You solved the puzzle with careful deduction.',
+    placementConflictsCleared: (name, count) =>
+      `We made room for ${name}: ${count === 1 ? 'one person returns' : `${count} people return`} to the waiting area. You can undo this change.`,
     hintPersonRequired: 'Choose the person who needs a hint.',
     hintLimitReached: 'You have enough hints to find the final place.',
     hintPuzzlePreparing: 'This puzzle is still getting ready. Try again in a moment.',
@@ -376,6 +383,8 @@ export const gameFeedbackCopy = (locale: Locale, feedback: GameFeedback) => {
       return copy.assignmentIncorrect
     case 'assignment-correct':
       return copy.assignmentCorrect
+    case 'placement-conflicts-cleared':
+      return copy.placementConflictsCleared(feedback.characterName, feedback.clearedCount)
     case 'hint-person-required':
       return copy.hintPersonRequired
     case 'hint-limit-reached':
@@ -557,7 +566,7 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Puzzles 3D',
-      description: 'Veïns, llars i cinc pisos',
+      description: 'Botigues, veïns i cinc pisos',
       detail: 'Edifici 5×5×5',
       eyebrow: 'Deducció en alçada',
       title: 'Resol tot un edifici, pis a pis.',
@@ -580,7 +589,7 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Puzles 3D',
-      description: 'Vecinos, hogares y cinco plantas',
+      description: 'Tiendas, vecinos y cinco plantas',
       detail: 'Edificio 5×5×5',
       eyebrow: 'Deducción en altura',
       title: 'Resuelve todo un edificio, planta a planta.',
@@ -603,7 +612,7 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: '3D puzzles',
-      description: 'Neighbors, homes, and five floors',
+      description: 'Shops, neighbors, and five floors',
       detail: '5×5×5 building',
       eyebrow: 'Deduction with height',
       title: 'Solve a whole building, floor by floor.',

@@ -87,10 +87,10 @@ minimum-remaining-values variable order. It stops when it reaches the requested 
 limit, normally two for uniqueness checking.
 
 The 3D collection presents 125 visual cells as five accessible floor slices. Sixteen reviewed home
-anchors on four residential floors are logical destinations for eight residents; ground-floor
-shops, entrances, landings, stairs, and non-anchor cells are scenery and are blocked throughout
-generation, solving, reducer actions, and the DOM. Placing a resident crosses the complete row and
-column on that floor plus the same position one floor above and below; non-adjacent floors remain
+anchors and two ground-floor shop anchors are logical destinations for two shopkeepers and six
+residents; entrances, landings, stairs, fixtures, and non-anchor cells remain blocked throughout
+generation, solving, reducer actions, and the DOM. A placement crosses the complete row and column
+on that floor plus the same position one floor above and below; non-adjacent floors remain
 independent so the model can grow further in height. A detached elevator ordered from ground floor
 to fourth floor switches floors without narrowing or hiding the active plan. Doors are
 non-interactive wall fixtures centered between adjacent cells,
@@ -131,13 +131,18 @@ difficulty and never dictates the number of people. The seeded selector chooses 
 sizes first, with equal probability, and only then chooses a template from that size. Easy
 templates keep landmark choices narrow, while harder templates allow broader candidate domains.
 Groups target 4, 6, and 8 people and are capped by the selected grid dimension. Visible scenery
-blocks selected cells, and occupied rows and columns are blocked
-in both the interface and the reducer, so drag interactions cannot bypass either rule. The game
-provides visible focus, ARIA live announcements,
+blocks selected cells, while occupied rows and columns are crossed. Choosing a crossed destination
+returns incompatible occupants to the waiting rail in one reversible move, so drag interactions
+preserve the deduction rule without trapping the next person. The game provides visible focus,
+ARIA live announcements,
 44-pixel touch targets, and reduced-motion support. A selected person can receive a
 solver-derived placement hint; at most all but one person can be placed this way. When nobody is
 selected, the game asks who needs the hint. Hints are derived from the solver, never a stored
 answer.
+
+On deduction boards, a crossed destination remains selectable. Moving a person there gives the new
+placement priority and returns every incompatible occupant to the waiting rail in the same reversible
+move, preventing an earlier guess from trapping a later person.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can
@@ -198,7 +203,7 @@ contextual clue stay in one workspace. The full clue list remains an optional co
 panel rather than a separate view. Every plan fits the available width by default, including
 `9 x 9` and `16 x 16`; there is no internal board scroll in fit mode. Players can explicitly zoom
 from 100% to 250%, at which point only the enlarged board can be moved within its viewport. A
-compact fixed action rail keeps hint, undo, sharing, and validation available without scrolling
+compact fixed action rail fits hint, undo, sharing, and validation without horizontal scrolling
 to the page end. The mobile adventure banner and rail spacing compact without shrinking the map
 or action targets, leaving the contextual clue fully above that fixed rail. A visible game counter
 records elapsed time without blocking play. New games
@@ -231,7 +236,8 @@ an offline status only when connectivity is lost. On a first mobile
 visit, Android receives the native install action when available; iPhone and iPad receive the
 short Share > Add to Home Screen instruction.
 
-Share links never contain the answer or personal data. Payload schema 4 stores a generator version,
+Share links are available during play and after completion, and never contain the answer or
+personal data. Payload schema 4 stores a generator version,
 variant, difficulty, seed, audience, and an optional bounded completion-time benchmark
 in a URL-safe Base64 payload:
 

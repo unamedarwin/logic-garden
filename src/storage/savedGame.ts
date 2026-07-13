@@ -4,7 +4,7 @@ import {
   BUILDING_CHARACTER_COUNT,
   BUILDING_COLUMNS,
   BUILDING_DEPTH,
-  BUILDING_HOME_COUNT,
+  BUILDING_PLAYABLE_COUNT,
   BUILDING_ROWS,
 } from '../domain/buildingPlan'
 import type { GameState } from '../game/gameReducer'
@@ -45,7 +45,8 @@ const isCompatibleState = (value: unknown): value is GameState => {
     if (
       puzzle.positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
       puzzle.characters.length !== BUILDING_CHARACTER_COUNT ||
-      puzzle.positions.filter((position) => !position.blocked).length !== BUILDING_HOME_COUNT ||
+      puzzle.positions.filter((position) => !position.blocked).length !==
+        BUILDING_PLAYABLE_COUNT ||
       layers.size !== BUILDING_DEPTH ||
       !Array.from({ length: BUILDING_DEPTH }, (_, layer) => layer).every((layer) =>
         layers.has(layer),

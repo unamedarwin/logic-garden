@@ -150,6 +150,12 @@ export const generatePuzzleDirect = (
       const cubeAnchors =
         world.boardMode === 'logic-cube'
           ? [
+              ...orderedCandidates.filter(
+                (clue) =>
+                  clue.type === 'character-at-position' &&
+                  world.positions.find((position) => position.id === clue.positionId)
+                    ?.buildingKind === 'shop',
+              ),
               ...orderedCandidates.filter((clue) => clue.type === 'same-floor').slice(0, 1),
               ...orderedCandidates
                 .filter((clue) => clue.type === 'above' || clue.type === 'below')
@@ -160,11 +166,21 @@ export const generatePuzzleDirect = (
       // Landmark clues keep each initial domain small. Exact cells are a fallback,
       // never the main clue list, so the player still has a real deduction to make.
       const maximumExactClues = Math.max(1, basePuzzle.characters.length - 1)
+      const shopExactCandidates = orderedCandidates.filter(
+        (clue) =>
+          clue.type === 'character-at-position' &&
+          world.positions.find((position) => position.id === clue.positionId)?.buildingKind ===
+            'shop',
+      )
+      const shopExactIds = new Set(shopExactCandidates.map((clue) => clue.id))
       const spatialFallbacks =
         world.boardMode === 'logic-grid' || world.boardMode === 'logic-cube'
-          ? orderedCandidates
-              .filter((clue) => clue.type === 'character-at-position')
-              .slice(0, maximumExactClues)
+          ? [
+              ...shopExactCandidates,
+              ...orderedCandidates.filter(
+                (clue) => clue.type === 'character-at-position' && !shopExactIds.has(clue.id),
+              ),
+            ].slice(0, maximumExactClues)
           : []
       const spatialFallbackIds = new Set(spatialFallbacks.map((clue) => clue.id))
       const narrativeAnchors =

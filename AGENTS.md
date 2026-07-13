@@ -145,9 +145,10 @@ Anchor solutions must sit beside a visible obstacle so exact localized clues can
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
 The advanced building board contains five `5 x 5` floor slices, 125 visual cells, 16 playable
-home anchors, and eight residents. The ground floor provides shared services and four residential
-floors provide the homes. Shops, entrance cells, landings, stairs, and non-anchor home
-cells are blocked scenery in every layer of the architecture. Placed residents conflict across the
+home anchors, two playable shop anchors, and eight people. Every generated solution uses two
+ground-floor shopkeepers and six residents across all four residential floors. Entrance cells,
+landings, stairs, shop fixtures, and non-anchor home or shop cells are blocked scenery in every
+layer of the architecture. Placed people conflict across the
 complete row and column of their current floor. A height conflict at the same row and column reaches
 only the immediately adjacent floor above and below, so adding more floors does not create an
 unbounded full-height exclusion.
@@ -160,9 +161,11 @@ advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
 must not consume either cell, alter solver geometry, obscure a target, or receive pointer events.
 Home and shop doors should face a landing, stair, or entrance route where the floor plan allows it.
+Use structured shop clues for the ground-floor people, with localized social copy about opening,
+helping the neighborhood, and preparing displays. Do not describe a shopkeeper as living in a shop.
 Decorate blocked building cells with seeded local furniture, storage, plants, and shop fixtures.
 Keep this scenery behind interaction, sparse in shared routes, absent from stairs, disjoint from
-resident-carried item icons, and semantically inert.
+person-carried item icons, and semantically inert.
 
 The app must not ask for or store a player name or avatar. Shared URLs may contain a version, audience,
 difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a

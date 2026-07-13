@@ -180,7 +180,6 @@ export const GameBoard = ({
   )
   const crossedRows = new Set(occupiedGridPositions.map((position) => position.row))
   const crossedColumns = new Set(occupiedGridPositions.map((position) => position.column))
-  const occupiedByOtherIds = new Set(Object.values(assignmentsWithoutSelected))
   const sourceSpatialPlan =
     boardMode === 'logic-grid' && audience !== 'children'
       ? (spatialPlanForId(spatialPlanId) ?? defaultSpatialPlanFor(audience))
@@ -188,13 +187,7 @@ export const GameBoard = ({
   const spatialPlan = sourceSpatialPlan
     ? spatialPlanForGrid(sourceSpatialPlan, columns, rows)
     : undefined
-  const positionIsUnavailable = (position: Position) =>
-    Boolean(
-      position.blocked ||
-      (boardMode === 'logic-grid' && occupiedByOtherIds.has(position.id)) ||
-      (boardMode === 'logic-grid' &&
-        (crossedRows.has(position.row) || crossedColumns.has(position.column))),
-    )
+  const positionIsUnavailable = (position: Position) => Boolean(position.blocked)
   const firstFocusablePosition = positions.find((position) => !positionIsUnavailable(position))
   const [focusedPositionId, setFocusedPositionId] = useState<PositionId | undefined>(
     firstFocusablePosition?.id,
