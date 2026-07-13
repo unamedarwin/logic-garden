@@ -50,6 +50,8 @@ import {
   type Statistics,
 } from './storage/statistics'
 
+const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
 const emptyStatistics: Statistics = {
   schemaVersion: 2,
   completed: 0,
@@ -190,6 +192,7 @@ export default function App() {
       setGame(nextGame)
       setShowHintPicker(false)
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
+      resetPageScroll()
       setNotice('')
     } catch {
       setNotice('No hem pogut preparar aquesta aventura. Prova una partida nova.')
@@ -203,6 +206,7 @@ export default function App() {
     setShowHintPicker(false)
     void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    resetPageScroll()
     setNotice('')
   }
 
@@ -213,6 +217,7 @@ export default function App() {
     setGame(null)
     setEditingProfile(false)
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
+    resetPageScroll()
   }
 
   const runGameAction = (action: GameAction) => {

@@ -128,7 +128,8 @@ buttons.
 On narrow screens, the plan, horizontally scrollable people rail, and the selected person's
 contextual clue stay in one workspace. The full clue list remains an optional collapsed support
 panel rather than a separate view. A visible game counter records elapsed time without blocking
-play.
+play. Screen transitions reset the document scroll so a new game always opens from its header and
+board rather than inheriting the previous selector position.
 
 ## Languages and wording
 

@@ -71,6 +71,7 @@ describe('game interface', () => {
     const { container } = render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
 
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' })
     expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
     const token = container.querySelector('[data-character-id]') as HTMLButtonElement
     token.focus()
