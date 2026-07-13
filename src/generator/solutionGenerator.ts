@@ -107,38 +107,61 @@ const selectBuildingPositions = (
   const homes = positions.filter(
     (position) => !position.blocked && position.buildingKind === 'home',
   )
-  if (shops.length !== 2) throw new Error('No s’han pogut preparar les dues botigues.')
-  const communities: Position[][] = []
-  const visit = (start: number, selected: readonly Position[]) => {
-    if (selected.length === BUILDING_CHARACTER_COUNT) {
-      const coversEveryResidentialFloor =
-        new Set(
-          selected
-            .filter((position) => (position.layer ?? 0) > 0)
-            .map((position) => position.layer),
-        ).size ===
-        BUILDING_DEPTH - 1
-      const hasVerticalRelation = selected.some((first, index) =>
-        selected
-          .slice(index + 1)
-          .some((second) => isBuildingAbove(first, second) || isBuildingAbove(second, first)),
-      )
-      const hasNeighborRelation = selected.some((first, index) =>
-        selected.slice(index + 1).some((second) => buildingUnitsAreNeighbors(first, second)),
-      )
-      if (coversEveryResidentialFloor && hasVerticalRelation && hasNeighborRelation) {
-        communities.push([...selected])
+  const shopUnitIds = [
+    ...new Set(
+      shops
+        .map((position) => position.buildingUnitId)
+        .filter((unitId): unitId is string => unitId !== undefined),
+    ),
+  ]
+  if (shopUnitIds.length !== 2) throw new Error('No s’han pogut preparar les dues botigues.')
+
+  const firstShop = shops.filter((position) => position.buildingUnitId === shopUnitIds[0])
+  const secondShop = shops.filter((position) => position.buildingUnitId === shopUnitIds[1])
+  const shopPairs = firstShop.flatMap((first) =>
+    secondShop
+      .filter((second) => !shareCubeAxisLine(first, second))
+      .map((second) => [first, second] as const),
+  )
+  if (shopPairs.length === 0)
+    throw new Error('Les dues botigues no tenen accessos compatibles.')
+  const residentialFloors = Array.from({ length: BUILDING_DEPTH - 1 }, (_, index) => index + 1)
+
+  // A bounded constructive search scales with the enlarged set of genuinely free
+  // cells without enumerating every six-position combination.
+  for (let attempt = 0; attempt < 2_000; attempt += 1) {
+    const selected: Position[] = [...random.pick(shopPairs)]
+    let failed = false
+    for (const layer of random.shuffle(residentialFloors)) {
+      const candidate = random
+        .shuffle(homes.filter((position) => position.layer === layer))
+        .find((position) => !selected.some((occupied) => shareCubeAxisLine(occupied, position)))
+      if (!candidate) {
+        failed = true
+        break
       }
-      return
+      selected.push(candidate)
     }
-    for (let index = start; index < homes.length; index += 1) {
-      const candidate = homes[index]!
+    if (failed) continue
+
+    for (const candidate of random.shuffle(homes)) {
+      if (selected.length >= BUILDING_CHARACTER_COUNT) break
+      if (selected.some((position) => position.id === candidate.id)) continue
       if (selected.some((position) => shareCubeAxisLine(position, candidate))) continue
-      visit(index + 1, [...selected, candidate])
+      selected.push(candidate)
     }
+    if (selected.length !== BUILDING_CHARACTER_COUNT) continue
+
+    const hasVerticalRelation = selected.some((first, index) =>
+      selected
+        .slice(index + 1)
+        .some((second) => isBuildingAbove(first, second) || isBuildingAbove(second, first)),
+    )
+    const hasNeighborRelation = selected.some((first, index) =>
+      selected.slice(index + 1).some((second) => buildingUnitsAreNeighbors(first, second)),
+    )
+    if (hasVerticalRelation && hasNeighborRelation) return random.shuffle(selected)
   }
-  visit(0, shops)
-  if (communities.length > 0) return random.shuffle(random.pick(communities))
 
   throw new Error('No s’ha pogut construir una comunitat de veïns coherent.')
 }

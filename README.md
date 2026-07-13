@@ -86,10 +86,11 @@ The solver uses backtracking with partial-constraint pruning, unique positions, 
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
 
-The 3D collection presents 125 visual cells as five accessible floor slices. Sixteen reviewed home
-anchors and two ground-floor shop anchors are logical destinations for two shopkeepers and six
-residents; entrances, landings, stairs, fixtures, and non-anchor cells remain blocked throughout
-generation, solving, reducer actions, and the DOM. A placement crosses the complete row and column
+The 3D collection presents 125 visual cells as five accessible floor slices. Its 16 homes and two
+ground-floor shops provide 66 genuinely playable cells for two shopkeepers and six residents;
+entrances, landings, stairs, and 30 visible room fixtures remain blocked throughout generation,
+solving, reducer actions, and the DOM. A room cell without a visible fixture is never disabled just
+because it is absent from the final solution. A placement crosses the complete row and column
 on that floor plus the same position one floor above and below; non-adjacent floors remain
 independent so the model can grow further in height. A detached elevator ordered from ground floor
 to fourth floor switches floors without narrowing or hiding the active plan. Doors are
@@ -143,6 +144,10 @@ answer.
 On deduction boards, a crossed destination remains selectable. Moving a person there gives the new
 placement priority and returns every incompatible occupant to the waiting rail in the same reversible
 move, preventing an earlier guess from trapping a later person.
+
+Wrong deductions are part of play: any physically free cell accepts a person even when the clues make
+that hypothesis incorrect. `Comprovar` evaluates clue truth, while local persistence retains valid
+wrong guesses instead of silently correcting them on reload.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can

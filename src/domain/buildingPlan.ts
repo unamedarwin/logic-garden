@@ -32,30 +32,40 @@ const residentialFloor = [
 const unitAt = (layer: number, row: number, column: number) =>
   (layer === 0 ? groundFloor : residentialFloor)[row]?.[column]
 
-const homeAnchors = new Set([
-  '1:0:0',
-  '1:0:4',
-  '1:4:0',
-  '1:4:4',
+// Every blocked room cell receives visible furniture in LogicCubeBoard. All other
+// home and shop cells are genuine solver and interaction candidates.
+const fixtureCells = new Set([
+  '0:0:1',
+  '0:2:0',
+  '0:3:1',
+  '0:0:3',
+  '0:1:4',
+  '0:3:3',
+  '1:0:1',
+  '1:2:0',
+  '1:0:3',
+  '1:2:4',
+  '1:3:1',
+  '1:4:3',
   '2:0:0',
-  '2:1:4',
-  '2:4:1',
-  '2:3:3',
-  '3:1:0',
-  '3:1:4',
-  '3:4:1',
-  '3:3:4',
-  '4:1:1',
+  '2:2:1',
+  '2:0:4',
+  '2:2:3',
+  '2:4:0',
+  '2:3:4',
+  '3:0:1',
+  '3:2:0',
+  '3:1:3',
+  '3:2:4',
+  '3:3:0',
+  '3:4:4',
+  '4:1:0',
+  '4:2:1',
   '4:0:3',
-  '4:4:0',
-  '4:3:4',
+  '4:1:4',
+  '4:4:1',
+  '4:3:3',
 ])
-
-const shopAnchors = new Set(['0:1:0', '0:3:4'])
-
-export const BUILDING_HOME_COUNT = homeAnchors.size
-export const BUILDING_SHOP_COUNT = shopAnchors.size
-export const BUILDING_PLAYABLE_COUNT = BUILDING_HOME_COUNT + BUILDING_SHOP_COUNT
 
 export const buildingCellAt = (
   layer: number,
@@ -77,8 +87,28 @@ export const buildingCellAt = (
           ? 'entrance'
           : 'landing'
   const key = `${layer}:${row}:${column}`
-  return { unitId, kind, blocked: !homeAnchors.has(key) && !shopAnchors.has(key) }
+  const isRoom = kind === 'home' || kind === 'shop'
+  return { unitId, kind, blocked: !isRoom || fixtureCells.has(key) }
 }
+
+const playableBuildingCells = Array.from(
+  { length: BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS },
+  (_, index) => {
+    const floorSize = BUILDING_ROWS * BUILDING_COLUMNS
+    const layer = Math.floor(index / floorSize)
+    const row = Math.floor((index % floorSize) / BUILDING_COLUMNS)
+    const column = index % BUILDING_COLUMNS
+    return buildingCellAt(layer, row, column)
+  },
+).filter((cell) => !cell.blocked)
+
+export const BUILDING_HOME_COUNT = playableBuildingCells.filter(
+  (cell) => cell.kind === 'home',
+).length
+export const BUILDING_SHOP_COUNT = playableBuildingCells.filter(
+  (cell) => cell.kind === 'shop',
+).length
+export const BUILDING_PLAYABLE_COUNT = playableBuildingCells.length
 
 const floorNames: Record<Locale, readonly string[]> = {
   ca: ['Planta baixa', 'Primer pis', 'Segon pis', 'Tercer pis', 'Quart pis'],

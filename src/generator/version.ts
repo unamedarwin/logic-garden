@@ -1,2 +1,2 @@
-export const GENERATOR_VERSION = 15
+export const GENERATOR_VERSION = 16
 export const FIVE_FLOOR_BUILDING_VERSION = 14

@@ -5,6 +5,30 @@ import { solve } from '../solver/solver'
 import { shareCubeAxisLine } from '../domain/constraints'
 
 describe('game reducer', () => {
+  it('accepts an incorrect hypothesis on a visually free building cell', () => {
+    const puzzle = generatePuzzle(
+      'hard',
+      '9aa77f1d-ba34-4c96-9767-01dee5543847',
+      'adults',
+      'cube',
+    )
+    const estel = puzzle.characters.find((character) => character.name === 'Estel')
+    const target = puzzle.positions.find((position) => position.id === 'position-3-1-1')
+    const solution = solve(puzzle)
+    if (!estel || !target || !solution) throw new Error('Expected the shared regression puzzle')
+
+    expect(target.blocked).toBe(false)
+    expect(solution[estel.id]).not.toBe(target.id)
+    const state = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: estel.id,
+      positionId: target.id,
+    })
+
+    expect(state.assignments[estel.id]).toBe(target.id)
+    expect(state.moves).toBe(1)
+  })
+
   it('returns conflicting building occupants to waiting when a new placement takes priority', () => {
     const puzzle = generatePuzzle('hard', 'cube-reducer', 'adults', 'cube')
     const firstCharacter = puzzle.characters[0]!

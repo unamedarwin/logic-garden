@@ -54,7 +54,10 @@ describe('seeded puzzle generator', () => {
     expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
       new Set([0, 1, 2, 3, 4]),
     )
-    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(18)
+    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(66)
+    expect(puzzle.positions.find((position) => position.id === 'position-3-1-1')?.blocked).toBe(
+      false,
+    )
     const occupied = Object.values(solution ?? {}).map((positionId) =>
       puzzle.positions.find((position) => position.id === positionId),
     )

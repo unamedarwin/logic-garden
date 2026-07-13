@@ -1,6 +1,6 @@
 import { get, set } from 'idb-keyval'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createGameState } from '../game/gameReducer'
+import { createGameState, gameReducer } from '../game/gameReducer'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { GENERATOR_VERSION } from '../generator/version'
 import { loadSavedGame, saveGame } from '../storage/savedGame'
@@ -76,5 +76,29 @@ describe('saved game compatibility', () => {
     })
 
     await expect(loadSavedGame()).resolves.toEqual({ state, challenge })
+  })
+
+  it('restores a structurally valid wrong deduction', async () => {
+    const puzzle = generatePuzzle(
+      'hard',
+      '9aa77f1d-ba34-4c96-9767-01dee5543847',
+      'adults',
+      'cube',
+    )
+    const estel = puzzle.characters.find((character) => character.name === 'Estel')
+    const target = puzzle.positions.find((position) => position.id === 'position-3-1-1')
+    if (!estel || !target) throw new Error('Expected the shared regression puzzle')
+    const wrongState = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: estel.id,
+      positionId: target.id,
+    })
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state: wrongState,
+    })
+
+    await expect(loadSavedGame()).resolves.toEqual({ state: wrongState })
   })
 })

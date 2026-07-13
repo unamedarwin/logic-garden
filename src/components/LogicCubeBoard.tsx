@@ -261,9 +261,10 @@ export const LogicCubeBoard = ({
     )
     if (catalog.length === 0) return undefined
     const hash = decorationHash(position)
-    const densityDivisor =
-      position.buildingKind === 'home' || position.buildingKind === 'shop' ? 4 : 2
-    if (hash % densityDivisor === 0) return undefined
+    // Room blockers must never look like empty playable floor. Shared routes can
+    // remain sparse because their different material already communicates access.
+    if (position.buildingKind !== 'home' && position.buildingKind !== 'shop' && hash % 2 === 0)
+      return undefined
     return catalog[hash % catalog.length]
   }
   const floorDoors = new Map<
@@ -463,9 +464,13 @@ export const LogicCubeBoard = ({
                     const character = characters.find(
                       (candidate) => assignments[candidate.id] === position.id,
                     )
+                    const unitPositions = visiblePositions.filter(
+                      (candidate) => candidate.placeId === position.placeId,
+                    )
                     const zoneAnchor =
-                      visiblePositions.find(
-                        (candidate) => candidate.placeId === position.placeId,
+                      (
+                        unitPositions.find((candidate) => !candidate.blocked) ??
+                        unitPositions[0]
                       )?.id === position.id
                     return (
                       <CubeCell

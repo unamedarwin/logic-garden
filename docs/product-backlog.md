@@ -16,8 +16,9 @@
 
 ## Advanced three-dimensional puzzles: published foundation
 
-- The first model is a `5 x 5 x 5` building with five accessible floor slices, 16 semantic home
-  anchors, two shop anchors, eight people, and crossing on horizontal, vertical, and height axes.
+- The first model is a `5 x 5 x 5` building with five accessible floor slices, 16 semantic homes,
+  two shops, 66 playable room cells, eight people, and crossing on horizontal, vertical, and height
+  axes.
 - The answer-free catalog reserves 50 hard building templates, split between teen and adult.
   Runtime materialization is still checked with a two-solution limit.
 - The elevator, deterministic furniture and plants, local SVG rendering, shopkeeper clues, and

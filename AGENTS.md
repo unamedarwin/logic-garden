@@ -144,11 +144,13 @@ Every spatial position must inherit its `placeId` from the room polygon that con
 Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
-The advanced building board contains five `5 x 5` floor slices, 125 visual cells, 16 playable
-home anchors, two playable shop anchors, and eight people. Every generated solution uses two
-ground-floor shopkeepers and six residents across all four residential floors. Entrance cells,
-landings, stairs, shop fixtures, and non-anchor home or shop cells are blocked scenery in every
-layer of the architecture. Placed people conflict across the
+The advanced building board contains five `5 x 5` floor slices, 125 visual cells, 56 playable
+home cells, 10 playable shop cells, and eight people across 16 semantic homes and two shops. Every
+generated solution uses two ground-floor shopkeepers and six residents across all four residential
+floors. Entrance cells, landings, stairs, and 30 curated room-fixture cells are blocked scenery.
+Every blocked home or shop cell must show a visible object; every visually empty home or shop cell
+must remain a genuine solver, reducer, and DOM candidate even when it is not part of the final
+solution. Placed people conflict across the
 complete row and column of their current floor. A height conflict at the same row and column reaches
 only the immediately adjacent floor above and below, so adding more floors does not create an
 unbounded full-height exclusion.
@@ -166,6 +168,9 @@ helping the neighborhood, and preparing displays. Do not describe a shopkeeper a
 Decorate blocked building cells with seeded local furniture, storage, plants, and shop fixtures.
 Keep this scenery behind interaction, sparse in shared routes, absent from stairs, disjoint from
 person-carried item icons, and semantically inert.
+Accept clue-incorrect placements as normal player hypotheses. Validate clue truth only when solving,
+checking, or producing a hint; persist structurally valid wrong guesses so reload never corrects the
+player by silently discarding an error.
 
 The app must not ask for or store a player name or avatar. Shared URLs may contain a version, audience,
 difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
@@ -201,3 +206,5 @@ switching, 25 cells per slice, exact avatar/drop-preview centers, and crossed de
 horizontal and vertical axes plus the neighboring-floor height axis, without unintended fit-mode
 panning. A non-adjacent floor at the same row and column must remain available. Verify that seeded
 furniture and plants neither cover controls nor reuse a resident's carried item icon.
+For every floor, verify that each blocked room cell has visible furniture and each room cell without
+furniture is enabled. Include a known non-solution placement in interaction and persistence QA.

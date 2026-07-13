@@ -164,7 +164,7 @@ export const isClueSatisfiedByPartialAssignment = (
   }
 }
 
-export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssignment) => {
+export const isAssignmentGeometryValid = (puzzle: Puzzle, assignment: PartialAssignment) => {
   const assignedPositions = Object.values(assignment)
   if (new Set(assignedPositions).size !== assignedPositions.length) return false
 
@@ -194,6 +194,12 @@ export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssi
     const position = puzzle.positions.find((candidate) => candidate.id === assignedPositionId)
     if (!knownCharacter || !position || position.blocked) return false
   }
+
+  return true
+}
+
+export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssignment) => {
+  if (!isAssignmentGeometryValid(puzzle, assignment)) return false
 
   return puzzle.clues.every((clue) =>
     isClueSatisfiedByPartialAssignment(puzzle, clue, assignment),

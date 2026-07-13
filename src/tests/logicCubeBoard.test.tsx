@@ -55,6 +55,11 @@ describe('5x5x5 building board', () => {
         puzzle.items.some((item) => item.emoji === icon.dataset.furnitureIcon),
       ),
     ).toBe(false)
+    for (const blockedRoomCell of container.querySelectorAll(
+      '.logic-cube__cell--home.location-cell--blocked, .logic-cube__cell--shop.location-cell--blocked',
+    )) {
+      expect(blockedRoomCell.querySelector('.logic-cube__furniture')).not.toBeNull()
+    }
     fireEvent.click(screen.getByRole('tab', { name: /Segon pis/u }))
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     const groundFloor = screen.getByRole('tab', { name: /Planta baixa/u })
@@ -62,7 +67,7 @@ describe('5x5x5 building board', () => {
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(2)
     expect(
       container.querySelectorAll('.logic-cube__cell--shop:not(.location-cell--blocked)'),
-    ).toHaveLength(2)
+    ).toHaveLength(10)
     fireEvent.keyDown(groundFloor, { key: 'ArrowRight' })
     expect(screen.getByRole('tab', { name: /Primer pis/u })).toHaveAttribute(
       'aria-selected',
@@ -123,5 +128,45 @@ describe('5x5x5 building board', () => {
 
     // The same row/column coordinate is projected through the depth axis.
     expect(container.querySelectorAll('.location-cell--crossed')).toHaveLength(1)
+  })
+
+  it('keeps a visually free non-solution cell interactive', () => {
+    const puzzle = generatePuzzle(
+      'hard',
+      '9aa77f1d-ba34-4c96-9767-01dee5543847',
+      'adults',
+      'cube',
+    )
+    const estel = puzzle.characters.find((character) => character.name === 'Estel')
+    const onMoveToPosition = vi.fn()
+    if (!estel) throw new Error('Expected Estel in the shared regression puzzle')
+
+    const { container } = render(
+      <LogicCubeBoard
+        positions={puzzle.positions}
+        characters={puzzle.characters}
+        items={puzzle.items}
+        assignments={{}}
+        selectedCharacterId={estel.id}
+        locale="ca"
+        themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
+        boardLabel="Edifici"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
+        returnLabel="Torna"
+        moveToPositionLabel={(label) => `Mou a ${label}`}
+        selectPositionLabel={(label) => `Tria ${label}`}
+        onMoveToPosition={onMoveToPosition}
+        onRemoveCharacter={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Tercer pis' }))
+    const target = container.querySelector<HTMLButtonElement>('#grid-target-position-3-1-1')
+    expect(target).toBeEnabled()
+    fireEvent.click(target!)
+    expect(onMoveToPosition).toHaveBeenCalledWith('position-3-1-1')
   })
 })

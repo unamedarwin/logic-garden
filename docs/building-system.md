@@ -9,10 +9,12 @@ players. A compact elevator changes floors without turning the board into a pers
 - The building contains 125 visual cells: 25 cells on each of five floors.
 - The ground floor contains shops, an entrance, a landing, and the stair core.
 - Floors one through four contain homes, shared landings, and the stair core.
-- Sixteen reviewed home anchors and two reviewed shop anchors are solver destinations. Every game
-  places two shopkeepers on the ground floor and six residents across all four residential floors.
-- Entrances, landings, stairs, shop fixtures, and non-anchor home or shop cells are rejected by the
-  generator, solver, reducer, and accessible controls.
+- The 16 semantic homes expose 56 playable cells and the two shops expose 10 playable cells. Every
+  game places two shopkeepers on the ground floor and six residents across all four residential
+  floors.
+- Entrances, landings, stairs, and 30 curated furniture cells are rejected by the generator, solver,
+  reducer, and accessible controls. Every blocked room cell has a visible object; every visually
+  empty room cell is a real candidate, whether or not it belongs to the final solution.
 - Each floor is a complete orthogonal partition. Units touch along shared walls and never overlap
   or leave a gap.
 
@@ -38,6 +40,10 @@ Fluent SVG subset as the rest of the scene. The selection is seeded by the puzzl
 space type, remains behind the semantic controls, and never uses an icon carried by a person.
 Stairs stay visually clear, shared routes use sparse decoration, and decorations do not become
 solver objects or destinations.
+
+The reducer accepts any structurally valid placement on those 66 free cells. Clue truth is checked
+only by `Comprovar`, the solver, and hints, so an incorrect hypothesis remains movable, undoable, and
+persisted across reloads.
 
 ## Doors
 
@@ -65,14 +71,14 @@ bare coordinates. Catalan, Spanish, and English use the same structured clue dat
 
 ## Generation and persistence
 
-Generator version 15 selects the plan, structural template, people, objects, furniture, and
+Generator version 16 selects the plan, structural template, people, objects, furniture, and
 wording from seeded streams. The answer-free template catalog contains 950 spatial structures and
 50 building structures. The building subset contains 25 teen-themed and 25 adult-themed internal
 content structures while the player sees one unified 3D collection. Runtime materialization always
 reruns the solver with a two-solution limit before a puzzle is shown.
 
 Share payload schema 4 records the `cube` variant; saved-game schema 4 validates the 125-cell board,
-18 playable anchors, eight people, generator version, partial placements, and uniqueness before
+66 playable room cells, eight people, generator version, partial placements, and uniqueness before
 restoration. Neither format stores a solution or personal data.
 
 The in-game action rail exposes a native share action before completion. Its URL reproduces the
@@ -81,13 +87,15 @@ someone, but deliberately omits placements and the answer.
 
 ## Quality gates
 
-- Assert exactly five layers, 125 visual cells, 18 playable anchors, and eight people.
-- Assert that every solution uses both shop anchors, contains six home anchors, covers every
+- Assert exactly five layers, 125 visual cells, 66 playable room cells, and eight people.
+- Assert that every solution uses one cell in each shop, contains six home cells, covers every
   residential floor, includes a real adjacent-floor relation, obeys complete same-floor row/column
   lines, and applies height conflicts
   only to immediately neighboring floors.
 - Verify that blocked building cells are never accepted by generation, solving, reducer actions,
   or semantic controls.
+- Verify that every blocked home or shop cell renders furniture, every furniture-free room cell is
+  enabled, and a known clue-incorrect placement survives reducer and persistence round trips.
 - At `390 x 844`, inspect every floor with an empty board and a placed person. The title, timer,
   instruction, and fit/zoom controls must share compact rows above the detached elevator. Doors must remain
   centered on boundaries, cells and avatars must share one origin, and fit mode must not introduce

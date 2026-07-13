@@ -10,7 +10,7 @@ import {
 import type { GameState } from '../game/gameReducer'
 import { GENERATOR_VERSION } from '../generator/version'
 import { analyzeSolutions } from '../solver/solver'
-import { isPartialAssignmentValid } from '../solver/constraintEvaluator'
+import { isAssignmentGeometryValid } from '../solver/constraintEvaluator'
 
 const key = 'logic-garden:saved-game:v1'
 
@@ -54,7 +54,9 @@ const isCompatibleState = (value: unknown): value is GameState => {
     )
       return false
   }
-  if (!isPartialAssignmentValid(puzzle, state.assignments)) return false
+  // Wrong deductions are valid player state. Persistence checks only physical
+  // board rules; clue truth is evaluated when the player checks the solution.
+  if (!isAssignmentGeometryValid(puzzle, state.assignments)) return false
   const validation = analyzeSolutions(puzzle, { limit: 2 })
   return validation.count === 1 && !validation.reachedNodeLimit
 }
