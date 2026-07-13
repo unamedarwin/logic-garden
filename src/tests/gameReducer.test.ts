@@ -91,6 +91,8 @@ describe('game reducer', () => {
     expect(state.assignments[character.id]).toBe(position.id)
     expect(gameReducer(state, { type: 'check' }).feedback).toEqual({
       type: 'assignment-incomplete',
+      correctCount: expect.any(Number),
+      totalCount: puzzle.characters.length,
     })
     expect(gameReducer(state, { type: 'reset' }).assignments).toEqual({})
   })
@@ -178,6 +180,35 @@ describe('game reducer', () => {
     expect(state.assignments[character.id]).toBeUndefined()
     expect(state.moves).toBe(2)
     expect(state.past).toHaveLength(2)
+  })
+
+  it('lets a child test, replace, and remove an incorrect hypothesis', () => {
+    const puzzle = generatePuzzle('medium', 'child-free-hypotheses', 'children')
+    const solution = solve(puzzle)
+    const [first, second] = puzzle.characters
+    if (!solution || !first || !second) throw new Error('Expected a solved child puzzle')
+    const wrongPosition = puzzle.positions.find(
+      (position) => !position.blocked && position.id !== solution[first.id],
+    )
+    if (!wrongPosition) throw new Error('Expected a wrong child-map position')
+
+    let state = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: first.id,
+      positionId: wrongPosition.id,
+    })
+    expect(state.assignments[first.id]).toBe(wrongPosition.id)
+
+    state = gameReducer(state, {
+      type: 'move-character',
+      characterId: second.id,
+      positionId: wrongPosition.id,
+    })
+    expect(state.assignments[first.id]).toBeUndefined()
+    expect(state.assignments[second.id]).toBe(wrongPosition.id)
+
+    state = gameReducer(state, { type: 'remove-character', characterId: second.id })
+    expect(state.assignments[second.id]).toBeUndefined()
   })
 
   it('does not count dropping a character on its current cell as a move', () => {

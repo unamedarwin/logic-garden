@@ -12,12 +12,19 @@ export const validateAssignment = (
   puzzle: Puzzle,
   assignment: PartialAssignment,
 ): ValidationResult => {
+  const solution = solve(puzzle)
+  const totalCount = puzzle.characters.length
+  const correctCount = solution
+    ? puzzle.characters.filter(
+        (character) => assignment[character.id] === solution[character.id],
+      ).length
+    : 0
   const complete = puzzle.characters.every((character) => assignment[character.id])
   if (!complete) {
     return {
       complete: false,
       correct: false,
-      feedback: { type: 'assignment-incomplete' },
+      feedback: { type: 'assignment-incomplete', correctCount, totalCount },
     }
   }
 
@@ -25,14 +32,14 @@ export const validateAssignment = (
     return {
       complete: true,
       correct: false,
-      feedback: { type: 'assignment-incorrect' },
+      feedback: { type: 'assignment-incorrect', correctCount, totalCount },
     }
   }
 
   return {
     complete: true,
     correct: true,
-    feedback: { type: 'assignment-correct' },
+    feedback: { type: 'assignment-correct', correctCount, totalCount },
   }
 }
 

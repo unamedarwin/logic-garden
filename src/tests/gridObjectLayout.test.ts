@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  gridDoorLayout,
   gridObjectLayout,
   horizontalWalls,
   layoutBoxesOverlap,
@@ -83,7 +84,6 @@ describe('spatial label and object layout', () => {
               ).toBe(false)
             }
           }
-
           layout.forEach(({ object, label, labelBox, labelTransform, labelWall }, zone) => {
             const objectPosition = positionAt(positions, object, size)
             expect(objectPosition?.blocked, `${id} object ${zone} at ${size}`).toBe(true)
@@ -126,4 +126,43 @@ describe('spatial label and object layout', () => {
       }
     }
   }, 20_000)
+
+  it('moves a boundary door away from a room title when another boundary cell is free', () => {
+    const positions: readonly Position[] = [
+      { id: positionId('top-left'), placeId: placeId('place-0'), row: 0, column: 0, label: '' },
+      {
+        id: positionId('top-right'),
+        placeId: placeId('place-1'),
+        row: 0,
+        column: 1,
+        label: '',
+      },
+      {
+        id: positionId('bottom-left'),
+        placeId: placeId('place-0'),
+        row: 1,
+        column: 0,
+        label: '',
+      },
+      {
+        id: positionId('bottom-right'),
+        placeId: placeId('place-1'),
+        row: 1,
+        column: 1,
+        label: '',
+      },
+    ]
+    const topBoundaryLabel: LayoutBox = {
+      left: 0.45,
+      right: 0.55,
+      top: 0.18,
+      bottom: 0.32,
+    }
+
+    const [door] = gridDoorLayout(positions, [], [topBoundaryLabel])
+
+    expect(door?.x).toBe(0.5)
+    expect(door?.y).toBe(0.75)
+    expect(door && layoutBoxesOverlap(door.box, topBoundaryLabel)).toBe(false)
+  })
 })

@@ -267,10 +267,7 @@ export const LogicCubeBoard = ({
       return undefined
     return catalog[hash % catalog.length]
   }
-  const floorDoors = new Map<
-    string,
-    { readonly x: number; readonly y: number; readonly orientation: 'horizontal' | 'vertical' }
-  >()
+  const floorDoors = new Map<string, { readonly x: number; readonly y: number }>()
   for (const position of visiblePositions.filter(
     (candidate) => candidate.buildingKind === 'home' || candidate.buildingKind === 'shop',
   )) {
@@ -305,7 +302,6 @@ export const LogicCubeBoard = ({
             : rowStep === -1
               ? position.row / BUILDING_ROWS
               : (position.row + 0.5) / BUILDING_ROWS,
-        orientation: columnStep === 0 ? 'horizontal' : 'vertical',
       })
       break
     }
@@ -448,7 +444,7 @@ export const LogicCubeBoard = ({
             {[...floorDoors.entries()].map(([unitId, door]) => (
               <span
                 key={unitId}
-                className={`logic-cube__door logic-cube__door--${door.orientation}`}
+                className="logic-cube__door"
                 style={{ left: `${door.x * 100}%`, top: `${door.y * 100}%` }}
               >
                 <DoorOpen />

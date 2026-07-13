@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createGameState, gameReducer } from '../game/gameReducer'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { GENERATOR_VERSION } from '../generator/version'
+import { solve } from '../solver/solver'
 import { loadSavedGame, saveGame } from '../storage/savedGame'
 
 vi.mock('idb-keyval', () => ({ del: vi.fn(), get: vi.fn(), set: vi.fn() }))
@@ -92,6 +93,29 @@ describe('saved game compatibility', () => {
       type: 'move-character',
       characterId: estel.id,
       positionId: target.id,
+    })
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state: wrongState,
+    })
+
+    await expect(loadSavedGame()).resolves.toEqual({ state: wrongState })
+  })
+
+  it('restores a wrong child-map hypothesis without correcting it', async () => {
+    const puzzle = generatePuzzle('medium', 'saved-child-hypothesis', 'children')
+    const solution = solve(puzzle)
+    const character = puzzle.characters[0]
+    if (!solution || !character) throw new Error('Expected a solved child puzzle')
+    const wrongPosition = puzzle.positions.find(
+      (position) => !position.blocked && position.id !== solution[character.id],
+    )
+    if (!wrongPosition) throw new Error('Expected a wrong child-map position')
+    const wrongState = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: character.id,
+      positionId: wrongPosition.id,
     })
     vi.mocked(get).mockResolvedValue({
       schemaVersion: 4,

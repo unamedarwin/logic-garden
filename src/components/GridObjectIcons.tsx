@@ -1,7 +1,7 @@
 import { gridPlaceLabel, type SpatialPlan } from '../domain/spatialPlan'
 import { localizeThemeLabel } from '../domain/themeVocabulary'
 import type { CharacterId, Locale, Position, PositionId, ThemeId } from '../domain/types'
-import { gridObjectLayout } from './gridObjectLayout'
+import { gridDoorLayout, gridObjectLayout } from './gridObjectLayout'
 import { DoorOpen } from 'lucide-react'
 import { SceneIcon } from './SceneIcon'
 
@@ -27,46 +27,11 @@ export const GridObjectIcons = ({
     return position ? localizeThemeLabel(locale, themeId, gridPlaceLabel(position.label)) : ''
   })
   const layout = gridObjectLayout(plan, positions, places, Object.values(assignments))
-  const occupied = new Set(Object.values(assignments))
-  const doorCandidates = new Map<
-    string,
-    {
-      readonly x: number
-      readonly y: number
-      readonly orientation: 'horizontal' | 'vertical'
-      readonly preferred: boolean
-    }
-  >()
-  for (const position of positions) {
-    for (const [rowStep, columnStep] of [
-      [0, 1],
-      [1, 0],
-    ] as const) {
-      const neighbor = positions.find(
-        (candidate) =>
-          candidate.row === position.row + rowStep &&
-          candidate.column === position.column + columnStep,
-      )
-      if (!neighbor || neighbor.placeId === position.placeId) continue
-      const key = [position.placeId, neighbor.placeId].sort().join(':')
-      const candidate = {
-        x:
-          columnStep === 1
-            ? (position.column + 1) / columns
-            : (position.column + 0.5) / columns,
-        y: rowStep === 1 ? (position.row + 1) / rows : (position.row + 0.5) / rows,
-        orientation: columnStep === 1 ? ('vertical' as const) : ('horizontal' as const),
-        preferred:
-          !position.blocked &&
-          !neighbor.blocked &&
-          !occupied.has(position.id) &&
-          !occupied.has(neighbor.id),
-      }
-      const current = doorCandidates.get(key)
-      if (!current || (!current.preferred && candidate.preferred))
-        doorCandidates.set(key, candidate)
-    }
-  }
+  const doors = gridDoorLayout(
+    positions,
+    Object.values(assignments),
+    layout.map(({ labelBox }) => labelBox),
+  )
 
   return (
     <div
@@ -95,10 +60,10 @@ export const GridObjectIcons = ({
           </div>
         )
       })}
-      {[...doorCandidates.entries()].map(([key, door]) => (
+      {doors.map((door) => (
         <span
-          key={key}
-          className={`grid-object-icons__door-marker grid-object-icons__door-marker--${door.orientation}`}
+          key={door.key}
+          className="grid-object-icons__door-marker"
           style={{ left: `${door.x * 100}%`, top: `${door.y * 100}%` }}
         >
           <DoorOpen />

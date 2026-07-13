@@ -1,7 +1,11 @@
+export type CheckFeedback = {
+  readonly type: 'assignment-incomplete' | 'assignment-incorrect' | 'assignment-correct'
+  readonly correctCount: number
+  readonly totalCount: number
+}
+
 export type GameFeedback =
-  | { readonly type: 'assignment-incomplete' }
-  | { readonly type: 'assignment-incorrect' }
-  | { readonly type: 'assignment-correct' }
+  | CheckFeedback
   | {
       readonly type: 'placement-conflicts-cleared'
       readonly characterName: string
@@ -20,3 +24,8 @@ export type GameFeedback =
     }
   | { readonly type: 'hint-already-correct'; readonly characterName: string }
   | { readonly type: 'hint-applied'; readonly characterName: string }
+
+export const isCheckFeedback = (feedback: GameFeedback): feedback is CheckFeedback =>
+  feedback.type === 'assignment-incomplete' ||
+  feedback.type === 'assignment-incorrect' ||
+  feedback.type === 'assignment-correct'

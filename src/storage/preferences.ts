@@ -10,21 +10,23 @@ const key = 'logic-garden:preferences:v1'
 const legacyProfileKey = 'logic-garden:profile:v1'
 
 export interface Preferences {
-  readonly schemaVersion: 3
+  readonly schemaVersion: 4
   readonly difficulty: Difficulty
   readonly collection: PuzzleCollection
   readonly locale: Locale
   readonly soundEnabled: boolean
   readonly reducedMotion: boolean
+  readonly showCheckProgress: boolean
 }
 
 export const defaultPreferences: Preferences = {
-  schemaVersion: 3,
+  schemaVersion: 4,
   difficulty: 'easy',
   collection: 'children',
   locale: 'ca',
   soundEnabled: false,
   reducedMotion: false,
+  showCheckProgress: true,
 }
 
 const isCollection = (value: unknown): value is PuzzleCollection =>
@@ -50,7 +52,8 @@ const migratePreferences = (stored: unknown, legacyProfile: unknown): Preference
   if (
     candidate.schemaVersion !== 1 &&
     candidate.schemaVersion !== 2 &&
-    candidate.schemaVersion !== 3
+    candidate.schemaVersion !== 3 &&
+    candidate.schemaVersion !== 4
   ) {
     return defaultPreferences
   }
@@ -63,7 +66,7 @@ const migratePreferences = (stored: unknown, legacyProfile: unknown): Preference
   return {
     ...defaultPreferences,
     ...(candidate as Partial<Preferences>),
-    schemaVersion: 3,
+    schemaVersion: 4,
     collection: isCollection(candidate.collection) ? candidate.collection : legacyCollection,
   }
 }
@@ -78,7 +81,7 @@ export const loadPreferences = async (): Promise<Preferences> => {
     const storedPreferencesAreCurrent =
       stored !== null &&
       typeof stored === 'object' &&
-      (stored as Record<string, unknown>).schemaVersion === 3 &&
+      (stored as Record<string, unknown>).schemaVersion === 4 &&
       isCollection((stored as Record<string, unknown>).collection)
     try {
       if (!storedPreferencesAreCurrent) await set(key, preferences)

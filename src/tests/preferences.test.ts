@@ -27,9 +27,10 @@ describe('preference migration without profiles', () => {
     })
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       difficulty: 'medium',
       collection: 'two-dimensional',
+      showCheckProgress: true,
     })
     expect(del).toHaveBeenCalledWith('logic-garden:profile:v1')
     expect(vi.mocked(set).mock.invocationCallOrder[0]).toBeLessThan(
@@ -54,8 +55,9 @@ describe('preference migration without profiles', () => {
     )
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 3,
+      schemaVersion: 4,
       collection: 'three-dimensional',
+      showCheckProgress: true,
     })
   })
 

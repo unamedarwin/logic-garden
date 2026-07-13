@@ -51,7 +51,11 @@ Doors are wall fixtures rather than cell objects. A local Lucide `DoorOpen` icon
 shared boundary between a home or shop and its landing, stair, or entrance route. It is rendered
 above the floor art with `pointer-events: none`, does not consume either adjacent cell, and cannot
 be selected as a destination. The same boundary-fixture rule is used for doors on spatial 2D
-plans.
+plans. Every door glyph remains upright regardless of whether its boundary is horizontal or
+vertical; only its center position changes, because rotating the pictogram makes it harder to
+recognize. When a shared boundary offers multiple valid positions, the seeded layout first avoids
+room titles and then prefers cells without gameplay objects or placed people. A room title retains
+visual priority on a short boundary where the two fixtures cannot be separated.
 
 ## Clues
 

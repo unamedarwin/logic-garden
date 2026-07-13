@@ -26,6 +26,7 @@ describe('scene icon consistency', () => {
       container.querySelectorAll('.grid-object-icons__door-marker').length,
     ).toBeGreaterThan(0)
     expect(container.querySelector('.grid-object-icons__door-marker svg')).toBeInTheDocument()
+    expect(container.querySelector('[class*="door-marker--"]')).not.toBeInTheDocument()
   })
 
   it('uses the same local SVG key in an exact clue and on the board', async () => {

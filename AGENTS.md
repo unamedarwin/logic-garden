@@ -51,6 +51,8 @@ English without changing puzzle logic. Run the multilingual spell checker after 
 changes and add only intentional domain terms to its project dictionary.
 Reducer, validation, and solver feedback must remain structured data and be localized only by the
 interface; never persist a rendered feedback sentence in game state.
+Child clue copy must pair each precise fact with a short friendly action, object, or motivation in
+all supported languages. Do not reduce child clues to bare placement commands.
 
 ## Accessibility
 
@@ -65,6 +67,8 @@ Prevent accidental interface-text selection during board interaction, while pres
 selection and editing in input, textarea, and editable controls.
 Keep a visible, keyboard-accessible path from a game and its completion dialog back to the
 difficulty picker before a player starts another adventure.
+Show check feedback in an accessible dialog. The solver-derived `N/total` correct-placement score
+must be a local preference; when hidden, use encouraging guidance without revealing a count.
 
 ## Visual design
 
@@ -74,6 +78,8 @@ paper, garden, and hand-drawn-ink direction across responsive layouts. Teen and 
 themes within the unified 2D and 3D collections must remain visibly distinct while preserving the
 same safe, local, accessible game mechanics. Use PixiJS only as a decorative grid renderer; keep semantic DOM controls as the
 interaction and accessibility layer.
+Child playable characters must use the curated, non-repeating human child-avatar catalog. Animals
+and objects may decorate a theme but must not become child character identities.
 Scale room labels, textures, objects, placed avatars, and crossed cells from the actual grid
 dimension rather than viewport units. Character/avatar emoji catalogs and object/obstacle emoji
 catalogs must remain disjoint, with an automated invariant test covering every theme.
@@ -115,7 +121,9 @@ On small screens, keep the map, character picker, and the selected person's cont
 one compact workspace. Use a horizontally scrollable people rail rather than forcing navigation
 between a person, their clues, and the map location where they are placed. Keep the complete clue
 list available as an accessible collapsed support panel. The fixed action rail must not overlap
-the contextual clue at 390x844, including after selection advances to a person with longer copy.
+the people picker, contextual clue, complete clue panel, or feedback at 390x844, including after
+selection advances to a person with longer copy. Reserve enough document space above the rail and
+the mobile safe area for every lower block to scroll fully into view.
 Do not spend header space announcing a
 normal online state; show connectivity status only when the app is offline.
 
@@ -138,6 +146,9 @@ the catalog geometry and obstacle emojis under automated regression tests.
 Place room titles against horizontal wall segments that are long enough for their measured box.
 Prefer the room-facing side, allow the opposite side of an internal wall only to avoid a collision,
 and reject placements that overlap fixed objects, occupied cells, other labels, or board bounds.
+Choose each door's deterministic boundary position after label layout, preferring a free boundary
+cell whose rendered box does not overlap any room title. Room titles retain visual priority when a
+short shared boundary makes separation impossible.
 Model label wrapping from the narrow fitted mobile surface, where percentage widths shrink before
 the minimum font size does; reserve the full wrapped box rather than a desktop-width estimate.
 Every spatial position must inherit its `placeId` from the room polygon that contains its center.
@@ -162,6 +173,8 @@ Corner clues are secondary variety and must retain the same positive social word
 advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
 must not consume either cell, alter solver geometry, obscure a target, or receive pointer events.
+Keep every door glyph upright; horizontal and vertical boundaries may change its position but never
+rotate the recognizable icon.
 Home and shop doors should face a landing, stair, or entrance route where the floor plan allows it.
 Use structured shop clues for the ground-floor people, with localized social copy about opening,
 helping the neighborhood, and preparing displays. Do not describe a shopkeeper as living in a shop.

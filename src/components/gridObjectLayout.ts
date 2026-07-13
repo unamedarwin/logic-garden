@@ -36,6 +36,13 @@ export interface LayoutBox {
   readonly bottom: number
 }
 
+export interface DoorLayout {
+  readonly key: string
+  readonly x: number
+  readonly y: number
+  readonly box: LayoutBox
+}
+
 const distanceSquared = (first: PlanPoint, second: PlanPoint) =>
   (first.x - second.x) ** 2 + (first.y - second.y) ** 2
 
@@ -44,6 +51,66 @@ export const layoutBoxesOverlap = (first: LayoutBox, second: LayoutBox) =>
   first.right > second.left &&
   first.top < second.bottom &&
   first.bottom > second.top
+
+const doorBox = (x: number, y: number, columns: number): LayoutBox => {
+  const mobileBoardWidth = 333
+  const renderedSize = Math.min(28, Math.max(16, (mobileBoardWidth * 0.58) / columns))
+  const halfSize = (renderedSize + 4) / mobileBoardWidth / 2
+  return {
+    left: x - halfSize,
+    right: x + halfSize,
+    top: y - halfSize,
+    bottom: y + halfSize,
+  }
+}
+
+export const gridDoorLayout = (
+  positions: readonly Position[],
+  occupiedPositionIds: readonly (Position['id'] | undefined)[] = [],
+  labelBoxes: readonly LayoutBox[] = [],
+): readonly DoorLayout[] => {
+  const columns = Math.max(...positions.map((position) => position.column)) + 1
+  const rows = Math.max(...positions.map((position) => position.row)) + 1
+  const occupied = new Set(occupiedPositionIds.filter((id) => id !== undefined))
+  const candidates = new Map<string, DoorLayout & { readonly score: number }>()
+
+  for (const position of positions) {
+    for (const [rowStep, columnStep] of [
+      [0, 1],
+      [1, 0],
+    ] as const) {
+      const neighbor = positions.find(
+        (candidate) =>
+          candidate.row === position.row + rowStep &&
+          candidate.column === position.column + columnStep,
+      )
+      if (!neighbor || neighbor.placeId === position.placeId) continue
+
+      const key = [position.placeId, neighbor.placeId].sort().join(':')
+      const x =
+        columnStep === 1 ? (position.column + 1) / columns : (position.column + 0.5) / columns
+      const y = rowStep === 1 ? (position.row + 1) / rows : (position.row + 0.5) / rows
+      const box = doorBox(x, y, columns)
+      const clearOfLabels = labelBoxes.every((labelBox) => !layoutBoxesOverlap(box, labelBox))
+      const clearOfGameplay =
+        !position.blocked &&
+        !neighbor.blocked &&
+        !occupied.has(position.id) &&
+        !occupied.has(neighbor.id)
+      const candidate = {
+        key,
+        x,
+        y,
+        box,
+        score: (clearOfLabels ? 2 : 0) + (clearOfGameplay ? 1 : 0),
+      }
+      const current = candidates.get(key)
+      if (!current || candidate.score > current.score) candidates.set(key, candidate)
+    }
+  }
+
+  return [...candidates.values()].map(({ key, x, y, box }) => ({ key, x, y, box }))
+}
 
 const nearlyEqual = (first: number, second: number) => Math.abs(first - second) < 0.000_001
 

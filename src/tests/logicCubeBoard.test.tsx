@@ -46,6 +46,7 @@ describe('5x5x5 building board', () => {
     expect(screen.getByRole('group', { name: 'Ascensor' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
+    expect(container.querySelector('[class*="logic-cube__door--"]')).not.toBeInTheDocument()
     const furniture = Array.from(
       container.querySelectorAll<HTMLElement>('.logic-cube__furniture'),
     )

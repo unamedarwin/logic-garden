@@ -107,6 +107,16 @@ describe('seeded puzzle generator', () => {
     }
   })
 
+  it('uses only curated child avatars for every child theme', () => {
+    const childAvatars = new Set(['👧🏻', '👦🏼', '🧒🏽', '👧🏾', '👦🏿', '🧒🏻', '👧🏼', '👦🏽'])
+    for (const theme of themes.filter((candidate) => !candidate.audience)) {
+      expect(
+        theme.characters.filter((character) => !childAvatars.has(character.emoji)),
+        theme.id,
+      ).toEqual([])
+    }
+  })
+
   it('uses curated, unique room objects for every teen and adult scene', () => {
     for (const theme of themes.filter((candidate) => candidate.audience)) {
       expect(theme.roomObjects?.length, theme.id).toBeGreaterThanOrEqual(20)

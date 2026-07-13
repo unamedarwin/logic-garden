@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { gameFeedbackCopy } from '../domain/i18n'
+import { checkResultCopy, gameFeedbackCopy } from '../domain/i18n'
 
 describe('localized game feedback', () => {
   it.each([
@@ -26,5 +26,22 @@ describe('localized game feedback', () => {
         characterName: 'Kai',
       }),
     ).toContain('Kai')
+  })
+
+  it('shows the solver-checked score only when the player wants exact progress', () => {
+    const feedback = {
+      type: 'assignment-incorrect' as const,
+      correctCount: 3,
+      totalCount: 6,
+    }
+
+    expect(checkResultCopy('ca', feedback, true)).toMatchObject({
+      title: 'Gairebé!',
+      score: '3/6 ben ubicats',
+    })
+    expect(checkResultCopy('ca', feedback, false)).toMatchObject({
+      title: 'Gairebé!',
+      score: undefined,
+    })
   })
 })

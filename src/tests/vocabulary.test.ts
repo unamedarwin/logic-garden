@@ -18,6 +18,34 @@ describe('local clue templates', () => {
     expect(renderClue(puzzle, clue, 'en')).toContain('Aina')
   })
 
+  it('gives child clues a warm action without losing their structured item token', () => {
+    const clue: Clue = {
+      id: 'child-story',
+      type: 'character-at-position',
+      phraseVariant: 0,
+      characterId: characterIds.a,
+      positionId: positionIds.p0,
+    }
+    const puzzle = createPuzzle([clue])
+    const expectedActions = {
+      ca: /ha arribat|somriure/u,
+      es: /ha llegado|sonrisa/u,
+      en: /arrived|smile/u,
+    } as const
+
+    for (const locale of ['ca', 'es', 'en'] as const) {
+      const sentence = renderClue(puzzle, clue, locale)
+      expect(sentence).toMatch(expectedActions[locale])
+      expect(
+        renderClueParts(puzzle, clue, locale).find((part) => part.type === 'icon'),
+      ).toMatchObject({
+        type: 'icon',
+        emoji: '🌼',
+      })
+      expect(sentence).not.toContain('{')
+    }
+  })
+
   it('keeps the exact catalog icon as a structured clue token', () => {
     const clue: Clue = {
       id: 'item',

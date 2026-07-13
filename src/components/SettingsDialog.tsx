@@ -75,6 +75,16 @@ export const SettingsDialog = ({
           />
           {t(locale, 'sound')}
         </label>
+        <label className="toggle-label">
+          <input
+            type="checkbox"
+            checked={preferences.showCheckProgress}
+            onChange={(event) =>
+              onChange({ ...preferences, showCheckProgress: event.target.checked })
+            }
+          />
+          {t(locale, 'showCheckProgress')}
+        </label>
       </section>
     </div>
   )

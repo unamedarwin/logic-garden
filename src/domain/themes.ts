@@ -31,20 +31,20 @@ export interface Theme {
 }
 
 const sharedNames = [
-  ['Aina', '🦊', 'una guineu curiosa'],
-  ['Biel', '🐻', 'un os amable'],
-  ['Cora', '🐰', 'una conilla riallera'],
-  ['Duna', '🦉', 'una òliba observadora'],
-  ['Èric', '🐸', 'una granota saltadora'],
-  ['Fina', '🐼', 'una panda creativa'],
-  ['Gala', '🦋', 'una papallona brillant'],
-  ['Hugo', '🐢', 'una tortuga tranquil·la'],
+  ['Aina', '👧🏻', 'una amiga curiosa'],
+  ['Biel', '👦🏼', 'un amic amable'],
+  ['Cora', '🧒🏽', 'una amiga riallera'],
+  ['Duna', '👧🏾', 'una amiga observadora'],
+  ['Èric', '👦🏿', 'un amic entusiasta'],
+  ['Fina', '🧒🏻', 'una amiga creativa'],
+  ['Gala', '👧🏼', 'una amiga alegre'],
+  ['Hugo', '👦🏽', 'un amic tranquil'],
 ] as const
 
-const makeCharacters = (emojiOverrides: readonly string[]): readonly ThemeCharacter[] =>
-  sharedNames.map(([name, emoji, description], index) => ({
+const makeCharacters = (): readonly ThemeCharacter[] =>
+  sharedNames.map(([name, emoji, description]) => ({
     name,
-    emoji: emojiOverrides[index] ?? emoji,
+    emoji,
     description,
   }))
 
@@ -442,7 +442,7 @@ export const themes: readonly Theme[] = [
       'La roca rodona',
       'La praderia',
     ],
-    characters: makeCharacters(['🦊', '🐻', '🐰', '🦉', '🐸', '🐼', '🦋', '🐢']),
+    characters: makeCharacters(),
     items: [
       ['galeta', '🍪'],
       ['flor', '🌼'],
@@ -470,7 +470,7 @@ export const themes: readonly Theme[] = [
       'La llacuna',
       'El mirador',
     ],
-    characters: makeCharacters(['🦜', '🐬', '🦀', '🐢', '🐠', '🦭', '🐙', '🐳']),
+    characters: makeCharacters(),
     items: [
       ['petxina', '🐚'],
       ['mapa', '🗺️'],
@@ -498,7 +498,7 @@ export const themes: readonly Theme[] = [
       'La sala de música',
       'El passadís arc de Sant Martí',
     ],
-    characters: makeCharacters(['🧙', '🧚', '🧝', '🦄', '🐱', '🦉', '🐇', '🐲']),
+    characters: makeCharacters(),
     items: [
       ['vareta de flors', '🌷'],
       ['poció de bombolles', '🫧'],
@@ -526,7 +526,7 @@ export const themes: readonly Theme[] = [
       'El núvol còsmic',
       'L’anella brillant',
     ],
-    characters: makeCharacters(['👩‍🚀', '🤖', '👾', '🛸', '🐙', '🦊', '🐻', '🐰']),
+    characters: makeCharacters(),
     items: [
       ['coet petit', '🚀'],
       ['planeta', '🪐'],
@@ -554,7 +554,7 @@ export const themes: readonly Theme[] = [
       'La tanca blava',
       'La caseta',
     ],
-    characters: makeCharacters(['🐮', '🐷', '🐔', '🐑', '🐴', '🦆', '🐐', '🐇']),
+    characters: makeCharacters(),
     items: [
       ['pastanaga', '🥕'],
       ['blat', '🌾'],
@@ -582,7 +582,7 @@ export const themes: readonly Theme[] = [
       'La bombolla gegant',
       'El sorral',
     ],
-    characters: makeCharacters(['🐠', '🐙', '🦀', '🐬', '🐳', '🦭', '🐡', '🦑']),
+    characters: makeCharacters(),
     items: [
       ['perla', '🫧'],
       ['petxina', '🐚'],
@@ -610,7 +610,7 @@ export const themes: readonly Theme[] = [
       'La font',
       'El turó',
     ],
-    characters: makeCharacters(['🦕', '🦖', '🐢', '🦜', '🐘', '🦒', '🐊', '🦛']),
+    characters: makeCharacters(),
     items: [
       ['fulla', '🍃'],
       ['petjada', '👣'],
@@ -638,7 +638,7 @@ export const themes: readonly Theme[] = [
       'El jardí',
       'La caseta groga',
     ],
-    characters: makeCharacters(['👾', '🤖', '👽', '🧌', '🦄', '🐲', '🧸', '🐱']),
+    characters: makeCharacters(),
     items: [
       ['banderí', '🎏'],
       ['pastís', '🍰'],
@@ -666,7 +666,7 @@ export const themes: readonly Theme[] = [
       'El racó de contes',
       'La fonteta',
     ],
-    characters: makeCharacters(['🦋', '🐝', '🦊', '🐰', '🐼', '🐸', '🐻', '🦉']),
+    characters: makeCharacters(),
     items: [
       ['globus', '🎈'],
       ['entrada', '🎟️'],
@@ -694,7 +694,7 @@ export const themes: readonly Theme[] = [
       'La cova de colors',
       'El cim',
     ],
-    characters: makeCharacters(['🦌', '🐿️', '🦉', '🦊', '🐻', '🐐', '🦋', '🐇']),
+    characters: makeCharacters(),
     items: [
       ['motxilla', '🎒'],
       ['cantimplora', '💧'],

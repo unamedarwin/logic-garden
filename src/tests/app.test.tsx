@@ -57,21 +57,23 @@ vi.mock('../pwa/registerServiceWorker', () => ({
 
 vi.mock('../storage/preferences', () => ({
   defaultPreferences: {
-    schemaVersion: 3,
+    schemaVersion: 4,
     difficulty: 'easy',
     collection: 'children',
     locale: 'ca',
     soundEnabled: false,
     reducedMotion: false,
+    showCheckProgress: true,
   },
   loadPreferences: () =>
     Promise.resolve({
-      schemaVersion: 3,
+      schemaVersion: 4,
       difficulty: 'easy',
       collection: 'children',
       locale: 'ca',
       soundEnabled: false,
       reducedMotion: false,
+      showCheckProgress: true,
     }),
   savePreferences: vi.fn(),
 }))
@@ -161,7 +163,10 @@ describe('game interface', () => {
     expect(screen.getByRole('button', { name: 'Desfer' })).toBeEnabled()
 
     await user.click(screen.getByRole('button', { name: 'Comprovar' }))
-    expect(await screen.findByRole('status')).toHaveTextContent(/Encara hi ha algun amic/u)
+    const checkDialog = await screen.findByRole('dialog', { name: 'Gairebé!' })
+    expect(checkDialog).toHaveTextContent(/\d+\/\d+ ben ubicats/u)
+    expect(checkDialog.querySelector('.lucide-lightbulb')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Continua jugant' }))
     await user.click(screen.getByRole('button', { name: 'Desfer' }))
     expect(screen.getByRole('button', { name: 'Refer' })).toBeEnabled()
     await user.click(screen.getByRole('button', { name: 'Pista' }))
@@ -176,12 +181,37 @@ describe('game interface', () => {
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
     await screen.findByRole('grid', { name: 'Mapa del puzzle' })
     await user.click(screen.getByRole('button', { name: 'Comprovar' }))
-    expect(screen.getByRole('status')).toHaveTextContent(/Encara hi ha algun amic/u)
+    expect(await screen.findByRole('dialog', { name: 'Gairebé!' })).toHaveTextContent(
+      /Continua completant/u,
+    )
+    await user.click(screen.getByRole('button', { name: 'Continua jugant' }))
     await user.click(screen.getByRole('button', { name: 'Configuració' }))
     await user.selectOptions(screen.getByRole('combobox'), 'en')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(await screen.findByRole('button', { name: 'Check' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent(/Someone still needs a place/u)
-    expect(screen.getByRole('status')).not.toHaveTextContent(/Encara hi ha/u)
+    await user.click(screen.getByRole('button', { name: 'Check' }))
+    expect(await screen.findByRole('dialog', { name: 'Almost!' })).toHaveTextContent(
+      /Keep filling/u,
+    )
+    expect(screen.getByRole('dialog')).not.toHaveTextContent(/Continua completant/u)
+  })
+
+  it('can hide the exact check score without hiding the check dialog', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await user.click(screen.getByRole('button', { name: 'Configuració' }))
+    await user.click(
+      screen.getByRole('checkbox', {
+        name: 'Mostra quantes persones estan ben ubicades',
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Tancar' }))
+    await user.click(screen.getByRole('button', { name: 'Comprovar' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Gairebé!' })
+    expect(dialog).toHaveTextContent('Continua completant el mapa')
+    expect(dialog).not.toHaveTextContent(/\d+\/\d+/u)
   })
 
   it('returns to the difficulty selector from an active game', async () => {

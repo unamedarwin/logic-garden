@@ -15,6 +15,7 @@ interface ResultDialogProps {
   readonly hintsLabel: string
   readonly challengeMessage?: string
   readonly challengeShareHint?: string
+  readonly progressLabel?: string
 }
 
 export const ResultDialog = ({
@@ -34,6 +35,7 @@ export const ResultDialog = ({
   hintsLabel,
   challengeMessage,
   challengeShareHint,
+  progressLabel,
 }: ResultDialogProps) => {
   const dialogRef = useDialogFocus()
   return (
@@ -50,6 +52,9 @@ export const ResultDialog = ({
         </span>
         <h2 id="result-title">{title}</h2>
         <p>{message}</p>
+        {progressLabel && (
+          <strong className="result-dialog__check-progress">{progressLabel}</strong>
+        )}
         <p className="result-dialog__stats">
           {elapsed} {timeLabel} · {moves} {movesLabel} · {hintsUsed} {hintsLabel}
         </p>

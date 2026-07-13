@@ -24,6 +24,7 @@ import {
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { parseSharedGameRoute, shareUrl, type SharedGameRoute } from './app/routes'
 import { ChallengeIntroDialog } from './components/ChallengeIntroDialog'
+import { CheckResultDialog } from './components/CheckResultDialog'
 import { CharacterTray } from './components/CharacterTray'
 import { CharacterClueRail } from './components/CharacterClueRail'
 import { CharacterTokenPreview } from './components/CharacterToken'
@@ -38,12 +39,14 @@ import { HintCharacterDialog } from './components/HintCharacterDialog'
 import { InstallPrompt } from './components/InstallPrompt'
 import { PuzzleCollectionSelector } from './components/PuzzleCollectionSelector'
 import { ResultDialog } from './components/ResultDialog'
+import { SceneIcon } from './components/SceneIcon'
 import { SettingsDialog } from './components/SettingsDialog'
 import {
   boardActionCopy,
   challengeInviteCopy,
   challengeResultCopy,
   challengeShareCopy,
+  checkResultCopy,
   gameFeedbackCopy,
   puzzleCollectionCopy,
   t,
@@ -63,6 +66,7 @@ import {
   type GameAction,
   type GameState,
 } from './game/gameReducer'
+import { isCheckFeedback } from './game/feedback'
 import { progress, unplacedCharacters } from './game/selectors'
 import { elapsedSeconds, formatCounter } from './game/time'
 import { generatePuzzle, generatePuzzleForCollection } from './generator/puzzleGenerator'
@@ -133,8 +137,12 @@ const HomeScene = ({ collection }: { readonly collection: PuzzleCollection }) =>
       <span className="scene-cloud scene-cloud--two">☁</span>
       <div className="scene-hill scene-hill--back" />
       <div className="scene-hill scene-hill--front" />
-      <span className="scene-friend scene-friend--one">🦊</span>
-      <span className="scene-friend scene-friend--two">🐰</span>
+      <span className="scene-friend scene-friend--one">
+        <SceneIcon emoji="👧🏻" />
+      </span>
+      <span className="scene-friend scene-friend--two">
+        <SceneIcon emoji="👦🏼" />
+      </span>
       <span className="scene-flower scene-flower--one">✿</span>
       <span className="scene-flower scene-flower--two">✿</span>
     </div>
@@ -154,6 +162,7 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [firstVisit, setFirstVisit] = useState(false)
   const [showHintPicker, setShowHintPicker] = useState(false)
+  const [showCheckResult, setShowCheckResult] = useState(false)
   const [sharedChallenge, setSharedChallenge] = useState<SharedGameRoute | null>(null)
   const [showChallengeIntro, setShowChallengeIntro] = useState(false)
   const [challengeFirstVisit, setChallengeFirstVisit] = useState(false)
@@ -257,6 +266,7 @@ export default function App() {
       setSharedChallenge(null)
       setShowChallengeIntro(false)
       setShowHintPicker(false)
+      setShowCheckResult(false)
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
       resetPageScroll()
       setNotice('')
@@ -272,6 +282,7 @@ export default function App() {
     setSharedChallenge(null)
     setShowChallengeIntro(false)
     setShowHintPicker(false)
+    setShowCheckResult(false)
     void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
     resetPageScroll()
@@ -293,6 +304,7 @@ export default function App() {
         ),
       )
       setShowChallengeIntro(false)
+      setShowCheckResult(false)
       setChallengeFirstVisit(false)
       window.history.replaceState({}, '', import.meta.env.BASE_URL)
       resetPageScroll()
@@ -320,6 +332,7 @@ export default function App() {
     if (!game) return
     const nextGame = gameReducer(game, action)
     setGame(nextGame)
+    if (action.type === 'check') setShowCheckResult(nextGame.status !== 'won')
     if (action.type === 'check' && nextGame.status === 'won' && game.status !== 'won') {
       void clearSavedGame()
       const finishedAt = nextGame.finishedAt ?? Date.now()
@@ -589,9 +602,15 @@ export default function App() {
   const gameProgress = progress(game)
   const availableCharacters = unplacedCharacters(game)
   const currentElapsedSeconds = elapsedSeconds(game.startedAt, game.finishedAt)
-  const localizedGameFeedback = game.feedback
-    ? gameFeedbackCopy(preferences.locale, game.feedback)
+  const checkFeedback =
+    game.feedback && isCheckFeedback(game.feedback) ? game.feedback : undefined
+  const checkResult = checkFeedback
+    ? checkResultCopy(preferences.locale, checkFeedback, preferences.showCheckProgress)
     : undefined
+  const localizedGameFeedback =
+    game.feedback && !isCheckFeedback(game.feedback)
+      ? gameFeedbackCopy(preferences.locale, game.feedback)
+      : undefined
   const challengeResult =
     sharedChallenge?.benchmarkSeconds === undefined
       ? null
@@ -927,6 +946,16 @@ export default function App() {
           onClose={() => setShowHintPicker(false)}
         />
       )}
+      {showCheckResult && checkResult && (
+        <CheckResultDialog
+          title={checkResult.title}
+          message={checkResult.message}
+          score={checkResult.score}
+          continueLabel={t(preferences.locale, 'continuePlaying')}
+          closeLabel={t(preferences.locale, 'close')}
+          onClose={() => setShowCheckResult(false)}
+        />
+      )}
       {game.status === 'won' && (
         <ResultDialog
           title={copy.title}
@@ -945,6 +974,7 @@ export default function App() {
           timeLabel={t(preferences.locale, 'timer').toLowerCase()}
           challengeMessage={challengeResult?.message}
           challengeShareHint={challengeResult?.share}
+          progressLabel={checkResult?.score}
           onNewGame={() =>
             startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
           }

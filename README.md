@@ -147,7 +147,13 @@ move, preventing an earlier guess from trapping a later person.
 
 Wrong deductions are part of play: any physically free cell accepts a person even when the clues make
 that hypothesis incorrect. `Comprovar` evaluates clue truth, while local persistence retains valid
-wrong guesses instead of silently correcting them on reload.
+wrong guesses instead of silently correcting them on reload. The same rule applies to the child map:
+a child can test a free place, replace its occupant, return a person to the waiting area, and undo the
+whole experiment without the interface revealing the answer early.
+
+Every check opens an accessible result dialog instead of placing feedback below the game. By default,
+it reports the solver-verified number of correctly placed people as `N/total`. A local setting can hide
+that exact score and retain only encouraging guidance. No answer or rendered result text is persisted.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can
@@ -156,7 +162,9 @@ always choose another difficulty before starting a new adventure.
 ## Visual direction
 
 Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
-a playful title scene, and a map that stays visually dominant during play. The 2D collection
+a playful title scene, and a map that stays visually dominant during play. Their playable friends
+use a curated, non-repeating set of child avatars; animals and objects remain scenery rather than
+character identities. The 2D collection
 alternates between poster-like creative scenes and calm editorial scenes from the internal teen
 and adult content catalogs. Its boards use twelve local floor-plan variants per content catalog. A seeded game selects a
 plan, transform, people, item emojis, obstacle locations, and phrase variants deterministically.
@@ -210,8 +218,9 @@ panel rather than a separate view. Every plan fits the available width by defaul
 from 100% to 250%, at which point only the enlarged board can be moved within its viewport. A
 compact fixed action rail fits hint, undo, sharing, and validation without horizontal scrolling
 to the page end. The mobile adventure banner and rail spacing compact without shrinking the map
-or action targets, leaving the contextual clue fully above that fixed rail. A visible game counter
-records elapsed time without blocking play. New games
+or action targets. The document reserves enough bottom space for the whole people picker,
+contextual clue rail, complete clue panel, and feedback to scroll fully above that fixed rail and the
+iOS safe area. A visible game counter records elapsed time without blocking play. New games
 reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
@@ -219,6 +228,8 @@ reset document position and board zoom rather than inheriting a previous view.
 Catalan, Spanish, and English are available from the collection picker and in settings. Every clue
 is a discriminated union value; `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
+Child clues use the same narrative pattern as advanced clues: each precise fact is paired with a
+short friendly action, object, or motivation instead of being reduced to a bare placement command.
 Reducer and solver feedback is also stored as structured message data; the interface localizes it
 at render time, so saved games never retain wording from a previously selected language.
 Spatial cells inherit the room that geometrically contains them. Exact spatial clues add a short,

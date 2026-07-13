@@ -1,5 +1,5 @@
 import type { Locale, PuzzleCollection, ThemeId } from './types'
-import type { GameFeedback } from '../game/feedback'
+import type { CheckFeedback, GameFeedback } from '../game/feedback'
 
 export const supportedLocales: readonly Locale[] = ['ca', 'es', 'en']
 
@@ -78,6 +78,8 @@ type UiKey =
   | 'elevator'
   | 'floorUp'
   | 'floorDown'
+  | 'showCheckProgress'
+  | 'continuePlaying'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -150,6 +152,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     elevator: "Ascensor de l'edifici",
     floorUp: 'Puja un pis',
     floorDown: 'Baixa un pis',
+    showCheckProgress: 'Mostra quantes persones estan ben ubicades',
+    continuePlaying: 'Continua jugant',
   },
   es: {
     play: 'Jugar',
@@ -221,6 +225,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     elevator: 'Ascensor del edificio',
     floorUp: 'Sube una planta',
     floorDown: 'Baja una planta',
+    showCheckProgress: 'Muestra cuántas personas están bien colocadas',
+    continuePlaying: 'Seguir jugando',
   },
   en: {
     play: 'Play',
@@ -292,6 +298,8 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     elevator: 'Building elevator',
     floorUp: 'Go up one floor',
     floorDown: 'Go down one floor',
+    showCheckProgress: 'Show how many people are in the right place',
+    continuePlaying: 'Keep playing',
   },
 }
 
@@ -403,6 +411,51 @@ export const gameFeedbackCopy = (locale: Locale, feedback: GameFeedback) => {
       return copy.hintAlreadyCorrect(feedback.characterName)
     case 'hint-applied':
       return copy.hintApplied(feedback.characterName)
+  }
+}
+
+export const checkResultCopy = (
+  locale: Locale,
+  feedback: CheckFeedback,
+  showProgress: boolean,
+) => {
+  const copy = {
+    ca: {
+      almostTitle: 'Gairebé!',
+      correctTitle: 'Tot encaixa!',
+      incomplete: 'Continua completant el mapa i torna-ho a comprovar.',
+      incorrect: 'Revisa les pistes i prova una combinació diferent.',
+      correct: 'Has trobat el lloc de tothom.',
+      score: (correct: number, total: number) => `${correct}/${total} ben ubicats`,
+    },
+    es: {
+      almostTitle: '¡Casi!',
+      correctTitle: '¡Todo encaja!',
+      incomplete: 'Sigue completando el mapa y vuelve a comprobarlo.',
+      incorrect: 'Revisa las pistas y prueba una combinación diferente.',
+      correct: 'Has encontrado el lugar de todos.',
+      score: (correct: number, total: number) => `${correct}/${total} bien colocados`,
+    },
+    en: {
+      almostTitle: 'Almost!',
+      correctTitle: 'Everything fits!',
+      incomplete: 'Keep filling the map, then check again.',
+      incorrect: 'Review the clues and try a different combination.',
+      correct: 'You found a place for everyone.',
+      score: (correct: number, total: number) => `${correct}/${total} in the right place`,
+    },
+  }[locale]
+  const correct = feedback.type === 'assignment-correct'
+  const message =
+    feedback.type === 'assignment-incomplete'
+      ? copy.incomplete
+      : feedback.type === 'assignment-incorrect'
+        ? copy.incorrect
+        : copy.correct
+  return {
+    title: correct ? copy.correctTitle : copy.almostTitle,
+    message,
+    score: showProgress ? copy.score(feedback.correctCount, feedback.totalCount) : undefined,
   }
 }
 
