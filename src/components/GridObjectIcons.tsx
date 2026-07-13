@@ -14,11 +14,14 @@ export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps
     const position = positions.find((candidate) => candidate.placeId === `place-${index}`)
     return position ? gridPlaceLabel(position.label) : ''
   })
+  const labelSafeInset = columns <= 6 ? 0.19 : columns <= 9 ? 0.14 : 0.09
+  const safeLabelPosition = (value: number) =>
+    Math.min(1 - labelSafeInset, Math.max(labelSafeInset, value))
 
   return (
     <div
       className="grid-object-icons"
-      style={{ '--grid-columns': columns } as React.CSSProperties}
+      style={{ '--grid-columns': columns, '--grid-rows': rows } as React.CSSProperties}
       aria-hidden="true"
     >
       {plan.zones.map((zone, index) => {
@@ -35,7 +38,10 @@ export const GridObjectIcons = ({ plan, positions, items }: GridObjectIconsProps
             {label && (
               <span
                 className="grid-object-icons__label"
-                style={{ left: `${zone.label.x * 100}%`, top: `${zone.label.y * 100}%` }}
+                style={{
+                  left: `${safeLabelPosition(zone.label.x) * 100}%`,
+                  top: `${safeLabelPosition(zone.label.y) * 100}%`,
+                }}
               >
                 {label}
               </span>

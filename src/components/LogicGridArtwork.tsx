@@ -111,17 +111,65 @@ export const LogicGridArtwork = ({
           })
       })
 
+      const textureSpacing = Math.max(14, width / 26)
+      plan.zones.forEach((_, index) => {
+        const texture = new Graphics()
+        const mask = new Graphics()
+          .poly(pathPoints(plan.zones, width, height, index), true)
+          .fill({ color: 0xffffff })
+        texture.mask = mask
+
+        for (let row = 0, y = textureSpacing / 2; y < height; row += 1, y += textureSpacing) {
+          for (
+            let column = 0, x = textureSpacing / 2;
+            x < width;
+            column += 1, x += textureSpacing
+          ) {
+            if ((row + column + index) % 3 !== 0) continue
+            if (audience === 'adults') {
+              const radius = Math.max(0.8, textureSpacing * 0.065)
+              texture
+                .circle(x, y, radius)
+                .fill({ color: visual.ink, alpha: 0.1 + (index % 2) * 0.025 })
+              if ((row + index) % 2 === 0) {
+                texture
+                  .moveTo(x + radius * 2.5, y)
+                  .lineTo(x + textureSpacing * 0.34, y)
+                  .stroke({ color: visual.ink, width: 1, alpha: 0.07 })
+              }
+            } else {
+              const length = textureSpacing * 0.28
+              const vertical = (row + column + index) % 2 === 0
+              texture
+                .roundRect(
+                  x - (vertical ? 1 : length / 2),
+                  y - (vertical ? length / 2 : 1),
+                  vertical ? 2 : length,
+                  vertical ? length : 2,
+                  1,
+                )
+                .fill({ color: visual.wall, alpha: 0.13 })
+            }
+          }
+        }
+
+        app.stage.addChild(texture, mask)
+      })
+
+      const overlay = new Graphics()
+      app.stage.addChild(overlay)
+
       // A subtle movement grid is retained, but it is no longer the visual plan.
       for (let column = 1; column < columns; column += 1) {
         const x = column * cellWidth
-        graphic
+        overlay
           .moveTo(x, 0)
           .lineTo(x, height)
           .stroke({ color: visual.wall, width: 1, alpha: audience === 'adults' ? 0.24 : 0.18 })
       }
       for (let row = 1; row < rows; row += 1) {
         const y = row * cellHeight
-        graphic
+        overlay
           .moveTo(0, y)
           .lineTo(width, y)
           .stroke({ color: visual.wall, width: 1, alpha: audience === 'adults' ? 0.24 : 0.18 })
@@ -132,7 +180,7 @@ export const LogicGridArtwork = ({
         const y = position.row * cellHeight
         if (position.blocked) {
           const inset = Math.max(1, Math.min(cellWidth, cellHeight) * 0.08)
-          graphic
+          overlay
             .roundRect(
               x + inset,
               y + inset,
@@ -148,7 +196,9 @@ export const LogicGridArtwork = ({
           !assigned.has(position.id) &&
           (occupiedRows.has(position.row) || occupiedColumns.has(position.column))
         if (crossed) {
-          graphic
+          const crossInset = audience === 'adults' ? 0.34 : 0.31
+          const crossEnd = 1 - crossInset
+          overlay
             .roundRect(
               x + 2,
               y + 2,
@@ -156,16 +206,16 @@ export const LogicGridArtwork = ({
               cellHeight - 4,
               Math.max(2, cellWidth * 0.08),
             )
-            .fill({ color: visual.corridor, alpha: audience === 'adults' ? 0.48 : 0.56 })
-          graphic
-            .moveTo(x + cellWidth * 0.25, y + cellHeight * 0.25)
-            .lineTo(x + cellWidth * 0.75, y + cellHeight * 0.75)
-            .moveTo(x + cellWidth * 0.75, y + cellHeight * 0.25)
-            .lineTo(x + cellWidth * 0.25, y + cellHeight * 0.75)
+            .fill({ color: visual.corridor, alpha: audience === 'adults' ? 0.28 : 0.38 })
+          overlay
+            .moveTo(x + cellWidth * crossInset, y + cellHeight * crossInset)
+            .lineTo(x + cellWidth * crossEnd, y + cellHeight * crossEnd)
+            .moveTo(x + cellWidth * crossEnd, y + cellHeight * crossInset)
+            .lineTo(x + cellWidth * crossInset, y + cellHeight * crossEnd)
             .stroke({
               color: visual.crossed,
-              width: Math.max(1.4, cellWidth * 0.06),
-              alpha: 0.82,
+              width: Math.max(1, Math.min(cellWidth, cellHeight) * 0.045),
+              alpha: audience === 'adults' ? 0.52 : 0.62,
             })
         }
       }

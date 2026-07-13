@@ -146,6 +146,7 @@ export const GameBoard = ({
       style={boardStyle}
       role="grid"
       aria-label={boardLabel}
+      data-grid-size={boardMode === 'logic-grid' ? columns : undefined}
     >
       {boardMode === 'logic-grid' && (
         <LogicGridArtwork

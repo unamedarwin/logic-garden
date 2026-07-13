@@ -119,8 +119,11 @@ plan, transform, people, item emojis, obstacle locations, and phrase variants de
 The catalog only describes architecture: it never encodes a name, object assignment, phrase,
 answer, or player information. Every room is part of one complete orthogonal partition: rooms
 share walls, cover the whole plan, and use only 90-degree corners. PixiJS paints floors, shared
-walls, and crossed-out spaces locally; seed-generated item emojis render visible furniture and
-obstacles, while the real interaction remains semantic HTML buttons.
+walls, room-specific procedural textures, and crossed-out spaces locally; seed-generated item
+emojis render visible furniture and obstacles, while human avatars always come from a separate
+visual category. Icon, token, label, and cross sizes derive from the actual grid cell so 6x6,
+9x9, and 16x16 plans retain the same hierarchy. The real interaction remains semantic HTML
+buttons.
 
 On narrow screens, the plan, horizontally scrollable people rail, and the selected person's
 contextual clue stay in one workspace. The full clue list remains an optional collapsed support
@@ -132,9 +135,10 @@ play.
 Catalan, Spanish, and English are available in settings. Every clue is a discriminated
 union value; `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
-Spatial cells inherit the room that geometrically contains them. Exact spatial clues identify a
-single playable cell by naming its room, a visible adjacent obstacle, and the direction from that
-obstacle; they never expose route, row, column, step, or distance wording.
+Spatial cells inherit the room that geometrically contains them. Exact spatial clues add a short,
+positive social action before identifying one playable cell by naming its room, a visible adjacent
+obstacle, and the direction from that obstacle. They never expose route, row, column, step, or
+distance wording.
 
 `cspell.json` loads Catalan and Spanish dictionaries alongside the built-in English one.
 `pnpm spellcheck` is part of `pnpm verify`. Add only intentional names and technical terms

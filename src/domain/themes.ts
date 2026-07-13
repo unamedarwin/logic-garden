@@ -41,10 +41,14 @@ const makeCharacters = (emojiOverrides: readonly string[]): readonly ThemeCharac
     description,
   }))
 
-const makePeople = (
-  entries: readonly (readonly [string, string])[],
-): readonly ThemeCharacter[] =>
-  entries.map(([name, emoji]) => ({ name, emoji, description: 'una persona del grup' }))
+const personAvatars = ['🧑🏻', '👩🏽', '👨🏾', '🧑🏼', '👩🏻‍🦱', '👨🏽‍🦰', '🧑🏾‍🦱', '👩🏼‍🦳'] as const
+
+const makePeople = (names: readonly string[]): readonly ThemeCharacter[] =>
+  names.map((name, index) => ({
+    name,
+    emoji: personAvatars[index % personAvatars.length]!,
+    description: 'una persona del grup',
+  }))
 
 const makeItems = (entries: readonly (readonly [string, string])[]): readonly ThemeItem[] =>
   entries.map(([label, emoji]) => ({ label, emoji }))
@@ -156,7 +160,7 @@ export const themes: readonly Theme[] = [
       ['estrella', '⭐'],
       ['satèl·lit', '🛰️'],
       ['flor lunar', '🌙'],
-      ['robotet', '🤖'],
+      ['comandament', '🎛️'],
       ['cometa', '☄️'],
       ['auriculars', '🎧'],
     ].map(([label, emoji]) => ({ label, emoji })),
@@ -346,16 +350,7 @@ export const themes: readonly Theme[] = [
       'El racó del baix',
       'El sofà blau',
     ],
-    characters: makePeople([
-      ['Alex', '🎧'],
-      ['Berta', '🎤'],
-      ['Casey', '🎸'],
-      ['Dani', '🥁'],
-      ['Eli', '🎹'],
-      ['Fran', '🎷'],
-      ['Gina', '🎼'],
-      ['Kai', '🔊'],
-    ]),
+    characters: makePeople(['Alex', 'Berta', 'Casey', 'Dani', 'Eli', 'Fran', 'Gina', 'Kai']),
     items: makeItems([
       ['auriculars', '🎧'],
       ['micròfon', '🎤'],
@@ -384,16 +379,7 @@ export const themes: readonly Theme[] = [
       'La grada',
       'El punt d’aigua',
     ],
-    characters: makePeople([
-      ['Ari', '🏀'],
-      ['Blai', '🏃'],
-      ['Clara', '🛹'],
-      ['Dídac', '🏐'],
-      ['Emma', '🚲'],
-      ['Fèlix', '🥏'],
-      ['Gala', '🧗'],
-      ['Nil', '⚽'],
-    ]),
+    characters: makePeople(['Ari', 'Blai', 'Clara', 'Dídac', 'Emma', 'Fèlix', 'Gala', 'Nil']),
     items: makeItems([
       ['pilota', '🏀'],
       ['ampolla', '💧'],
@@ -422,16 +408,7 @@ export const themes: readonly Theme[] = [
       'El sofà de prova',
       'La finestra gran',
     ],
-    characters: makePeople([
-      ['Aina', '🖍️'],
-      ['Biel', '📷'],
-      ['Cora', '🧵'],
-      ['Duna', '🖥️'],
-      ['Èric', '📐'],
-      ['Fina', '🧶'],
-      ['Hugo', '🪩'],
-      ['Iris', '🧩'],
-    ]),
+    characters: makePeople(['Aina', 'Biel', 'Cora', 'Duna', 'Èric', 'Fina', 'Hugo', 'Iris']),
     items: makeItems([
       ['esbós', '📝'],
       ['càmera', '📷'],
@@ -461,14 +438,14 @@ export const themes: readonly Theme[] = [
       'La cafetera',
     ],
     characters: makePeople([
-      ['Alba', '📚'],
-      ['Bruno', '☕'],
-      ['Carme', '🪴'],
-      ['Dídac', '📰'],
-      ['Elena', '🖋️'],
-      ['Ferran', '🧶'],
-      ['Gemma', '🗂️'],
-      ['Joan', '🔖'],
+      'Alba',
+      'Bruno',
+      'Carme',
+      'Dídac',
+      'Elena',
+      'Ferran',
+      'Gemma',
+      'Joan',
     ]),
     items: makeItems([
       ['llibre', '📘'],
@@ -499,14 +476,14 @@ export const themes: readonly Theme[] = [
       'La porta blava',
     ],
     characters: makePeople([
-      ['Anna', '🌱'],
-      ['Berta', '🪴'],
-      ['Cesc', '🧺'],
-      ['Dora', '🌼'],
-      ['Enric', '🍅'],
-      ['Fina', '🫛'],
-      ['Guillem', '🪵'],
-      ['Helena', '🌿'],
+      'Anna',
+      'Berta',
+      'Cesc',
+      'Dora',
+      'Enric',
+      'Fina',
+      'Guillem',
+      'Helena',
     ]),
     items: makeItems([
       ['llavor', '🌱'],
@@ -537,14 +514,14 @@ export const themes: readonly Theme[] = [
       'L’entrada',
     ],
     characters: makePeople([
-      ['Ariadna', '🥖'],
-      ['Biel', '🍐'],
-      ['Clara', '🌷'],
-      ['Dani', '☕'],
-      ['Estel', '🏺'],
-      ['Fèlix', '🧀'],
-      ['Gina', '🧾'],
-      ['Hugo', '🛍️'],
+      'Ariadna',
+      'Biel',
+      'Clara',
+      'Dani',
+      'Estel',
+      'Fèlix',
+      'Gina',
+      'Hugo',
     ]),
     items: makeItems([
       ['pa', '🥖'],

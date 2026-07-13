@@ -1,6 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { getTheme } from '../domain/themes'
+import { getTheme, themes } from '../domain/themes'
 import type { Difficulty } from '../domain/types'
 import { renderClue } from '../domain/vocabulary'
 import { generatePuzzle } from '../generator/puzzleGenerator'
@@ -11,6 +11,16 @@ const bannedTerms =
   /murder|death|weapon|violence|threat|punishment|assassinat|mort|arma|violència|amenaça|càstig|asesinato|muerte|arma|violencia|amenaza|castigo/iu
 
 describe('seeded puzzle generator', () => {
+  it('keeps character identities visually separate from object markers in every theme', () => {
+    for (const theme of themes) {
+      const objectEmojis = new Set(theme.items.map((item) => item.emoji))
+      expect(
+        theme.characters.filter((character) => objectEmojis.has(character.emoji)),
+        theme.id,
+      ).toEqual([])
+    }
+  })
+
   it('repeats the exact same puzzle for the same seed and varies across seeds', () => {
     expect(generatePuzzle('medium', 'same-seed')).toEqual(generatePuzzle('medium', 'same-seed'))
     expect(generatePuzzle('medium', 'seed-one').clues).not.toEqual(
@@ -112,6 +122,18 @@ describe('seeded puzzle generator', () => {
                 text.includes(position.obstacleLabel),
             )
           }),
+      ).toBe(true)
+      const exactClues = puzzle.clues.filter((clue) => clue.type === 'character-at-position')
+      expect(
+        exactClues.every((clue) => /agrada|ganes|ajuda/u.test(renderClue(puzzle, clue, 'ca'))),
+      ).toBe(true)
+      expect(
+        exactClues.every((clue) => /ilusión|ganas|ayuda/u.test(renderClue(puzzle, clue, 'es'))),
+      ).toBe(true)
+      expect(
+        exactClues.every((clue) =>
+          /excited|ready|helping/u.test(renderClue(puzzle, clue, 'en')),
+        ),
       ).toBe(true)
     }
   })

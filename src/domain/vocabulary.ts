@@ -89,14 +89,15 @@ const mapTemplates: Record<Locale, Templates> = {
 const gridTemplates: Record<Locale, Templates> = {
   ca: {
     'character-at-position': [
-      'A la zona «{p}», {a} és a la casella {d} del marcador {o}. Porta {i}.',
-      'A la zona «{p}», {a} ha deixat {i} a la casella {d} del marcador {o}.',
+      'A {a} li agrada molt participar. A la zona «{p}», és a la casella {d} del marcador {o} i porta {i}.',
+      '{a} ha arribat amb moltes ganes a la zona «{p}». És a la casella {d} del marcador {o} i porta {i}.',
+      '{a} ajuda a preparar la zona «{p}». La seva casella és {d} del marcador {o}, i hi porta {i}.',
     ],
     'character-not-at-position': [
-      'A la zona «{p}», {a} no és a la casella {d} del marcador {o}.',
+      '{a} prefereix donar un cop de mà en un altre espai: no és a la casella {d} del marcador {o}, a «{p}».',
     ],
-    'character-in-place': ['{a}, amb {i}, és a {p}.'],
-    'character-not-in-place': ['{a} no és a {p}.'],
+    'character-in-place': ['{a} se sent a gust a «{p}» i hi porta {i}.'],
+    'character-not-in-place': ['{a} prefereix ajudar en un altre espai, no a «{p}».'],
     adjacent: ['{a} i {b} tenen espais veïns.'],
     'not-adjacent': ['{a} i {b} no tenen espais veïns.'],
     'same-row': ['{a} i {b} ocupen la mateixa franja.'],
@@ -114,14 +115,15 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   es: {
     'character-at-position': [
-      'En la zona «{p}», {a} está en la casilla {d} del marcador {o}. Lleva {i}.',
-      'Dentro de «{p}», {a} ha dejado {i} en la casilla {d} del marcador {o}.',
+      'A {a} le hace ilusión participar. En la zona «{p}», está en la casilla {d} del marcador {o} y lleva {i}.',
+      '{a} ha llegado con muchas ganas a la zona «{p}». Está en la casilla {d} del marcador {o} y lleva {i}.',
+      '{a} ayuda a preparar la zona «{p}». Su casilla está {d} del marcador {o} y lleva {i}.',
     ],
     'character-not-at-position': [
-      'En la zona «{p}», {a} no está en la casilla {d} del marcador {o}.',
+      '{a} prefiere colaborar en otro espacio: no está en la casilla {d} del marcador {o}, en «{p}».',
     ],
-    'character-in-place': ['{a}, con {i}, está en {p}.'],
-    'character-not-in-place': ['{a} no está en {p}.'],
+    'character-in-place': ['{a} se siente a gusto en «{p}» y lleva {i}.'],
+    'character-not-in-place': ['{a} prefiere ayudar en otro espacio, no en «{p}».'],
     adjacent: ['{a} y {b} tienen espacios vecinos.'],
     'not-adjacent': ['{a} y {b} no tienen espacios vecinos.'],
     'same-row': ['{a} y {b} ocupan la misma franja.'],
@@ -139,12 +141,15 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   en: {
     'character-at-position': [
-      'In the “{p}” zone, {a} is in the cell {d} the {o} marker. {a} carries {i}.',
-      'In “{p}”, {a} left {i} in the cell {d} the {o} marker.',
+      '{a} is excited to join in. In the “{p}” zone, they are in the cell {d} the {o} marker and carry {i}.',
+      '{a} has arrived ready to help in the “{p}” zone. Their cell is {d} the {o} marker, and they carry {i}.',
+      '{a} is helping prepare the “{p}” zone. Their cell is {d} the {o} marker, and they carry {i}.',
     ],
-    'character-not-at-position': ['Inside “{p}”, {a} is not in the cell {d} the {o} marker.'],
-    'character-in-place': ['{a}, with {i}, is in {p}.'],
-    'character-not-in-place': ['{a} is not in {p}.'],
+    'character-not-at-position': [
+      '{a} would rather help elsewhere and is not in the cell {d} the {o} marker in “{p}”.',
+    ],
+    'character-in-place': ['{a} feels at home in “{p}” and carries {i}.'],
+    'character-not-in-place': ['{a} would rather help elsewhere, not in “{p}”.'],
     adjacent: ['{a} and {b} have neighboring spaces.'],
     'not-adjacent': ['{a} and {b} do not have neighboring spaces.'],
     'same-row': ['{a} and {b} occupy the same strip.'],

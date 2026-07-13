@@ -12,7 +12,7 @@ import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
 
-export const GENERATOR_VERSION = 6
+export const GENERATOR_VERSION = 7
 const maximumAttempts = 12
 
 const isNarrativeGridClue = (clue: Puzzle['clues'][number]) =>
