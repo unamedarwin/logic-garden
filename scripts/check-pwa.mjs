@@ -14,5 +14,8 @@ const serviceWorker = readFileSync(resolve('dist/sw.js'), 'utf8')
 if (!serviceWorker.includes('precacheAndRoute')) {
   throw new Error('El service worker no inclou la precàrrega essencial.')
 }
+if (!serviceWorker.includes('skipWaiting') || !serviceWorker.includes('clientsClaim')) {
+  throw new Error('El service worker no activa automàticament les versions noves.')
+}
 
 console.log('PWA validada: manifest, service worker i precàrrega presents.')

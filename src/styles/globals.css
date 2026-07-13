@@ -755,6 +755,13 @@ summary:focus-visible {
   height: 1em;
   flex: 0 0 auto;
 }
+.clue-sentence__icon {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  margin-inline-end: 0.14em;
+  vertical-align: -0.26em;
+}
 .tray-wrap {
   margin-top: 20px;
   border: 2px solid var(--ink);
@@ -1191,16 +1198,16 @@ summary:focus-visible {
     margin-bottom: 6px;
   }
   .game-screen .adventure-banner {
-    margin-bottom: 6px;
-    padding: 10px 12px;
+    margin-bottom: 3px;
+    padding: 5px 10px;
   }
   .game-screen .adventure-banner__title {
     gap: 10px;
   }
   .game-screen .adventure-banner__stamp {
-    width: 44px;
-    height: 44px;
-    font-size: 1.55rem;
+    width: 38px;
+    height: 38px;
+    font-size: 1.35rem;
   }
   .game-screen .adventure-banner h1 {
     margin: 2px 0 0;
@@ -2216,22 +2223,28 @@ summary:focus-visible {
 /* A spatial board is a continuous plan. The grid remains only an interaction layer. */
 .game-board--logic-grid {
   width: min(100%, 700px);
-  aspect-ratio: 1;
   margin-inline: auto;
   overflow: hidden;
   container-type: inline-size;
   border-radius: 14px;
   padding: 10px;
 }
+.game-board--logic-grid .game-board__surface {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
 .game-board--logic-grid .game-board__cells {
+  position: absolute;
   z-index: 3;
+  inset: 0;
   height: 100%;
   grid-template-rows: repeat(var(--board-rows), minmax(0, 1fr));
   gap: 0;
 }
 .logic-grid-artwork,
 .grid-object-icons {
-  inset: 10px;
+  inset: 0;
 }
 .grid-object-icons {
   z-index: 2;
@@ -2264,7 +2277,7 @@ summary:focus-visible {
 }
 .grid-object-icons__label {
   width: max-content;
-  max-width: clamp(58px, calc(160% / var(--grid-columns)), 108px);
+  max-width: min(108px, calc(190% / var(--grid-columns)));
   border: 1px solid rgba(255, 252, 245, 0.92);
   border-radius: 5px;
   padding: clamp(2px, 0.65cqi, 4px) clamp(3px, 0.9cqi, 6px);
@@ -2307,8 +2320,24 @@ summary:focus-visible {
   box-shadow: inset 0 0 0 2px rgba(49, 75, 64, 0.82);
 }
 .game-board--logic-grid.game-board--dragging .location-cell--placeable .location-cell__target {
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(255, 252, 245, 0.46);
+  background: rgba(255, 252, 245, 0.2);
+  box-shadow: none;
+}
+.game-board__drop-grid {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  border: 1px solid rgba(255, 252, 245, 0.96);
+  background-image:
+    linear-gradient(to right, rgba(255, 252, 245, 0.96) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 252, 245, 0.96) 1px, transparent 1px);
+  background-size:
+    calc(100% / var(--board-columns)) 100%,
+    100% calc(100% / var(--board-rows));
+  pointer-events: none;
+}
+.game-board--logic-grid.game-board--dragging .character-token--dragging {
+  opacity: 0;
 }
 .game-board--logic-grid .location-cell--over {
   background: transparent;
@@ -2401,13 +2430,13 @@ summary:focus-visible {
     max-height: min(62dvh, 530px);
   }
   .game-screen .character-clue-rail {
-    margin-top: 8px;
-    padding: 8px;
+    margin-top: 2px;
+    padding: 5px;
   }
   .game-screen .character-clue-rail__people,
   .game-screen .character-clue-rail__clues {
     gap: 6px;
-    padding-bottom: 5px;
+    padding-bottom: 4px;
   }
   .game-screen .character-clue-rail__people > div,
   .game-screen .character-clue-rail__person {
@@ -2445,7 +2474,7 @@ summary:focus-visible {
   }
   .logic-grid-artwork,
   .grid-object-icons {
-    inset: 6px;
+    inset: 0;
   }
   .board-view-controls {
     justify-content: space-between;

@@ -60,19 +60,38 @@ describe('game reducer', () => {
     let state = createGameState(puzzle)
 
     for (const character of puzzle.characters.slice(0, -1)) {
-      state = gameReducer(state, { type: 'select-character', characterId: character.id })
+      if (state.selectedCharacterId !== character.id) {
+        state = gameReducer(state, { type: 'select-character', characterId: character.id })
+      }
       state = gameReducer(state, { type: 'hint' })
       expect(state.assignments[character.id]).toBeDefined()
     }
 
     const lastCharacter = puzzle.characters.at(-1)
     if (!lastCharacter) throw new Error('Expected a final character')
-    state = gameReducer(state, { type: 'select-character', characterId: lastCharacter.id })
+    if (state.selectedCharacterId !== lastCharacter.id) {
+      state = gameReducer(state, { type: 'select-character', characterId: lastCharacter.id })
+    }
     const limited = gameReducer(state, { type: 'hint' })
 
     expect(limited.hintsUsed).toBe(puzzle.characters.length - 1)
     expect(limited.assignments[lastCharacter.id]).toBeUndefined()
     expect(limited.feedback).toEqual({ type: 'hint-limit-reached' })
+  })
+
+  it('selects the next waiting person after a valid placement', () => {
+    const puzzle = generatePuzzle('easy', 'select-next-person', 'adults')
+    const [first, second] = puzzle.characters
+    const position = puzzle.positions.find((candidate) => !candidate.blocked)
+    if (!first || !second || !position) throw new Error('Expected people and a free position')
+
+    const state = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: first.id,
+      positionId: position.id,
+    })
+
+    expect(state.selectedCharacterId).toBe(second.id)
   })
 
   it('returns a placed character to the waiting tray and records the move', () => {

@@ -109,8 +109,9 @@ Players can drag with a pointer or touch, or use the equivalent keyboard-friendl
 focus and activate a character button, then activate a location button. Touching a placed
 character returns it to the waiting tray. A placed character can also be dragged again: its old
 cell is excluded while valid destinations light up, a cell-sized preview shows the exact drop
-target under the pointer, and dropping on the current cell does not count as a move. Teen and adult modes use the
-same deduction rules.
+target under the pointer, and dropping on the current cell does not count as a move. A single
+top-layer guide draws the complete drag grid, so room textures and scene art cannot interrupt or
+change individual grid lines. Teen and adult modes use the same deduction rules.
 Every advanced difficulty can use `6 x 6`, `9 x 9`, or `16 x 16`; grid size does not define
 difficulty and never dictates the number of people. The seeded selector chooses one of the three
 sizes first, with equal probability, and only then chooses a template from that size. Easy
@@ -150,6 +151,15 @@ token, label, and cross sizes derive from the actual grid cell so 6x6,
 buttons. Interface copy is non-selectable to avoid accidental selection while placing characters
 or panning a plan; editable form fields retain normal text selection.
 
+All spatial layers render inside one shared square surface. For each grid size, the renderer traces
+the existing logical room assignment back into an orthogonal polygon, so every wall lands on a
+real cell edge while every `placeId` stays unchanged. Fixed objects and avatars use the exact cell
+center. Room names attach to collision-free horizontal walls, preferring the room-facing side and
+using the opposite side of an internal wall only when necessary. Their collision boxes are sized
+from the narrow fitted mobile surface, including the full wrapped height of 16x16 labels, so wider
+layouts cannot hide a mobile overlap. Structured clue icon tokens use
+the same locally bundled SVG key as the corresponding board object rather than a platform emoji.
+
 Future scene-art replacements follow a fixed source hierarchy: Kenney for general graphics,
 Game-icons.net for attributed semantic icons, and individually licensed itch.io packs only for a
 deliberate pixel-art theme. See the [visual asset policy](docs/visual-asset-policy.md) for curation,
@@ -175,7 +185,9 @@ panel rather than a separate view. Every plan fits the available width by defaul
 `9 x 9` and `16 x 16`; there is no internal board scroll in fit mode. Players can explicitly zoom
 from 100% to 250%, at which point only the enlarged board can be moved within its viewport. A
 compact fixed action rail keeps hint, undo, sharing, and validation available without scrolling
-to the page end. A visible game counter records elapsed time without blocking play. New games
+to the page end. The mobile adventure banner and rail spacing compact without shrinking the map
+or action targets, leaving the contextual clue fully above that fixed rail. A visible game counter
+records elapsed time without blocking play. New games
 reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
@@ -197,10 +209,11 @@ to that dictionary, never a spelling mistake.
 ## PWA and offline play
 
 `vite-plugin-pwa` creates the standalone manifest, maskable SVG icon, and Workbox service
-worker. Essential assets are precached. After the first successful visit, the app can load,
+worker. Essential assets are precached. New releases activate automatically and the app checks
+again whenever a foreground window regains focus, preventing an installed mobile PWA from keeping
+an obsolete board bundle. After the first successful visit, the app can load,
 start a game, generate a puzzle, play, validate, and create another game offline. It shows
-an offline status only when connectivity is lost, and offers an update when a service-worker
-version is ready. On a first mobile
+an offline status only when connectivity is lost. On a first mobile
 visit, Android receives the native install action when available; iPhone and iPad receive the
 short Share > Add to Home Screen instruction.
 

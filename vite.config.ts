@@ -9,10 +9,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['offline.html', 'icon-192.svg', 'icon-512.svg'],
       manifest: pwaManifest,
       workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
         navigateFallback: '/logic-garden/index.html',
         globPatterns: ['**/*.{js,css,html,svg,webmanifest}'],
       },

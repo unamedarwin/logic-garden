@@ -231,33 +231,49 @@ const landmarkDirection = (position: Position, obstacle: Position, locale: Local
   return set.below
 }
 
-export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') => {
+export type CluePart =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'icon'; readonly emoji: string; readonly label: string }
+
+interface ClueValue {
+  readonly text: string
+  readonly emoji?: string
+}
+
+const textValue = (text: string): ClueValue => ({ text })
+
+const clueValues = (puzzle: Puzzle, clue: Clue, locale: Locale) => {
   const characterName = (id: CharacterId) => valueOrFallback(puzzle.characters, id)
   const positionFor = (id: PositionId) =>
     puzzle.positions.find((position) => position.id === id)
-  const itemName = (id: ItemId) =>
-    localizeThemeLabel(locale, puzzle.theme, valueOrFallback(puzzle.items, id))
+  const itemValue = (id: ItemId): ClueValue => {
+    const item = puzzle.items.find((candidate) => candidate.id === id)
+    return item
+      ? {
+          text: localizeThemeLabel(locale, puzzle.theme, item.label),
+          emoji: item.emoji,
+        }
+      : textValue('object')
+  }
   const localizedPlace = (label: string) =>
     localizeThemeLabel(locale, puzzle.theme, gridPlaceLabel(label))
-  const obstacleName = (position: Position, fallback: string) =>
-    `${position.obstacleEmoji ?? ''} ${localizeThemeLabel(
-      locale,
-      puzzle.theme,
-      position.obstacleLabel ?? fallback,
-    )}`.trim()
-  const itemForCharacter = (id: CharacterId) => {
+  const obstacleValue = (position: Position, fallback: string): ClueValue => ({
+    text: localizeThemeLabel(locale, puzzle.theme, position.obstacleLabel ?? fallback),
+    emoji: position.obstacleEmoji,
+  })
+  const itemForCharacter = (id: CharacterId): ClueValue => {
     const character = puzzle.characters.find((candidate) => candidate.id === id)
-    return character ? itemName(character.itemId) : 'object'
+    return character ? itemValue(character.itemId) : textValue('object')
   }
-  const values: Record<string, string> = {}
+  const values: Record<string, ClueValue> = {}
 
   switch (clue.type) {
     case 'character-at-position':
     case 'character-not-at-position': {
       const position = positionFor(clue.positionId)
-      values.a = characterName(clue.characterId)
+      values.a = textValue(characterName(clue.characterId))
       values.i = itemForCharacter(clue.characterId)
-      values.p = position ? localizedPlace(position.label) : 'here'
+      values.p = textValue(position ? localizedPlace(position.label) : 'here')
       const obstacle = position
         ? puzzle.positions.find(
             (candidate) =>
@@ -269,50 +285,81 @@ export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
           )
         : undefined
       const near = { ca: 'prop de', es: 'junto a', en: 'near' } as const
-      values.d =
-        position && obstacle ? landmarkDirection(position, obstacle, locale) : near[locale]
-      values.o = obstacle ? obstacleName(obstacle, values.p) : values.p
+      values.d = textValue(
+        position && obstacle ? landmarkDirection(position, obstacle, locale) : near[locale],
+      )
+      values.o = obstacle ? obstacleValue(obstacle, values.p.text) : values.p
       break
     }
     case 'character-in-place':
     case 'character-not-in-place':
-      values.a = characterName(clue.characterId)
+      values.a = textValue(characterName(clue.characterId))
       values.i = itemForCharacter(clue.characterId)
-      values.p = placeLabel(puzzle, clue.placeId, locale)
+      values.p = textValue(placeLabel(puzzle, clue.placeId, locale))
       break
     case 'character-next-to-obstacle': {
       const obstacle = positionFor(clue.obstaclePositionId)
-      values.a = characterName(clue.characterId)
+      values.a = textValue(characterName(clue.characterId))
       values.i = itemForCharacter(clue.characterId)
-      values.p = obstacle ? localizedPlace(obstacle.label) : 'here'
-      values.o = obstacle ? obstacleName(obstacle, values.p) : values.p
+      values.p = textValue(obstacle ? localizedPlace(obstacle.label) : 'here')
+      values.o = obstacle ? obstacleValue(obstacle, values.p.text) : values.p
       break
     }
     case 'has-item':
     case 'does-not-have-item':
-      values.a = characterName(clue.characterId)
-      values.i = itemName(clue.itemId)
+      values.a = textValue(characterName(clue.characterId))
+      values.i = itemValue(clue.itemId)
       break
     case 'between':
-      values.a = characterName(clue.characterId)
+      values.a = textValue(characterName(clue.characterId))
       values.i = itemForCharacter(clue.characterId)
-      values.b = characterName(clue.firstCharacterId)
-      values.c = characterName(clue.secondCharacterId)
+      values.b = textValue(characterName(clue.firstCharacterId))
+      values.c = textValue(characterName(clue.secondCharacterId))
       break
     case 'distance':
-      values.a = characterName(clue.firstCharacterId)
+      values.a = textValue(characterName(clue.firstCharacterId))
       values.i = itemForCharacter(clue.firstCharacterId)
-      values.b = characterName(clue.secondCharacterId)
-      values.n = String(clue.distance)
+      values.b = textValue(characterName(clue.secondCharacterId))
+      values.n = textValue(String(clue.distance))
       break
     default:
-      values.a = characterName(clue.firstCharacterId)
+      values.a = textValue(characterName(clue.firstCharacterId))
       values.i = itemForCharacter(clue.firstCharacterId)
-      values.b = characterName(clue.secondCharacterId)
+      values.b = textValue(characterName(clue.secondCharacterId))
   }
 
+  return values
+}
+
+export const renderClueParts = (
+  puzzle: Puzzle,
+  clue: Clue,
+  locale: Locale = 'ca',
+): readonly CluePart[] => {
+  const values = clueValues(puzzle, clue, locale)
   const templateSet = puzzle.boardMode === 'logic-grid' ? gridTemplates : mapTemplates
   const variants = templateSet[locale][clue.type]
   const template = variants[clue.phraseVariant % variants.length]
-  return template.replace(/\{(\w+)\}/gu, (_whole, key: string) => values[key] ?? key)
+  const parts: CluePart[] = []
+  let cursor = 0
+  for (const match of template.matchAll(/\{(\w+)\}/gu)) {
+    const index = match.index
+    if (index > cursor) parts.push({ type: 'text', text: template.slice(cursor, index) })
+    const key = match[1] ?? ''
+    const value = values[key] ?? textValue(key)
+    if (value.emoji) {
+      parts.push({ type: 'icon', emoji: value.emoji, label: value.text })
+      parts.push({ type: 'text', text: ` ${value.text}` })
+    } else {
+      parts.push({ type: 'text', text: value.text })
+    }
+    cursor = index + match[0].length
+  }
+  if (cursor < template.length) parts.push({ type: 'text', text: template.slice(cursor) })
+  return parts
 }
+
+export const renderClue = (puzzle: Puzzle, clue: Clue, locale: Locale = 'ca') =>
+  renderClueParts(puzzle, clue, locale)
+    .map((part) => (part.type === 'icon' ? part.emoji : part.text))
+    .join('')

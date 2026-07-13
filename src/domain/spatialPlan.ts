@@ -45,11 +45,24 @@ const planTransforms: readonly PlanTransform[] = ['base', 'mirror-x', 'mirror-y'
 const planInset = 0.02
 const planSpan = 1 - planInset * 2
 
+const canonicalCoordinate = (value: number) =>
+  Math.min(1, Math.max(0, (value - planInset) / planSpan))
+
+const snapCellCenterCoordinate = (value: number, dimension: number) => {
+  const cell = Math.min(
+    dimension - 1,
+    Math.max(0, Math.floor(canonicalCoordinate(value) * dimension)),
+  )
+  return (cell + 0.5) / dimension
+}
+
 const pointKey = ([x, y]: readonly [number, number]) => `${x}:${y}`
 
 const traceRegion = (
   map: readonly (readonly number[])[],
   region: number,
+  inset = planInset,
+  span = planSpan,
 ): readonly PlanPoint[] => {
   const rows = map.length
   const columns = map[0]?.length ?? 0
@@ -88,8 +101,8 @@ const traceRegion = (
   }
 
   return vertices.map(([x, y]) => ({
-    x: planInset + (x / columns) * planSpan,
-    y: planInset + (y / rows) * planSpan,
+    x: inset + (x / columns) * span,
+    y: inset + (y / rows) * span,
   }))
 }
 
@@ -287,6 +300,45 @@ export const defaultSpatialPlanFor = (audience: SpatialAudience) => {
   const plan = spatialPlanForId(id)
   if (!plan) throw new Error('The default spatial plan could not be loaded.')
   return plan
+}
+
+/**
+ * Projects the normalized six-cell plan onto real grid lines. Every visual and
+ * semantic layer must use this projection so walls never cut through a cell.
+ */
+export const spatialPlanForGrid = (
+  plan: SpatialPlan,
+  columns: number,
+  rows: number,
+): SpatialPlan => {
+  const roomMap = Array.from({ length: rows }, (_, row) =>
+    Array.from({ length: columns }, (_, column) => {
+      const center = { x: (column + 0.5) / columns, y: (row + 0.5) / rows }
+      return Math.max(
+        0,
+        plan.zones.findIndex((zone) => containsPoint(zone.path, center)),
+      )
+    }),
+  )
+
+  return {
+    ...plan,
+    zones: plan.zones.map((zone, index) => ({
+      path: traceRegion(roomMap, index, 0, 1),
+      label: {
+        x: snapCellCenterCoordinate(zone.label.x, columns),
+        y: snapCellCenterCoordinate(zone.label.y, rows),
+      },
+      object: {
+        x: snapCellCenterCoordinate(zone.object.x, columns),
+        y: snapCellCenterCoordinate(zone.object.y, rows),
+      },
+    })),
+    obstacleAnchors: plan.obstacleAnchors.map((anchor) => ({
+      x: snapCellCenterCoordinate(anchor.x, columns),
+      y: snapCellCenterCoordinate(anchor.y, rows),
+    })),
+  }
 }
 
 const containsPoint = (path: readonly PlanPoint[], point: PlanPoint) => {

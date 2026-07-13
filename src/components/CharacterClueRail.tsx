@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { renderClue } from '../domain/vocabulary'
 import type { Character, CharacterId, Clue, Locale, PositionId, Puzzle } from '../domain/types'
+import { ClueSentence } from './ClueSentence'
 import { SceneIcon } from './SceneIcon'
 
 interface CharacterClueRailProps {
@@ -104,7 +104,6 @@ export const CharacterClueRail = ({
       <div className="character-clue-rail__people" role="list">
         {puzzle.characters.map((character) => {
           const selected = selectedCharacterId === character.id
-          const previewed = !selectedCharacterId && activeCharacter.id === character.id
           const placed = assignments[character.id] !== undefined
           return (
             <div key={character.id} role="listitem">
@@ -114,9 +113,8 @@ export const CharacterClueRail = ({
                   else peopleRefs.current.delete(character.id)
                 }}
                 type="button"
-                className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${previewed ? 'character-clue-rail__person--previewed' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
+                className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
                 aria-pressed={selected}
-                aria-current={previewed ? 'true' : undefined}
                 aria-controls={clueRegionId}
                 onClick={() => onSelect(character)}
               >
@@ -163,7 +161,7 @@ export const CharacterClueRail = ({
             <div ref={clueRailRef} className="character-clue-rail__clues">
               {clues.map((clue) => (
                 <p key={clue.id} className="character-clue-rail__clue">
-                  {renderClue(puzzle, clue, locale)}
+                  <ClueSentence puzzle={puzzle} clue={clue} locale={locale} />
                 </p>
               ))}
             </div>

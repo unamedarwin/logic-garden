@@ -70,13 +70,39 @@ theme. Other themes fill the same cells with their own ordinary fixed objects. O
 renders the cluster as water. This keeps answer-free structural templates independent from runtime
 theme selection.
 
+## Shared geometry and labels
+
+Pixi walls, room textures, pond patches, motifs, fixed objects, semantic cells, drop previews, and
+avatars all use one square interior surface. The normalized plan catalog is never painted directly.
+For `6 x 6`, `9 x 9`, or `16 x 16`, the renderer samples the already assigned room of every cell and
+traces that complete map back into orthogonal polygons. The result covers the full surface, places
+every wall on a cell edge, and preserves every logical room assignment.
+
+Room titles are plaques attached to horizontal wall segments. Candidate placement accounts for
+the actual label box, fixed object boxes, occupied character boxes, other labels, and board bounds.
+The plaque prefers the room-facing side; an internal wall may use its other free side when that is
+the only collision-free placement. Object and avatar centers are derived directly from the same
+row and column center used by the semantic drop target.
+
 ## Layer order and QA
 
 The visual stack is floor plan, room texture, terrain patch, sparse motifs, walls and labels, fixed
 objects, crossed cells, and placed characters. The semantic HTML grid stays above decorative PixiJS
 and SVG layers.
 
+Room-label collision boxes use the narrow fitted mobile board as their reference. This is the
+worst case for 16 x 16 labels because the minimum font size remains fixed while the percentage
+label width shrinks. The planner reserves the complete wrapped height before choosing a wall
+segment; desktop layouts may gain whitespace but must never lose the mobile collision margin.
+
 After a terrain change, inspect teen and adult boards at 390 x 844 for 6 x 6, 9 x 9, and 16 x 16,
 both empty and with a character placed. Reject flat rooms, broken pattern continuity, decorative
 marks that resemble game pieces, clipped labels, tiny or duplicated objects, water gaps, blocked
-cells that accept a character, or artwork that hides a touch target.
+cells that accept a character, artwork that hides a touch target, or a fixed action rail that
+overlaps the selected person's contextual clue.
+During an active drag, one continuous top-layer grid traces every row and column from the same
+board variables as the semantic cells. It cannot be interrupted or recolored by room textures,
+labels, objects, crossed cells, or avatars. Valid semantic cells receive a separate light wash;
+blocked and occupied cells remain distinct, and the hidden source token must not interrupt the
+grid. Measure fixed-object and avatar centers against their `data-grid-position` cell when
+reviewing alignment.

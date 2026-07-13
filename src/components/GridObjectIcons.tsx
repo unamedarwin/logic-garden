@@ -1,24 +1,31 @@
 import { gridPlaceLabel, type SpatialPlan } from '../domain/spatialPlan'
 import { localizeThemeLabel } from '../domain/themeVocabulary'
-import type { Locale, Position, ThemeId } from '../domain/types'
+import type { CharacterId, Locale, Position, PositionId, ThemeId } from '../domain/types'
 import { gridObjectLayout } from './gridObjectLayout'
 import { SceneIcon } from './SceneIcon'
 
 interface GridObjectIconsProps {
   readonly plan: SpatialPlan
   readonly positions: readonly Position[]
+  readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
   readonly locale: Locale
   readonly themeId: ThemeId
 }
 
-export const GridObjectIcons = ({ plan, positions, locale, themeId }: GridObjectIconsProps) => {
+export const GridObjectIcons = ({
+  plan,
+  positions,
+  assignments,
+  locale,
+  themeId,
+}: GridObjectIconsProps) => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
   const rows = Math.max(...positions.map((position) => position.row)) + 1
   const places = plan.zones.map((_, index) => {
     const position = positions.find((candidate) => candidate.placeId === `place-${index}`)
     return position ? localizeThemeLabel(locale, themeId, gridPlaceLabel(position.label)) : ''
   })
-  const layout = gridObjectLayout(plan, positions, places)
+  const layout = gridObjectLayout(plan, positions, places, Object.values(assignments))
 
   return (
     <div
@@ -38,6 +45,7 @@ export const GridObjectIcons = ({ plan, positions, locale, themeId }: GridObject
                   left: `${zoneLayout.label.x * 100}%`,
                   top: `${zoneLayout.label.y * 100}%`,
                   transform: zoneLayout.labelTransform,
+                  maxWidth: `${(zoneLayout.labelBox.right - zoneLayout.labelBox.left) * 100}%`,
                 }}
               >
                 {label}
@@ -52,6 +60,7 @@ export const GridObjectIcons = ({ plan, positions, locale, themeId }: GridObject
           <span
             key={position.id}
             className="grid-object-icons__obstacle"
+            data-grid-position={position.id}
             style={{
               left: `${((position.column + 0.5) / columns) * 100}%`,
               top: `${((position.row + 0.5) / rows) * 100}%`,

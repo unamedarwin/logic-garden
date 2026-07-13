@@ -10,9 +10,15 @@ export const SceneIconSvg = ({ emoji, className }: SceneIconSvgProps) => {
   const icon = fluentIconData[emoji]
 
   return icon ? (
-    <Icon icon={icon} className={className} aria-hidden="true" focusable="false" />
+    <Icon
+      icon={icon}
+      className={className}
+      data-scene-icon={emoji}
+      aria-hidden="true"
+      focusable="false"
+    />
   ) : (
-    <span className={className} aria-hidden="true">
+    <span className={className} data-scene-icon={emoji} aria-hidden="true">
       {emoji}
     </span>
   )

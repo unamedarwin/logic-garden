@@ -72,6 +72,13 @@ interaction and accessibility layer.
 Scale room labels, textures, objects, placed avatars, and crossed cells from the actual grid
 dimension rather than viewport units. Character/avatar emoji catalogs and object/obstacle emoji
 catalogs must remain disjoint, with an automated invariant test covering every theme.
+Pixi artwork, floor textures, fixed objects, semantic cells, drop previews, and placed avatars must
+share one interior board surface and coordinate origin. Project every normalized plan to the
+current grid by tracing its actual per-cell room map; every wall vertex must land on a grid line
+without changing any cell's logical `placeId`. Center fixed objects and avatars on the exact cell
+center, and paint the valid drag-target overlay above floor artwork with uniform opacity.
+Draw the active drag grid as one continuous top layer from the same row and column variables as
+the semantic cells; never rely on separate cell borders that decorative layers can interrupt.
 Render current scene emoji through the locally bundled Fluent Emoji Flat SVG subset; never load
 scene art from a CDN or runtime API. Follow `docs/visual-asset-policy.md` for replacements: use
 current official Kenney packs first, Game-icons.net only with per-author CC BY 3.0 credits, and
@@ -82,6 +89,9 @@ icons within a theme. Room-object catalogs are curated scene content, not arbitr
 and advanced rooms must prioritize their place-specific subset. A deterministic same-theme fallback
 is allowed only when a globally unique object matching cannot otherwise be completed; at least 70%
 of fixed objects must remain place-specific, and pond objects never use the fallback.
+Clue sentences must retain icon placeholders as structured tokens. Render those tokens through the
+same local `SceneIcon` SVG key used by the matching board object; never interpolate a system emoji
+string into otherwise SVG-rendered scene copy.
 Advanced room floors use local square seamless SVG materials plus a seeded decorative motif layer.
 Decorate an exact seeded 25-75% of each room's unblocked cells, keep every motif behind interaction
 and clue artwork, and reproduce the same material composition from the same puzzle seed. Keep the
@@ -99,7 +109,9 @@ the actual generated cluster and cover non-rectangular shapes rather than assumi
 On small screens, keep the map, character picker, and the selected person's contextual clues in
 one compact workspace. Use a horizontally scrollable people rail rather than forcing navigation
 between a person, their clues, and the map location where they are placed. Keep the complete clue
-list available as an accessible collapsed support panel. Do not spend header space announcing a
+list available as an accessible collapsed support panel. The fixed action rail must not overlap
+the contextual clue at 390x844, including after selection advances to a person with longer copy.
+Do not spend header space announcing a
 normal online state; show connectivity status only when the app is offline.
 
 Teen and adult modes share the same deduction rules, board dimensions, and irregular spatial
@@ -118,6 +130,11 @@ and accessible DOM controls, not merely painted as scenery.
 Every floor-plan variant must form one complete partition: rooms touch along shared walls, cover
 the full interior without gaps or overlaps, and contain only horizontal or vertical edges. Keep
 the catalog geometry and obstacle emojis under automated regression tests.
+Place room titles against horizontal wall segments that are long enough for their measured box.
+Prefer the room-facing side, allow the opposite side of an internal wall only to avoid a collision,
+and reject placements that overlap fixed objects, occupied cells, other labels, or board bounds.
+Model label wrapping from the narrow fitted mobile surface, where percentage widths shrink before
+the minimum font size does; reserve the full wrapped box rather than a desktop-width estimate.
 Every spatial position must inherit its `placeId` from the room polygon that contains its center.
 Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
@@ -136,6 +153,8 @@ scope, internal navigation, and shared URLs aligned with that path. Share payloa
 Base64 under the `p` query parameter and must be validated before use. Deploy only the compiled
 `dist` directory with `.github/workflows/deploy-pages.yml`; never publish source files as the
 site artifact.
+Use automatic service-worker activation and client claiming. Check for an update when the app
+returns to the foreground so installed mobile PWAs do not retain an obsolete JS/CSS pair.
 
 ## Verification
 
@@ -146,3 +165,6 @@ adult games at a 390x844 mobile viewport for 6x6, 9x9, and 16x16 boards. Check b
 and a board with a placed character where relevant. Reject clipped or overlapping labels,
 misaligned cells, repeated or semantically wrong icons, unreadable clues, unexpected scroll in fit
 mode, broken zoom/pan restoration, and touch targets obscured by artwork before publishing.
+During drag QA, compare the pixel center of every fixed object and placed avatar with its semantic
+cell, and verify that every valid destination has the same visible overlay while invalid and
+blocked cells remain clearly distinct.

@@ -6,6 +6,7 @@ interface ZoneObjectLayout {
   readonly label: PlanPoint
   readonly labelBox: LayoutBox
   readonly labelTransform: string
+  readonly labelWall: HorizontalWall
 }
 
 interface LabelPlacement {
@@ -13,10 +14,19 @@ interface LabelPlacement {
   readonly transform: string
 }
 
+type WallSide = 'above' | 'below'
+
 interface LabelCandidate {
   readonly point: PlanPoint
   readonly placement: LabelPlacement
   readonly score: number
+  readonly wall: HorizontalWall
+}
+
+export interface HorizontalWall {
+  readonly left: number
+  readonly right: number
+  readonly y: number
 }
 
 export interface LayoutBox {
@@ -35,17 +45,78 @@ export const layoutBoxesOverlap = (first: LayoutBox, second: LayoutBox) =>
   first.top < second.bottom &&
   first.bottom > second.top
 
+const nearlyEqual = (first: number, second: number) => Math.abs(first - second) < 0.000_001
+
+const containsPoint = (path: readonly PlanPoint[], point: PlanPoint) => {
+  let inside = false
+  for (let index = 0, previous = path.length - 1; index < path.length; previous = index++) {
+    const first = path[index]!
+    const second = path[previous]!
+    const crosses =
+      first.y > point.y !== second.y > point.y &&
+      point.x < ((second.x - first.x) * (point.y - first.y)) / (second.y - first.y) + first.x
+    if (crosses) inside = !inside
+  }
+  return inside
+}
+
+const roomSideOfWall = (
+  path: readonly PlanPoint[],
+  point: PlanPoint,
+  rows: number,
+): WallSide => {
+  if (point.y <= 0.000_001) return 'below'
+  if (point.y >= 0.999_999) return 'above'
+  const offset = 0.2 / rows
+  return containsPoint(path, { x: point.x, y: Math.max(0, point.y - offset) })
+    ? 'above'
+    : 'below'
+}
+
+export const horizontalWalls = (path: readonly PlanPoint[]): readonly HorizontalWall[] => {
+  const walls = path.flatMap((point, index): readonly HorizontalWall[] => {
+    const next = path[(index + 1) % path.length]
+    if (!next || !nearlyEqual(point.y, next.y) || nearlyEqual(point.x, next.x)) return []
+    return [{ left: Math.min(point.x, next.x), right: Math.max(point.x, next.x), y: point.y }]
+  })
+  const merged: HorizontalWall[] = []
+  for (const wall of [...walls].sort(
+    (first, second) => first.y - second.y || first.left - second.left,
+  )) {
+    const previous = merged.at(-1)
+    if (
+      previous &&
+      nearlyEqual(previous.y, wall.y) &&
+      wall.left <= previous.right + 0.000_001
+    ) {
+      merged[merged.length - 1] = {
+        left: previous.left,
+        right: Math.max(previous.right, wall.right),
+        y: previous.y,
+      }
+    } else {
+      merged.push(wall)
+    }
+  }
+  return merged
+}
+
 const labelPlacement = (
   point: PlanPoint,
   label: string,
   columns: number,
   labelSafeInset: number,
+  availableWidth = 1,
+  wallSide?: WallSide,
 ): LabelPlacement => {
-  const boardWidth = columns >= 16 ? 720 : columns >= 9 ? 486 : 390
+  // The narrow fitted mobile board is the worst case for wrapped labels because
+  // the CSS font reaches its minimum before the percentage width stops shrinking.
+  const boardWidth = 333
   const fontSize = Math.min(11.52, Math.max(9.6, boardWidth * 0.017))
   const horizontalPadding = Math.min(6, Math.max(3, boardWidth * 0.009))
   const verticalPadding = Math.min(4, Math.max(2, boardWidth * 0.0065))
-  const maxWidth = Math.min(108, Math.max(58, (boardWidth * 1.6) / columns))
+  const preferredWidth = Math.min(108, Math.max(48, (boardWidth * 1.9) / columns))
+  const maxWidth = Math.min(preferredWidth, Math.max(40, availableWidth * boardWidth - 3))
   const textWidth = label.length * fontSize * 0.56
   const contentWidth = maxWidth - horizontalPadding * 2 - 2
   const width = Math.min(maxWidth, textWidth + horizontalPadding * 2 + 2) / boardWidth
@@ -54,7 +125,15 @@ const labelPlacement = (
   const horizontalTransform =
     point.x < labelSafeInset ? '0%' : point.x > 1 - labelSafeInset ? '-100%' : '-50%'
   const verticalTransform =
-    point.y < labelSafeInset ? '0%' : point.y > 1 - labelSafeInset ? '-100%' : '-50%'
+    wallSide === 'above'
+      ? '-100%'
+      : wallSide === 'below'
+        ? '0%'
+        : point.y < labelSafeInset
+          ? '0%'
+          : point.y > 1 - labelSafeInset
+            ? '-100%'
+            : '-50%'
   const left =
     horizontalTransform === '0%'
       ? point.x
@@ -104,6 +183,7 @@ export const gridObjectLayout = (
   plan: SpatialPlan,
   positions: readonly Position[],
   labels: readonly string[] = [],
+  occupiedPositionIds: readonly (Position['id'] | undefined)[] = [],
 ): readonly ZoneObjectLayout[] => {
   const columns = Math.max(...positions.map((position) => position.column)) + 1
   const rows = Math.max(...positions.map((position) => position.row)) + 1
@@ -125,10 +205,23 @@ export const gridObjectLayout = (
         bottom: center.y + obstacleHalfHeight,
       }
     })
+  const occupiedIds = new Set(occupiedPositionIds.filter((id) => id !== undefined))
+  const occupiedHalfWidth = 0.44 / columns
+  const occupiedHalfHeight = 0.44 / rows
+  const occupiedBoxes = positions
+    .filter((position) => occupiedIds.has(position.id))
+    .map((position) => {
+      const center = centerOf(position)
+      return {
+        left: center.x - occupiedHalfWidth,
+        right: center.x + occupiedHalfWidth,
+        top: center.y - occupiedHalfHeight,
+        bottom: center.y + occupiedHalfHeight,
+      }
+    })
+  const reservedBoxes = [...obstacleBoxes, ...occupiedBoxes]
   const obstacleCenters = positions.filter((position) => position.blocked).map(centerOf)
-  const cellOffsets = [
-    -0.45, -0.4, -0.3, -0.2, -0.1, -0.075, 0, 0.075, 0.1, 0.2, 0.3, 0.4, 0.45,
-  ] as const
+  const wallOffsets = Array.from({ length: 19 }, (_, index) => (index + 1) / 20)
   const objects = plan.zones.map((zone, index) => {
     const zoneObstacle = positions.find(
       (position) => position.placeId === `place-${index}` && position.blocked,
@@ -136,48 +229,77 @@ export const gridObjectLayout = (
     return zoneObstacle ? centerOf(zoneObstacle) : zone.object
   })
   const candidatesByZone = plan.zones.map((zone, index) => {
-    const place = `place-${index}`
     const labelText = labels[index] ?? ''
-    return positions
-      .filter((position) => position.placeId === place && !position.blocked)
-      .flatMap((position) =>
-        cellOffsets.flatMap((verticalOffset) =>
-          cellOffsets.map((horizontalOffset): PlanPoint => ({
-            x: (position.column + 0.5 + horizontalOffset) / columns,
-            y: (position.row + 0.5 + verticalOffset) / rows,
-          })),
-        ),
+    return horizontalWalls(zone.path)
+      .flatMap((wall) =>
+        wallOffsets.flatMap((offset) => {
+          const point = { x: wall.left + (wall.right - wall.left) * offset, y: wall.y }
+          const preferredSide = roomSideOfWall(zone.path, point, rows)
+          const alternateSide = preferredSide === 'above' ? 'below' : 'above'
+          return [
+            { wall, point, wallSide: preferredSide, preferred: true },
+            { wall, point, wallSide: alternateSide, preferred: false },
+          ] as const
+        }),
       )
-      .map((point): LabelCandidate => {
-        const placement = labelPlacement(point, labelText, columns, labelSafeInset)
+      .map(({ point, wall, wallSide, preferred }): LabelCandidate => {
+        const placement = labelPlacement(
+          point,
+          labelText,
+          columns,
+          labelSafeInset,
+          wall.right - wall.left,
+          wallSide,
+        )
         const obstacleClearance = Math.min(
           1,
           ...obstacleCenters.map((anchor) => distanceSquared(point, anchor)),
         )
-        const edgeClearance = Math.min(point.x, 1 - point.x, point.y, 1 - point.y)
+        const internalWall = wall.y > 0.001 && wall.y < 0.999
+        const wallLength = wall.right - wall.left
         return {
           point,
           placement,
+          wall,
           score:
-            obstacleClearance * 0.1 + edgeClearance * 0.02 - distanceSquared(point, zone.label),
+            (internalWall ? 2 : 0) +
+            (preferred ? 0.45 : 0) +
+            wallLength +
+            obstacleClearance * 0.1 -
+            distanceSquared(point, zone.label),
         }
       })
-      .filter((candidate) =>
-        obstacleBoxes.every(
-          (obstacleBox) => !layoutBoxesOverlap(candidate.placement.box, obstacleBox),
-        ),
+      .filter(
+        (candidate) =>
+          candidate.placement.box.left >= candidate.wall.left - 0.000_001 &&
+          candidate.placement.box.right <= candidate.wall.right + 0.000_001 &&
+          candidate.placement.box.top >= -0.000_001 &&
+          candidate.placement.box.bottom <= 1.000_001 &&
+          reservedBoxes.every(
+            (reservedBox) => !layoutBoxesOverlap(candidate.placement.box, reservedBox),
+          ),
       )
       .sort((first, second) => second.score - first.score)
   })
   const selected = findNonOverlappingCandidates(candidatesByZone)
 
   return plan.zones.map((zone, index) => {
-    const fallbackPoint = candidatesByZone[index]?.[0]?.point ?? zone.label
+    const fallbackCandidate = candidatesByZone[index]?.[0]
+    const fallbackWall = fallbackCandidate?.wall ??
+      [...horizontalWalls(zone.path)].sort(
+        (first, second) => second.right - second.left - (first.right - first.left),
+      )[0] ?? { left: 0, right: 1, y: 0 }
+    const fallbackPoint = fallbackCandidate?.point ?? {
+      x: (fallbackWall.left + fallbackWall.right) / 2,
+      y: fallbackWall.y,
+    }
     const fallbackPlacement = labelPlacement(
       fallbackPoint,
       labels[index] ?? '',
       columns,
       labelSafeInset,
+      fallbackWall.right - fallbackWall.left,
+      roomSideOfWall(zone.path, fallbackPoint, rows),
     )
     const candidate = selected?.[index]
     return {
@@ -185,6 +307,7 @@ export const gridObjectLayout = (
       label: candidate?.point ?? fallbackPoint,
       labelBox: candidate?.placement.box ?? fallbackPlacement.box,
       labelTransform: candidate?.placement.transform ?? fallbackPlacement.transform,
+      labelWall: candidate?.wall ?? fallbackWall,
     }
   })
 }

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   spatialPlanForId,
+  spatialPlanForGrid,
   spatialPlanIdsForAudience,
+  spatialPlanZoneAt,
   type PlanPoint,
 } from '../domain/spatialPlan'
 
@@ -35,6 +37,46 @@ describe('spatial plan catalog', () => {
 
         const coveredArea = plan.zones.reduce((sum, zone) => sum + polygonArea(zone.path), 0)
         expect(coveredArea).toBeCloseTo(0.96 * 0.96, 8)
+      }
+    }
+  })
+
+  it('projects every room wall onto grid lines without changing any cell room', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      for (const id of spatialPlanIdsForAudience(audience)) {
+        const plan = spatialPlanForId(id)
+        if (!plan) throw new Error(`Missing spatial plan ${id}`)
+
+        for (const size of [6, 9, 16]) {
+          const projected = spatialPlanForGrid(plan, size, size)
+          const coveredArea = projected.zones.reduce(
+            (sum, zone) => sum + polygonArea(zone.path),
+            0,
+          )
+          expect(coveredArea, `${id} projected at ${size}`).toBeCloseTo(1, 8)
+
+          for (const zone of projected.zones) {
+            for (const point of zone.path) {
+              expect(point.x * size, `${id} x edge at ${size}`).toBeCloseTo(
+                Math.round(point.x * size),
+                8,
+              )
+              expect(point.y * size, `${id} y edge at ${size}`).toBeCloseTo(
+                Math.round(point.y * size),
+                8,
+              )
+            }
+          }
+
+          for (let row = 0; row < size; row += 1) {
+            for (let column = 0; column < size; column += 1) {
+              expect(
+                spatialPlanZoneAt(projected, column, row, size, size),
+                `${id} room at ${size}:${row}.${column}`,
+              ).toBe(spatialPlanZoneAt(plan, column, row, size, size))
+            }
+          }
+        }
       }
     }
   })

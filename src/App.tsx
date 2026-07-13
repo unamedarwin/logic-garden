@@ -38,7 +38,6 @@ import { InstallPrompt } from './components/InstallPrompt'
 import { ProfileSetup } from './components/ProfileSetup'
 import { ResultDialog } from './components/ResultDialog'
 import { SettingsDialog } from './components/SettingsDialog'
-import { UpdatePrompt } from './components/UpdatePrompt'
 import {
   audienceHeroCopy,
   audienceLabel,
@@ -141,8 +140,6 @@ export default function App() {
   const [generating, setGenerating] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
-  const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [applyUpdate, setApplyUpdate] = useState<(() => void) | null>(null)
   const [notice, setNotice] = useState('')
   const [editingProfile, setEditingProfile] = useState(false)
   const [showHintPicker, setShowHintPicker] = useState(false)
@@ -229,13 +226,8 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const update = registerServiceWorker({
-      onNeedRefresh: () => setUpdateAvailable(true),
-      onOfflineReady: showOfflineReady,
-    })
-    setApplyUpdate(() => () => {
-      void update(true)
-    })
+    const worker = registerServiceWorker({ onOfflineReady: showOfflineReady })
+    return worker.dispose
   }, [])
 
   const startGame = (
@@ -879,13 +871,6 @@ export default function App() {
           onNewGame={() => startGame()}
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}
-        />
-      )}
-      {updateAvailable && applyUpdate && (
-        <UpdatePrompt
-          message={t(preferences.locale, 'updateReady')}
-          action={t(preferences.locale, 'update')}
-          onUpdate={applyUpdate}
         />
       )}
     </main>

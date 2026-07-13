@@ -1,5 +1,5 @@
-import { renderClue } from '../domain/vocabulary'
 import type { Locale, Puzzle } from '../domain/types'
+import { ClueSentence } from './ClueSentence'
 
 interface CluePanelProps {
   readonly puzzle: Puzzle
@@ -22,7 +22,7 @@ export const CluePanel = ({ puzzle, locale, highlightedClueId, label }: CluePane
           key={clue.id}
           className={highlightedClueId === clue.id ? 'clue-panel__highlighted' : ''}
         >
-          {renderClue(puzzle, clue, locale)}
+          <ClueSentence puzzle={puzzle} clue={clue} locale={locale} />
         </li>
       ))}
     </ol>

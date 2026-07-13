@@ -15,6 +15,7 @@ import { localizeThemePositionLabel } from '../domain/themeVocabulary'
 import {
   defaultSpatialPlanFor,
   spatialPlanForId,
+  spatialPlanForGrid,
   type SpatialPlanId,
 } from '../domain/spatialPlan'
 import { CharacterToken, CharacterTokenPreview } from './CharacterToken'
@@ -76,6 +77,7 @@ const LocationCell = ({
       role="gridcell"
       aria-rowindex={position.row + 1}
       aria-colindex={position.column + 1}
+      data-grid-position={position.id}
       className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${position.blocked ? 'location-cell--blocked' : ''} ${selectedCharacterId && !unavailable ? 'location-cell--placeable' : ''} location-cell--row-${position.row} ${isOver && !unavailable ? 'location-cell--over' : ''}`}
     >
       <button
@@ -179,10 +181,13 @@ export const GameBoard = ({
   const crossedRows = new Set(occupiedGridPositions.map((position) => position.row))
   const crossedColumns = new Set(occupiedGridPositions.map((position) => position.column))
   const occupiedByOtherIds = new Set(Object.values(assignmentsWithoutSelected))
-  const spatialPlan =
+  const sourceSpatialPlan =
     boardMode === 'logic-grid' && audience !== 'children'
       ? (spatialPlanForId(spatialPlanId) ?? defaultSpatialPlanFor(audience))
       : undefined
+  const spatialPlan = sourceSpatialPlan
+    ? spatialPlanForGrid(sourceSpatialPlan, columns, rows)
+    : undefined
   const positionIsUnavailable = (position: Position) =>
     Boolean(
       position.blocked ||
@@ -237,62 +242,68 @@ export const GameBoard = ({
       aria-label={boardLabel}
       data-grid-size={boardMode === 'logic-grid' ? columns : undefined}
     >
-      {boardMode === 'logic-grid' && (
-        <LogicGridArtwork
-          audience={audience}
-          plan={spatialPlan}
-          positions={positions}
-          puzzleSeed={puzzleSeed}
-          themeId={themeId}
-        />
-      )}
-      {spatialPlan && (
-        <GridObjectIcons
-          plan={spatialPlan}
-          positions={positions}
-          locale={locale}
-          themeId={themeId}
-        />
-      )}
-      <div className="game-board__cells">
-        {Array.from({ length: rows }, (_, row) => (
-          <div key={row} className="game-board__row" role="row">
-            {positions
-              .filter((position) => position.row === row)
-              .map((position) => {
-                const character = characters.find(
-                  (candidate) => assignments[candidate.id] === position.id,
-                )
-                const crossed =
-                  boardMode === 'logic-grid' &&
-                  !character &&
-                  (crossedRows.has(position.row) || crossedColumns.has(position.column))
-                return (
-                  <LocationCell
-                    key={position.id}
-                    position={position}
-                    character={character}
-                    selectedCharacterId={selectedCharacterId}
-                    draggedCharacter={draggedCharacter}
-                    onMoveToPosition={onMoveToPosition}
-                    onRemoveCharacter={onRemoveCharacter}
-                    emptyLabel={emptyLabel}
-                    returnLabel={returnLabel}
-                    moveToPositionLabel={moveToPositionLabel}
-                    selectPositionLabel={selectPositionLabel}
-                    crossed={crossed}
-                    disabled={positionIsUnavailable(position)}
-                    logicGrid={boardMode === 'logic-grid'}
-                    tabIndex={activeFocusedPositionId === position.id ? 0 : -1}
-                    onFocus={() => setFocusedPositionId(position.id)}
-                    onKeyDown={(event) => moveGridFocus(position, event)}
-                    locale={locale}
-                    themeId={themeId}
-                  />
-                )
-              })}
-          </div>
-        ))}
+      <div className={boardMode === 'logic-grid' ? 'game-board__surface' : undefined}>
+        {boardMode === 'logic-grid' && (
+          <LogicGridArtwork
+            audience={audience}
+            plan={spatialPlan}
+            positions={positions}
+            puzzleSeed={puzzleSeed}
+            themeId={themeId}
+          />
+        )}
+        {spatialPlan && (
+          <GridObjectIcons
+            plan={spatialPlan}
+            positions={positions}
+            assignments={assignments}
+            locale={locale}
+            themeId={themeId}
+          />
+        )}
+        {boardMode === 'logic-grid' && draggedCharacter && (
+          <div className="game-board__drop-grid" aria-hidden="true" />
+        )}
+        <div className="game-board__cells">
+          {Array.from({ length: rows }, (_, row) => (
+            <div key={row} className="game-board__row" role="row">
+              {positions
+                .filter((position) => position.row === row)
+                .map((position) => {
+                  const character = characters.find(
+                    (candidate) => assignments[candidate.id] === position.id,
+                  )
+                  const crossed =
+                    boardMode === 'logic-grid' &&
+                    !character &&
+                    (crossedRows.has(position.row) || crossedColumns.has(position.column))
+                  return (
+                    <LocationCell
+                      key={position.id}
+                      position={position}
+                      character={character}
+                      selectedCharacterId={selectedCharacterId}
+                      draggedCharacter={draggedCharacter}
+                      onMoveToPosition={onMoveToPosition}
+                      onRemoveCharacter={onRemoveCharacter}
+                      emptyLabel={emptyLabel}
+                      returnLabel={returnLabel}
+                      moveToPositionLabel={moveToPositionLabel}
+                      selectPositionLabel={selectPositionLabel}
+                      crossed={crossed}
+                      disabled={positionIsUnavailable(position)}
+                      logicGrid={boardMode === 'logic-grid'}
+                      tabIndex={activeFocusedPositionId === position.id ? 0 : -1}
+                      onFocus={() => setFocusedPositionId(position.id)}
+                      onKeyDown={(event) => moveGridFocus(position, event)}
+                      locale={locale}
+                      themeId={themeId}
+                    />
+                  )
+                })}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   )

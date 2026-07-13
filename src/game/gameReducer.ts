@@ -42,6 +42,21 @@ const snapshot = (state: GameState): GameSnapshot => ({
   moves: state.moves,
 })
 
+const nextUnassignedCharacter = (
+  state: GameState,
+  assignments: PartialAssignment,
+  afterCharacterId: CharacterId,
+): CharacterId | undefined => {
+  const start = state.puzzle.characters.findIndex(
+    (character) => character.id === afterCharacterId,
+  )
+  for (let offset = 1; offset <= state.puzzle.characters.length; offset += 1) {
+    const character = state.puzzle.characters[(start + offset) % state.puzzle.characters.length]
+    if (character && assignments[character.id] === undefined) return character.id
+  }
+  return undefined
+}
+
 export const createGameState = (puzzle: Puzzle): GameState => ({
   puzzle,
   assignments: {},
@@ -136,7 +151,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         past: [...state.past, snapshot(state)],
         future: [],
         moves: state.moves + 1,
-        selectedCharacterId: undefined,
+        selectedCharacterId: nextUnassignedCharacter(state, assignments, action.characterId),
         status: 'playing',
         feedback: undefined,
         highlightedClueId: undefined,
@@ -246,7 +261,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
         future: [],
         moves: state.moves + 1,
         hintsUsed: state.hintsUsed + 1,
-        selectedCharacterId: undefined,
+        selectedCharacterId: nextUnassignedCharacter(state, assignments, characterId),
         feedback: { type: 'hint-applied', characterName: character.name },
         highlightedClueId: undefined,
       }

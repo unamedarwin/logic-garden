@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   gridObjectLayout,
+  horizontalWalls,
   layoutBoxesOverlap,
   type LayoutBox,
 } from '../components/gridObjectLayout'
 import {
   planObstacles,
   spatialPlanForId,
+  spatialPlanForGrid,
   spatialPlanIdsForAudience,
   spatialPlanZoneAt,
   type PlanPoint,
@@ -63,15 +65,16 @@ describe('spatial label and object layout', () => {
 
         for (const size of [6, 9, 16]) {
           const positions = makePositions(plan, size)
+          const alignedPlan = spatialPlanForGrid(plan, size, size)
           const labels = plan.zones.map((_, index) => `Shared workshop area ${index}`)
-          const layout = gridObjectLayout(plan, positions, labels)
+          const occupied = positions.find((position) => !position.blocked)?.id
+          const layout = gridObjectLayout(alignedPlan, positions, labels, [occupied])
           const labelInset = size <= 6 ? 0.15 : size <= 9 ? 0.11 : 0.085
           const obstacleBoxes = positions
             .filter((position) => position.blocked)
             .map((position) => obstacleBox(position, size))
 
           expect(layout, `${id} at ${size}x${size}`).toHaveLength(plan.zones.length)
-          expect(new Set(layout.map(({ label }) => centerKey(label))).size).toBe(layout.length)
           for (let first = 0; first < layout.length; first += 1) {
             for (let second = first + 1; second < layout.length; second += 1) {
               expect(
@@ -81,20 +84,39 @@ describe('spatial label and object layout', () => {
             }
           }
 
-          layout.forEach(({ object, label, labelBox, labelTransform }, zone) => {
+          layout.forEach(({ object, label, labelBox, labelTransform, labelWall }, zone) => {
             const objectPosition = positionAt(positions, object, size)
-            const labelPosition = positionAt(positions, label, size)
             expect(objectPosition?.blocked, `${id} object ${zone} at ${size}`).toBe(true)
             expect(objectPosition?.placeId).toBe(`place-${zone}`)
-            expect(labelPosition?.blocked, `${id} label ${zone} at ${size}`).toBe(false)
-            expect(labelPosition?.placeId).toBe(`place-${zone}`)
             expect(centerKey(label)).not.toBe(centerKey(object))
+            expect(
+              horizontalWalls(alignedPlan.zones[zone]!.path).some(
+                (wall) =>
+                  Math.abs(wall.y - label.y) < 0.000_001 &&
+                  label.x >= wall.left &&
+                  label.x <= wall.right,
+              ),
+              `${id} label ${zone} is not on a horizontal wall at ${size}`,
+            ).toBe(true)
+            expect(labelBox.left).toBeGreaterThanOrEqual(labelWall.left - 0.000_001)
+            expect(labelBox.right).toBeLessThanOrEqual(labelWall.right + 0.000_001)
+            if (size === 16) {
+              expect(
+                labelBox.bottom - labelBox.top,
+                `${id} label ${zone} must reserve its wrapped mobile height`,
+              ).toBeGreaterThan(0.1)
+            }
             obstacleBoxes.forEach((box, obstacle) => {
               expect(
                 layoutBoxesOverlap(labelBox, box),
                 `${id} label ${zone} overlaps obstacle ${obstacle} at ${size}`,
               ).toBe(false)
             })
+            if (occupied) {
+              const occupiedPosition = positions.find((position) => position.id === occupied)!
+              const occupiedBox = obstacleBox(occupiedPosition, size)
+              expect(layoutBoxesOverlap(labelBox, occupiedBox)).toBe(false)
+            }
             if (label.x < labelInset) expect(labelTransform).toContain('translate(0%')
             if (label.x > 1 - labelInset) expect(labelTransform).toContain('translate(-100%')
             if (label.y < labelInset) expect(labelTransform).toContain(', 0%)')

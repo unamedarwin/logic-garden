@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -12,6 +12,10 @@ const dndMock = vi.hoisted(() => ({
   onDragStart: undefined as ((event: { active: { id: string } }) => void) | undefined,
   onDragEnd: undefined as
     ((event: { active: { id: string }; over: { id: string } | null }) => void) | undefined,
+}))
+
+const profileMock = vi.hoisted(() => ({
+  audience: 'children' as 'children' | 'teens' | 'adults',
 }))
 
 vi.mock('@dnd-kit/core', () => ({
@@ -46,8 +50,12 @@ vi.mock('@dnd-kit/core', () => ({
   }),
 }))
 
+vi.mock('../components/LogicGridArtwork', () => ({
+  LogicGridArtwork: () => null,
+}))
+
 vi.mock('../pwa/registerServiceWorker', () => ({
-  registerServiceWorker: () => () => Promise.resolve(),
+  registerServiceWorker: () => ({ dispose: () => undefined }),
 }))
 
 vi.mock('../storage/preferences', () => ({
@@ -74,7 +82,7 @@ vi.mock('../storage/profile', () => ({
     Promise.resolve({
       schemaVersion: 1,
       name: 'Aina',
-      audience: 'children',
+      audience: profileMock.audience,
       avatar: 'leaf',
     }),
   saveProfile: vi.fn(),
@@ -97,6 +105,7 @@ describe('game interface', () => {
     dndMock.overId = null
     dndMock.onDragStart = undefined
     dndMock.onDragEnd = undefined
+    profileMock.audience = 'children'
   })
 
   it('opens a timed shared mystery with a clear challenge dialog', async () => {
@@ -185,6 +194,9 @@ describe('game interface', () => {
     const { container } = render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
 
+    await waitFor(() =>
+      expect(container.querySelector('[data-character-id]')).toBeInTheDocument(),
+    )
     const trayToken = container.querySelector('[data-character-id]') as HTMLButtonElement
     await user.click(trayToken)
     await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
@@ -217,16 +229,24 @@ describe('game interface', () => {
   })
 
   it('previews the exact drop cell and repositions a placed character', async () => {
+    profileMock.audience = 'adults'
     const user = userEvent.setup()
     const { container } = render(<App />)
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
 
-    const trayToken = container.querySelector('[data-character-id]') as HTMLButtonElement
-    const characterId = trayToken.dataset.characterId
-    if (!characterId) throw new Error('Expected a draggable character id')
-    await user.click(trayToken)
+    await waitFor(() =>
+      expect(container.querySelector('.character-clue-rail__person')).toBeInTheDocument(),
+    )
+    const railPerson = container.querySelector(
+      '.character-clue-rail__person',
+    ) as HTMLButtonElement
+    await user.click(railPerson)
     const firstTarget = screen.getAllByRole('button', { name: /^Mou /u })[0]!
     await user.click(firstTarget)
+
+    const placedToken = screen.getByRole('button', { name: /^Torna a la safata: /u })
+    const characterId = placedToken.dataset.characterId
+    if (!characterId) throw new Error('Expected a draggable character id')
 
     const targetButtons = Array.from(
       container.querySelectorAll<HTMLButtonElement>('.location-cell__target:not(:disabled)'),
@@ -238,6 +258,7 @@ describe('game interface', () => {
 
     act(() => dndMock.onDragStart?.({ active: { id: characterId } }))
     expect(screen.getByRole('grid')).toHaveClass('game-board--dragging')
+    expect(container.querySelectorAll('.game-board__drop-grid')).toHaveLength(1)
     expect(container.querySelector('.location-cell__drop-preview')).toBeInTheDocument()
 
     act(() =>
@@ -251,6 +272,7 @@ describe('game interface', () => {
     expect(
       movedToken.closest('.location-cell')?.querySelector('.location-cell__target'),
     ).toHaveAttribute('id', secondTarget.id)
+    expect(container.querySelector('.game-board__drop-grid')).not.toBeInTheDocument()
     expect(container.querySelector('.location-cell__drop-preview')).not.toBeInTheDocument()
   })
 
