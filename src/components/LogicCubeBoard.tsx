@@ -2,6 +2,8 @@ import { useDroppable } from '@dnd-kit/core'
 import {
   Building2,
   Check,
+  ChevronDown,
+  ChevronUp,
   DoorClosed,
   DoorOpen,
   Footprints,
@@ -9,17 +11,27 @@ import {
   Store,
 } from 'lucide-react'
 import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { buildingFloorLabel, buildingSummary, buildingUnitLabel } from '../domain/buildingPlan'
+import {
+  BUILDING_COLUMNS,
+  BUILDING_DEPTH,
+  BUILDING_ROWS,
+  buildingFloorLabel,
+  buildingFloorShortLabel,
+  buildingSummary,
+  buildingUnitLabel,
+} from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
 import type {
   Character,
   CharacterId,
+  Item,
   Locale,
   Position,
   PositionId,
   ThemeId,
 } from '../domain/types'
 import { CharacterToken, CharacterTokenPreview } from './CharacterToken'
+import { SceneIcon } from './SceneIcon'
 
 interface PlacedCubePosition {
   readonly characterId: CharacterId
@@ -50,6 +62,7 @@ interface CubeCellProps {
   readonly character?: Character
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacter?: Character
+  readonly decorativeEmoji?: string
   readonly crossed: boolean
   readonly disabled: boolean
   readonly zoneAnchor: boolean
@@ -69,6 +82,7 @@ const CubeCell = ({
   character,
   selectedCharacterId,
   draggedCharacter,
+  decorativeEmoji,
   crossed,
   disabled,
   zoneAnchor,
@@ -124,6 +138,15 @@ const CubeCell = ({
             : label}
         </span>
       )}
+      {decorativeEmoji && (
+        <span
+          className="logic-cube__furniture"
+          data-furniture-icon={decorativeEmoji}
+          aria-hidden="true"
+        >
+          <SceneIcon emoji={decorativeEmoji} />
+        </span>
+      )}
       {character && (
         <div className="location-cell__token">
           <CharacterToken
@@ -146,12 +169,17 @@ const CubeCell = ({
 interface LogicCubeBoardProps {
   readonly positions: readonly Position[]
   readonly characters: readonly Character[]
+  readonly items: readonly Item[]
   readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacterId?: CharacterId
   readonly locale: Locale
   readonly themeId: ThemeId
+  readonly puzzleSeed: string
   readonly boardLabel: string
+  readonly elevatorLabel: string
+  readonly floorUpLabel: string
+  readonly floorDownLabel: string
   readonly returnLabel: string
   readonly moveToPositionLabel: (positionLabel: string) => string
   readonly selectPositionLabel: (positionLabel: string) => string
@@ -163,11 +191,17 @@ interface LogicCubeBoardProps {
 export const LogicCubeBoard = ({
   positions,
   characters,
+  items,
   assignments,
   selectedCharacterId,
   draggedCharacterId,
   locale,
+  themeId,
+  puzzleSeed,
   boardLabel,
+  elevatorLabel,
+  floorUpLabel,
+  floorDownLabel,
   returnLabel,
   moveToPositionLabel,
   selectPositionLabel,
@@ -208,6 +242,34 @@ export const LogicCubeBoard = ({
     ? focusedPositionId
     : firstFocusable?.id
   const draggedCharacter = characters.find((character) => character.id === draggedCharacterId)
+  const carriedEmojis = new Set(items.map((item) => item.emoji))
+  const decorationHash = (position: Position) => {
+    let hash = 2166136261
+    for (const character of `${puzzleSeed}:${themeId}:${position.layer}:${position.row}:${position.column}`) {
+      hash ^= character.codePointAt(0) ?? 0
+      hash = Math.imul(hash, 16777619)
+    }
+    return hash >>> 0
+  }
+  const decorativeFurniture = (position: Position) => {
+    if (!position.blocked || position.buildingKind === 'stairs') return undefined
+    const catalogs: Partial<Record<NonNullable<Position['buildingKind']>, readonly string[]>> =
+      {
+        home: ['🪑', '🛋️', '🪴', '🗄️', '📚', '🪞', '🧺', '🪟'],
+        shop: ['🛒', '📦', '🧺', '🗄️', '🪴'],
+        landing: ['🪴', '🪞', '🪑'],
+        entrance: ['🪴', '🧺'],
+      }
+    const catalog = (catalogs[position.buildingKind ?? 'landing'] ?? []).filter(
+      (emoji) => !carriedEmojis.has(emoji),
+    )
+    if (catalog.length === 0) return undefined
+    const hash = decorationHash(position)
+    const densityDivisor =
+      position.buildingKind === 'home' || position.buildingKind === 'shop' ? 4 : 2
+    if (hash % densityDivisor === 0) return undefined
+    return catalog[hash % catalog.length]
+  }
   const floorDoors = new Map<
     string,
     { readonly x: number; readonly y: number; readonly orientation: 'horizontal' | 'vertical' }
@@ -236,24 +298,25 @@ export const LogicCubeBoard = ({
       floorDoors.set(position.buildingUnitId, {
         x:
           columnStep === 1
-            ? (position.column + 1) / 5
+            ? (position.column + 1) / BUILDING_COLUMNS
             : columnStep === -1
-              ? position.column / 5
-              : (position.column + 0.5) / 5,
+              ? position.column / BUILDING_COLUMNS
+              : (position.column + 0.5) / BUILDING_COLUMNS,
         y:
           rowStep === 1
-            ? (position.row + 1) / 5
+            ? (position.row + 1) / BUILDING_ROWS
             : rowStep === -1
-              ? position.row / 5
-              : (position.row + 0.5) / 5,
+              ? position.row / BUILDING_ROWS
+              : (position.row + 0.5) / BUILDING_ROWS,
         orientation: columnStep === 0 ? 'horizontal' : 'vertical',
       })
       break
     }
   }
   const cubeStyle = {
-    '--board-columns': 5,
-    '--board-rows': 5,
+    '--board-columns': BUILDING_COLUMNS,
+    '--board-rows': BUILDING_ROWS,
+    '--building-depth': BUILDING_DEPTH,
     width: zoom > 1 ? `${zoom * 100}%` : undefined,
     maxWidth: zoom > 1 ? 'none' : undefined,
   } as CSSProperties
@@ -270,7 +333,7 @@ export const LogicCubeBoard = ({
     const [rowStep, columnStep] = direction
     let row = position.row + rowStep
     let column = position.column + columnStep
-    while (row >= 0 && row < 5 && column >= 0 && column < 5) {
+    while (row >= 0 && row < BUILDING_ROWS && column >= 0 && column < BUILDING_COLUMNS) {
       const next = visiblePositions.find(
         (candidate) => candidate.row === row && candidate.column === column,
       )
@@ -293,15 +356,18 @@ export const LogicCubeBoard = ({
           : 0
     if (offset === 0) return
     event.preventDefault()
-    setActiveLayer((layer + offset + 3) % 3)
+    const nextLayer = Math.min(BUILDING_DEPTH - 1, Math.max(0, layer + offset))
+    if (nextLayer === layer) return
+    setActiveLayer(nextLayer)
+    requestAnimationFrame(() => document.getElementById(`building-floor-${nextLayer}`)?.focus())
   }
 
   return (
     <section
       className={`logic-cube ${draggedCharacter ? 'game-board--dragging' : ''}`}
       style={cubeStyle}
-      data-grid-size="5"
-      data-grid-depth="3"
+      data-grid-size={BUILDING_COLUMNS}
+      data-grid-depth={BUILDING_DEPTH}
       aria-label={boardLabel}
     >
       <div className="logic-cube__heading">
@@ -313,43 +379,60 @@ export const LogicCubeBoard = ({
           <span>{buildingSummary(locale)}</span>
         </div>
       </div>
-      <div className="logic-cube__layers" role="tablist" aria-label={boardLabel}>
-        {[2, 1, 0].map((layer) => {
-          const layerPositions = positions.filter((position) => position.layer === layer)
-          const active = activeLayer === layer
-          const placedCount = placedPositions.filter(
-            ({ position }) => position.layer === layer,
-          ).length
-          return (
-            <button
-              key={layer}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              aria-controls="logic-cube-active-layer"
-              className={`logic-cube__layer ${active ? 'logic-cube__layer--active' : ''} ${placedCount > 0 ? 'logic-cube__layer--placed' : ''}`}
-              onClick={() => setActiveLayer(layer)}
-              onKeyDown={(event) => setLayerFromKey(layer, event)}
-            >
-              <span>{buildingFloorLabel(locale, layer)}</span>
-              {placedCount > 0 && <Check aria-label={`${placedCount}`} />}
-              <span className="logic-cube__layer-preview" aria-hidden="true">
-                {layerPositions.map((position) => {
-                  const placed = placedPositions.some(
-                    ({ position: assigned }) => assigned.id === position.id,
-                  )
-                  return (
-                    <i
-                      key={position.id}
-                      data-kind={position.buildingKind}
-                      className={`${placed ? 'logic-cube__layer-preview-cell--placed' : ''} ${isCrossedByCubeAxes(position, placedPositions) ? 'logic-cube__layer-preview-cell--crossed' : ''}`}
-                    />
-                  )
-                })}
-              </span>
-            </button>
-          )
-        })}
+      <div className="logic-cube__elevator" role="group" aria-label={elevatorLabel}>
+        <div className="logic-cube__elevator-display" aria-live="polite">
+          <Layers3 aria-hidden="true" />
+          <span>{buildingFloorShortLabel(locale, activeLayer)}</span>
+          <strong>{buildingFloorLabel(locale, activeLayer)}</strong>
+        </div>
+        <button
+          type="button"
+          className="logic-cube__elevator-direction"
+          aria-label={floorDownLabel}
+          disabled={activeLayer === 0}
+          onClick={() => setActiveLayer((layer) => Math.max(0, layer - 1))}
+        >
+          <ChevronDown aria-hidden="true" />
+        </button>
+        <div className="logic-cube__layers" role="tablist" aria-label={boardLabel}>
+          {Array.from({ length: BUILDING_DEPTH }, (_, layer) => layer).map((layer) => {
+            const active = activeLayer === layer
+            const placedCount = placedPositions.filter(
+              ({ position }) => position.layer === layer,
+            ).length
+            return (
+              <button
+                id={`building-floor-${layer}`}
+                key={layer}
+                type="button"
+                role="tab"
+                tabIndex={active ? 0 : -1}
+                aria-selected={active}
+                aria-label={buildingFloorLabel(locale, layer)}
+                aria-controls="logic-cube-active-layer"
+                className={`logic-cube__layer ${active ? 'logic-cube__layer--active' : ''} ${placedCount > 0 ? 'logic-cube__layer--placed' : ''}`}
+                onClick={() => setActiveLayer(layer)}
+                onKeyDown={(event) => setLayerFromKey(layer, event)}
+              >
+                <span aria-hidden="true">{buildingFloorShortLabel(locale, layer)}</span>
+                {placedCount > 0 && (
+                  <small aria-hidden="true">
+                    <Check /> {placedCount}
+                  </small>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          className="logic-cube__elevator-direction"
+          aria-label={floorUpLabel}
+          disabled={activeLayer === BUILDING_DEPTH - 1}
+          onClick={() => setActiveLayer((layer) => Math.min(BUILDING_DEPTH - 1, layer + 1))}
+        >
+          <ChevronUp aria-hidden="true" />
+        </button>
       </div>
       <div id="logic-cube-active-layer" className="logic-cube__matrix">
         <div className="logic-cube__floor-title">
@@ -359,8 +442,8 @@ export const LogicCubeBoard = ({
         <div
           className="logic-cube__surface"
           role="grid"
-          aria-rowcount={5}
-          aria-colcount={5}
+          aria-rowcount={BUILDING_ROWS}
+          aria-colcount={BUILDING_COLUMNS}
           aria-label={`${boardLabel}: ${buildingFloorLabel(locale, activeLayer)}`}
         >
           {draggedCharacter && <div className="game-board__drop-grid" aria-hidden="true" />}
@@ -376,7 +459,7 @@ export const LogicCubeBoard = ({
             ))}
           </div>
           <div className="game-board__cells">
-            {Array.from({ length: 5 }, (_, row) => (
+            {Array.from({ length: BUILDING_ROWS }, (_, row) => (
               <div key={row} className="game-board__row" role="row">
                 {visiblePositions
                   .filter((position) => position.row === row)
@@ -395,6 +478,7 @@ export const LogicCubeBoard = ({
                         character={character}
                         selectedCharacterId={selectedCharacterId}
                         draggedCharacter={draggedCharacter}
+                        decorativeEmoji={zoneAnchor ? undefined : decorativeFurniture(position)}
                         crossed={!character && isCrossedByCubeAxes(position, placedPositions)}
                         disabled={positionIsUnavailable(position)}
                         zoneAnchor={zoneAnchor}

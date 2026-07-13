@@ -1,8 +1,14 @@
 import { themesForAudience, type Theme, type ThemeItem } from '../domain/themes'
 import {
+  BUILDING_CHARACTER_COUNT,
+  BUILDING_COLUMNS,
+  BUILDING_DEPTH,
+  BUILDING_HOME_COUNT,
+  BUILDING_ROWS,
   buildingCellAt,
   buildingPlaceIndex,
   buildingUnitsAreNeighbors,
+  isBuildingAbove,
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
 import {
@@ -51,8 +57,8 @@ export interface SpatialWorldStructure {
 export interface CubeWorldStructure {
   readonly boardMode: 'logic-cube'
   readonly gridSize: 5
-  readonly depth: 3
-  readonly characterCount: 5
+  readonly depth: 5
+  readonly characterCount: 8
 }
 
 export type AdvancedWorldStructure = SpatialWorldStructure | CubeWorldStructure
@@ -98,19 +104,20 @@ const selectBuildingPositions = (
   const homes = positions.filter((position) => !position.blocked)
   const communities: Position[][] = []
   const visit = (start: number, selected: readonly Position[]) => {
-    if (selected.length === 5) {
+    if (selected.length === BUILDING_CHARACTER_COUNT) {
+      const coversEveryResidentialFloor =
+        new Set(selected.map((position) => position.layer)).size === BUILDING_DEPTH - 1
       const hasVerticalRelation = selected.some((first, index) =>
         selected
           .slice(index + 1)
-          .some(
-            (second) =>
-              first.buildingUnitId === second.buildingUnitId && first.layer !== second.layer,
-          ),
+          .some((second) => isBuildingAbove(first, second) || isBuildingAbove(second, first)),
       )
       const hasNeighborRelation = selected.some((first, index) =>
         selected.slice(index + 1).some((second) => buildingUnitsAreNeighbors(first, second)),
       )
-      if (hasVerticalRelation && hasNeighborRelation) communities.push([...selected])
+      if (coversEveryResidentialFloor && hasVerticalRelation && hasNeighborRelation) {
+        communities.push([...selected])
+      }
       return
     }
     for (let index = start; index < homes.length; index += 1) {
@@ -352,23 +359,27 @@ export const generateWorld = (
           })
         })()
       : boardMode === 'logic-cube'
-        ? Array.from({ length: 3 * 5 * 5 }, (_, index) => {
-            const layer = Math.floor(index / 25)
-            const row = Math.floor((index % 25) / 5)
-            const column = index % 5
-            const cell = buildingCellAt(layer, row, column)
-            return {
-              id: positionId(`position-${layer}-${row}-${column}`),
-              placeId: placeId(`place-${buildingPlaceIndex(layer, cell.unitId)}`),
-              layer,
-              row,
-              column,
-              label: `building:${cell.unitId}:${layer}`,
-              buildingUnitId: cell.unitId,
-              buildingKind: cell.kind,
-              blocked: cell.blocked,
-            }
-          })
+        ? Array.from(
+            { length: BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS },
+            (_, index) => {
+              const floorSize = BUILDING_ROWS * BUILDING_COLUMNS
+              const layer = Math.floor(index / floorSize)
+              const row = Math.floor((index % floorSize) / BUILDING_COLUMNS)
+              const column = index % BUILDING_COLUMNS
+              const cell = buildingCellAt(layer, row, column)
+              return {
+                id: positionId(`position-${layer}-${row}-${column}`),
+                placeId: placeId(`place-${buildingPlaceIndex(layer, cell.unitId)}`),
+                layer,
+                row,
+                column,
+                label: `building:${cell.unitId}:${layer}`,
+                buildingUnitId: cell.unitId,
+                buildingKind: cell.kind,
+                blocked: cell.blocked,
+              }
+            },
+          )
         : theme.places.slice(0, characterCount).map((label, index) => ({
             id: positionId(`position-${index}`),
             placeId: placeId(`place-${index}`),
@@ -410,8 +421,12 @@ export const generateWorld = (
         })()
       : boardMode === 'logic-cube'
         ? (() => {
-            if (positions.length !== 75 || characters.length !== 5) {
-              throw new Error('No s’ha pogut construir l’edifici lògic 5×5×3.')
+            if (
+              positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
+              characters.length !== BUILDING_CHARACTER_COUNT ||
+              positions.filter((position) => !position.blocked).length !== BUILDING_HOME_COUNT
+            ) {
+              throw new Error('No s’ha pogut construir l’edifici lògic 5×5×5.')
             }
             const selected = selectBuildingPositions(positions, random)
             return Object.fromEntries(

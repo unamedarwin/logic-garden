@@ -3,7 +3,7 @@
 ## Navigation path
 
 - Make the upper journey path interactive so players can move one step forward or backward while
-  preserving the current profile, difficulty, puzzle, and in-progress placements.
+  preserving the current collection, difficulty, puzzle, and in-progress placements.
 - Keep the controls keyboard and screen-reader accessible, disable unavailable directions, and
   cover state restoration with route and interface tests.
 
@@ -14,13 +14,14 @@
 - Regenerate and grade every advanced template with non-overlapping difficulty bands based on that
   trace, while keeping `6 x 6`, `9 x 9`, and `16 x 16` available at every difficulty.
 
-## Advanced three-dimension puzzles: published foundation
+## Advanced three-dimensional puzzles: published foundation
 
-- The first model is a `5 x 5 x 3` building with three accessible floor slices, eight semantic
-  home anchors, five residents, and crossing on horizontal, vertical, and height axes.
+- The first model is a `5 x 5 x 5` building with five accessible floor slices, 16 semantic home
+  anchors, eight residents, and crossing on horizontal, vertical, and height axes.
 - The answer-free catalog reserves 50 hard building templates, split between teen and adult.
   Runtime materialization is still checked with a two-solution limit.
-- Keep expanding building-specific social clue combinations and visual furnishing only after the
+- The elevator, deterministic furniture and plants, local SVG rendering, and blocked-cell semantics
+  are implemented. Keep expanding building-specific social clue combinations only after the
   published mobile interaction checks remain stable. See `docs/building-system.md`.
 
 ## Catalog verification

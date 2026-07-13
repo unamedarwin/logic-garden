@@ -17,9 +17,9 @@ export const seed = (value: string) => value as Seed
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export type BoardMode = 'map' | 'logic-grid' | 'logic-cube'
 export type PuzzleVariant = 'spatial' | 'cube'
+export type PuzzleCollection = 'children' | 'two-dimensional' | 'three-dimensional'
 export type Locale = 'ca' | 'es' | 'en'
 export type Audience = 'children' | 'teens' | 'adults'
-export type AvatarId = 'leaf' | 'kite' | 'music' | 'puzzle' | 'moon' | 'ball' | 'paint' | 'book'
 export type ThemeId =
   | 'forest-party'
   | 'treasure-island'
@@ -37,6 +37,9 @@ export type ThemeId =
   | 'book-club'
   | 'city-garden'
   | 'weekend-market'
+
+export const isAudience = (value: unknown): value is Audience =>
+  value === 'children' || value === 'teens' || value === 'adults'
 
 export interface ChallengeMetadata {
   readonly difficulty: Difficulty

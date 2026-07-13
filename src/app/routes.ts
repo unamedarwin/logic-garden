@@ -1,5 +1,5 @@
-import { isAudience } from '../domain/profile'
 import {
+  isAudience,
   isChallengeMetadata,
   isShareableSeed,
   seed,

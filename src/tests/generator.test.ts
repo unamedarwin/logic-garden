@@ -4,7 +4,11 @@ import { getTheme, themes } from '../domain/themes'
 import { fluentIconData } from '../assets/generated/fluentIconData'
 import type { Audience, Difficulty } from '../domain/types'
 import { renderClue } from '../domain/vocabulary'
-import { generatePuzzle, selectAdvancedPuzzleTemplate } from '../generator/puzzleGenerator'
+import {
+  generatePuzzle,
+  generatePuzzleForCollection,
+  selectAdvancedPuzzleTemplate,
+} from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
 import { countSolutions, solve } from '../solver/solver'
 
@@ -12,21 +16,53 @@ const bannedTerms =
   /murder|death|weapon|violence|threat|punishment|assassinat|mort|arma|violència|amenaça|càstig|asesinato|muerte|arma|violencia|amenaza|castigo/iu
 
 describe('seeded puzzle generator', () => {
-  it('builds a deterministic 5x5x3 building with three spatial axes', () => {
+  it('maps the three public collections to child, unified 2D, and 3D games', () => {
+    const child = generatePuzzleForCollection('medium', 'collection-child', 'children')
+    const building = generatePuzzleForCollection(
+      'easy',
+      'collection-building',
+      'three-dimensional',
+    )
+    const advancedAudiences = new Set(
+      Array.from(
+        { length: 24 },
+        (_, index) =>
+          getTheme(
+            generatePuzzleForCollection('easy', `collection-2d-${index}`, 'two-dimensional')
+              .theme,
+          ).audience,
+      ),
+    )
+
+    expect(child.boardMode).toBe('map')
+    expect(building.boardMode).toBe('logic-cube')
+    expect(building.difficulty).toBe('hard')
+    expect(advancedAudiences).toEqual(new Set(['teens', 'adults']))
+  })
+
+  it('builds a deterministic 5x5x5 building with three spatial axes', () => {
     const puzzle = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
     const repeated = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
     const solution = solve(puzzle)
 
     expect(repeated).toEqual(puzzle)
     expect(puzzle.boardMode).toBe('logic-cube')
-    expect(puzzle.positions).toHaveLength(75)
-    expect(puzzle.characters).toHaveLength(5)
+    expect(puzzle.positions).toHaveLength(125)
+    expect(puzzle.characters).toHaveLength(8)
     expect(solution).not.toBeNull()
     expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
     expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
-      new Set([0, 1, 2]),
+      new Set([0, 1, 2, 3, 4]),
     )
-    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(8)
+    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(16)
+    expect(
+      new Set(
+        Object.values(solution ?? {}).map(
+          (positionId) =>
+            puzzle.positions.find((position) => position.id === positionId)?.layer,
+        ),
+      ),
+    ).toEqual(new Set([1, 2, 3, 4]))
     expect(
       puzzle.clues.every((clue) =>
         solution ? isClueSatisfiedByPartialAssignment(puzzle, clue, solution) : false,
@@ -114,7 +150,7 @@ describe('seeded puzzle generator', () => {
     )
   }, 20_000)
 
-  it('keeps advanced puzzles deductive and uniquely solvable across seeded profiles', () => {
+  it('keeps advanced puzzles deductive and uniquely solvable across seeded content catalogs', () => {
     fc.assert(
       fc.property(
         fc.constantFrom<Audience>('teens', 'adults'),
@@ -172,7 +208,7 @@ describe('seeded puzzle generator', () => {
     }
   })
 
-  it('uses profile-specific content and deduction-grid row and column rules', () => {
+  it('uses collection-specific content and deduction-grid row and column rules', () => {
     const teenPuzzle = generatePuzzle('medium', 'teen-logic-grid', 'teens')
     const adultPuzzle = generatePuzzle('medium', 'adult-logic-grid', 'adults')
     const solution = solve(teenPuzzle)

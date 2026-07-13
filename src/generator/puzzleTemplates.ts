@@ -48,7 +48,7 @@ export type AdvancedPuzzleTemplate =
   | (PuzzleTemplateBase & {
       readonly boardMode: 'logic-cube'
       readonly gridSize: 5
-      readonly depth: 3
+      readonly depth: 5
     })
 
 export const templateBucketKey = (template: AdvancedPuzzleTemplate) =>
@@ -197,7 +197,7 @@ export const extractAdvancedPuzzleTemplate = (
   }
 
   return puzzle.boardMode === 'logic-cube'
-    ? { ...base, boardMode: 'logic-cube', gridSize: 5, depth: 3 }
+    ? { ...base, boardMode: 'logic-cube', gridSize: 5, depth: 5 }
     : {
         ...base,
         boardMode: 'logic-grid',
@@ -382,7 +382,7 @@ export const materializeAdvancedPuzzleTemplate = (
     random,
     template.audience,
     template.boardMode === 'logic-cube'
-      ? { boardMode: 'logic-cube', gridSize: 5, depth: 3, characterCount: 5 }
+      ? { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 }
       : {
           boardMode: 'logic-grid',
           gridSize: template.gridSize,

@@ -9,11 +9,29 @@ import {
 import { countSolutions } from '../solver/solver'
 
 describe('validated advanced puzzle templates', () => {
-  it('contains one thousand distinct answer-free structures across every profile bucket', () => {
+  it('contains one thousand distinct answer-free structures across every content bucket', () => {
     expect(advancedPuzzleTemplates).toHaveLength(1_000)
     expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(1_000)
     expect(JSON.stringify(advancedPuzzleTemplates)).not.toContain('solution')
     expect(new Set(advancedPuzzleTemplates.map(templateBucketKey)).size).toBe(20)
+    expect(
+      advancedPuzzleTemplates.filter((template) => template.boardMode === 'logic-grid'),
+    ).toHaveLength(950)
+    const buildingTemplates = advancedPuzzleTemplates.filter(
+      (template) => template.boardMode === 'logic-cube',
+    )
+    expect(buildingTemplates).toHaveLength(50)
+    expect(buildingTemplates.filter((template) => template.audience === 'teens')).toHaveLength(
+      25,
+    )
+    expect(buildingTemplates.filter((template) => template.audience === 'adults')).toHaveLength(
+      25,
+    )
+    expect(
+      buildingTemplates.every(
+        (template) => template.depth === 5 && template.characterCount === 8,
+      ),
+    ).toBe(true)
     expect(
       advancedPuzzleTemplates.every(
         (template) => template.generatorVersion === GENERATOR_VERSION,
@@ -21,7 +39,7 @@ describe('validated advanced puzzle templates', () => {
     ).toBe(true)
   })
 
-  it('rechecks one themed template per profile bucket with a two-solution limit', () => {
+  it('rechecks one themed template per content bucket with a two-solution limit', () => {
     const samples = new Map<string, (typeof advancedPuzzleTemplates)[number]>()
     for (const template of advancedPuzzleTemplates) {
       const key = templateBucketKey(template)
@@ -49,16 +67,16 @@ describe('validated advanced puzzle templates', () => {
     expect([6, 9, 16]).toContain(Math.sqrt(first.positions.length))
   })
 
-  it('selects a solver-verified 5x5x3 structure for the advanced building', () => {
+  it('selects a solver-verified 5x5x5 structure for the advanced building', () => {
     const first = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
     const repeated = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
 
     expect(first).toEqual(repeated)
     expect(first.boardMode).toBe('logic-cube')
-    expect(first.positions).toHaveLength(75)
-    expect(first.characters).toHaveLength(5)
+    expect(first.positions).toHaveLength(125)
+    expect(first.characters).toHaveLength(8)
     expect(new Set(first.positions.map((position) => position.layer))).toEqual(
-      new Set([0, 1, 2]),
+      new Set([0, 1, 2, 3, 4]),
     )
     expect(countSolutions(first, { limit: 2 })).toBe(1)
   })

@@ -1,4 +1,4 @@
-import type { Audience, Locale, ThemeId } from './types'
+import type { Locale, PuzzleCollection, ThemeId } from './types'
 import type { GameFeedback } from '../game/feedback'
 
 export const supportedLocales: readonly Locale[] = ['ca', 'es', 'en']
@@ -53,16 +53,6 @@ type UiKey =
   | 'mapInstruction'
   | 'logicGridInstruction'
   | 'logicCubeInstruction'
-  | 'profileEyebrow'
-  | 'profileTitle'
-  | 'profileDescription'
-  | 'profileName'
-  | 'profileNamePlaceholder'
-  | 'audience'
-  | 'avatar'
-  | 'continue'
-  | 'saveProfile'
-  | 'editProfile'
   | 'returnToTray'
   | 'noCharacterClue'
   | 'timer'
@@ -84,6 +74,10 @@ type UiKey =
   | 'fitBoard'
   | 'zoomInBoard'
   | 'zoomOutBoard'
+  | 'puzzleCollection'
+  | 'elevator'
+  | 'floorUp'
+  | 'floorDown'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -116,7 +110,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Espai lliure',
     map: 'Mapa del puzzle',
     logicGrid: 'Graella de deducció',
-    logicCube: 'Edifici de deducció 5×5×3',
+    logicCube: 'Edifici de deducció 5×5×5',
     board: 'Tauler',
     gameViews: 'Vistes del joc',
     hintsUsed: 'pistes',
@@ -131,17 +125,6 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     mapInstruction: 'Tria un amic i després un lloc del mapa.',
     logicGridInstruction: 'Tria una persona i una casella lliure.',
     logicCubeInstruction: "Tria una persona i una llar lliure de l'edifici.",
-    profileEyebrow: 'El teu racó de lògica',
-    profileTitle: 'Abans de començar, crea el teu perfil.',
-    profileDescription:
-      'Tria una franja, un nom i un avatar. Tot queda només en aquest dispositiu.',
-    profileName: 'Com et dius?',
-    profileNamePlaceholder: 'Escriu un nom',
-    audience: 'Per a qui és?',
-    avatar: 'Avatar',
-    continue: 'Comença a jugar',
-    saveProfile: 'Desa el perfil',
-    editProfile: 'Canvia el perfil',
     returnToTray: 'Torna a la safata',
     noCharacterClue: 'Mira les pistes dels altres personatges.',
     timer: 'Temps',
@@ -163,6 +146,10 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     fitBoard: 'Encaixa',
     zoomInBoard: 'Amplia el tauler',
     zoomOutBoard: 'Redueix el tauler',
+    puzzleCollection: 'Tria un tipus de puzzle',
+    elevator: "Ascensor de l'edifici",
+    floorUp: 'Puja un pis',
+    floorDown: 'Baixa un pis',
   },
   es: {
     play: 'Jugar',
@@ -194,7 +181,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Espacio libre',
     map: 'Mapa del puzzle',
     logicGrid: 'Cuadrícula de deducción',
-    logicCube: 'Edificio de deducción 5×5×3',
+    logicCube: 'Edificio de deducción 5×5×5',
     board: 'Tablero',
     gameViews: 'Vistas del juego',
     hintsUsed: 'pistas',
@@ -209,17 +196,6 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     mapInstruction: 'Elige un amigo y después un lugar del mapa.',
     logicGridInstruction: 'Elige una persona y una casilla libre.',
     logicCubeInstruction: 'Elige una persona y un hogar libre del edificio.',
-    profileEyebrow: 'Tu rincón de lógica',
-    profileTitle: 'Antes de empezar, crea tu perfil.',
-    profileDescription:
-      'Elige una franja, un nombre y un avatar. Todo queda solo en este dispositivo.',
-    profileName: '¿Cómo te llamas?',
-    profileNamePlaceholder: 'Escribe un nombre',
-    audience: '¿Para quién es?',
-    avatar: 'Avatar',
-    continue: 'Empezar a jugar',
-    saveProfile: 'Guardar perfil',
-    editProfile: 'Cambiar perfil',
     returnToTray: 'Volver a la bandeja',
     noCharacterClue: 'Mira las pistas de las otras personas.',
     timer: 'Tiempo',
@@ -241,6 +217,10 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     fitBoard: 'Encajar',
     zoomInBoard: 'Ampliar el tablero',
     zoomOutBoard: 'Reducir el tablero',
+    puzzleCollection: 'Elige un tipo de puzle',
+    elevator: 'Ascensor del edificio',
+    floorUp: 'Sube una planta',
+    floorDown: 'Baja una planta',
   },
   en: {
     play: 'Play',
@@ -272,7 +252,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     emptyPlace: 'Empty place',
     map: 'Puzzle map',
     logicGrid: 'Logic grid',
-    logicCube: '5×5×3 deduction building',
+    logicCube: '5×5×5 deduction building',
     board: 'Board',
     gameViews: 'Game views',
     hintsUsed: 'hints',
@@ -287,17 +267,6 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     mapInstruction: 'Choose a friend, then choose a place on the map.',
     logicGridInstruction: 'Choose a person and an empty space.',
     logicCubeInstruction: 'Choose a person and an available home in the building.',
-    profileEyebrow: 'Your logic corner',
-    profileTitle: 'Create your profile before you start.',
-    profileDescription:
-      'Choose a group, a name, and an avatar. Everything stays on this device.',
-    profileName: 'What is your name?',
-    profileNamePlaceholder: 'Type a name',
-    audience: 'Who is playing?',
-    avatar: 'Avatar',
-    continue: 'Start playing',
-    saveProfile: 'Save profile',
-    editProfile: 'Change profile',
     returnToTray: 'Return to tray',
     noCharacterClue: 'Check the clues for the other people.',
     timer: 'Time',
@@ -319,6 +288,10 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     fitBoard: 'Fit',
     zoomInBoard: 'Zoom in on the board',
     zoomOutBoard: 'Zoom out from the board',
+    puzzleCollection: 'Choose a puzzle type',
+    elevator: 'Building elevator',
+    floorUp: 'Go up one floor',
+    floorDown: 'Go down one floor',
   },
 }
 
@@ -560,92 +533,86 @@ export const boardActionCopy = (locale: Locale) => {
   }
 }
 
-const audienceCopy: Record<Locale, Record<Audience, { label: string; description: string }>> = {
+const collectionCopy: Record<
+  Locale,
+  Record<
+    PuzzleCollection,
+    { label: string; description: string; detail: string; eyebrow: string; title: string }
+  >
+> = {
   ca: {
-    children: { label: 'Infants', description: 'Colors, animals i descobertes' },
-    teens: { label: 'Adolescents', description: 'Música, esports i creació' },
-    adults: { label: 'Adults', description: 'Espais, cultura i vida quotidiana' },
+    children: {
+      label: 'Infantil',
+      description: 'Mapes amables per començar',
+      detail: '2×2, 2×3 i 2×4',
+      eyebrow: 'Aventures dibuixades',
+      title: 'Descobreix on va cada amic.',
+    },
+    'two-dimensional': {
+      label: 'Puzzles 2D',
+      description: 'Espais, objectes i deducció',
+      detail: 'Graelles 6×6, 9×9 i 16×16',
+      eyebrow: 'Escenaris per explorar',
+      title: 'Llegeix l’espai. Fes encaixar la història.',
+    },
+    'three-dimensional': {
+      label: 'Puzzles 3D',
+      description: 'Veïns, llars i cinc pisos',
+      detail: 'Edifici 5×5×5',
+      eyebrow: 'Deducció en alçada',
+      title: 'Resol tot un edifici, pis a pis.',
+    },
   },
   es: {
-    children: { label: 'Infantil', description: 'Colores, animales y descubrimientos' },
-    teens: { label: 'Adolescentes', description: 'Música, deportes y creación' },
-    adults: { label: 'Adultos', description: 'Espacios, cultura y vida cotidiana' },
+    children: {
+      label: 'Infantil',
+      description: 'Mapas amables para empezar',
+      detail: '2×2, 2×3 y 2×4',
+      eyebrow: 'Aventuras ilustradas',
+      title: 'Descubre dónde va cada amigo.',
+    },
+    'two-dimensional': {
+      label: 'Puzles 2D',
+      description: 'Espacios, objetos y deducción',
+      detail: 'Cuadrículas 6×6, 9×9 y 16×16',
+      eyebrow: 'Escenarios por explorar',
+      title: 'Lee el espacio. Haz encajar la historia.',
+    },
+    'three-dimensional': {
+      label: 'Puzles 3D',
+      description: 'Vecinos, hogares y cinco plantas',
+      detail: 'Edificio 5×5×5',
+      eyebrow: 'Deducción en altura',
+      title: 'Resuelve todo un edificio, planta a planta.',
+    },
   },
   en: {
-    children: { label: 'Children', description: 'Colors, animals, and discoveries' },
-    teens: { label: 'Teens', description: 'Music, sports, and making' },
-    adults: { label: 'Adults', description: 'Places, culture, and everyday life' },
+    children: {
+      label: 'Children',
+      description: 'Friendly maps for getting started',
+      detail: '2×2, 2×3, and 2×4',
+      eyebrow: 'Illustrated adventures',
+      title: 'Discover where every friend belongs.',
+    },
+    'two-dimensional': {
+      label: '2D puzzles',
+      description: 'Places, objects, and deduction',
+      detail: '6×6, 9×9, and 16×16 grids',
+      eyebrow: 'Scenes to explore',
+      title: 'Read the space. Make the story fit.',
+    },
+    'three-dimensional': {
+      label: '3D puzzles',
+      description: 'Neighbors, homes, and five floors',
+      detail: '5×5×5 building',
+      eyebrow: 'Deduction with height',
+      title: 'Solve a whole building, floor by floor.',
+    },
   },
 }
 
-export const audienceLabel = (locale: Locale, audience: Audience) =>
-  audienceCopy[locale][audience].label
-
-export const audienceDescription = (locale: Locale, audience: Audience) =>
-  audienceCopy[locale][audience].description
-
-export const audienceHeroCopy = (locale: Locale, audience: Audience) => {
-  const copy: Record<
-    Locale,
-    Record<Audience, { eyebrow: string; title: string; description: string }>
-  > = {
-    ca: {
-      children: {
-        eyebrow: 'Puzzles tranquils per a ments curioses',
-        title: 'Les pistes fan créixer idees.',
-        description:
-          'Col·loca cada amic al seu racó i resol una aventura amb una sola resposta.',
-      },
-      teens: {
-        eyebrow: 'Ritme, espais i estratègia',
-        title: 'Fes que cada peça encaixi.',
-        description: 'Resol una graella de música, esports o creació al teu ritme.',
-      },
-      adults: {
-        eyebrow: 'Deducció per desconnectar',
-        title: 'Ordena l’espai. Aclareix la idea.',
-        description: 'Gaudeix de graelles tranquil·les amb temes del dia a dia.',
-      },
-    },
-    es: {
-      children: {
-        eyebrow: 'Puzles tranquilos para mentes curiosas',
-        title: 'Las pistas hacen crecer ideas.',
-        description:
-          'Coloca cada amigo en su rincón y resuelve una aventura con una sola respuesta.',
-      },
-      teens: {
-        eyebrow: 'Ritmo, espacios y estrategia',
-        title: 'Haz que cada pieza encaje.',
-        description: 'Resuelve una cuadrícula de música, deportes o creación a tu ritmo.',
-      },
-      adults: {
-        eyebrow: 'Deducción para desconectar',
-        title: 'Ordena el espacio. Aclara la idea.',
-        description: 'Disfruta cuadrículas tranquilas con temas cotidianos.',
-      },
-    },
-    en: {
-      children: {
-        eyebrow: 'Gentle puzzles for curious minds',
-        title: 'Clues help ideas grow.',
-        description:
-          'Place every friend in their spot and solve an adventure with one true answer.',
-      },
-      teens: {
-        eyebrow: 'Rhythm, spaces, and strategy',
-        title: 'Make every piece fit.',
-        description: 'Solve a music, sports, or maker logic grid at your own pace.',
-      },
-      adults: {
-        eyebrow: 'Deduction to unwind',
-        title: 'Order the space. Clear the idea.',
-        description: 'Enjoy calm logic grids with everyday themes.',
-      },
-    },
-  }
-  return copy[locale][audience]
-}
+export const puzzleCollectionCopy = (locale: Locale, collection: PuzzleCollection) =>
+  collectionCopy[locale][collection]
 
 const titles: Record<Locale, Record<ThemeId, string>> = {
   ca: {

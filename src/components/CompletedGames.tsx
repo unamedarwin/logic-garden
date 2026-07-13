@@ -2,6 +2,7 @@ import { formatCounter } from '../game/time'
 import type { Locale } from '../domain/types'
 import type { CompletedGame } from '../storage/statistics'
 import { themeCopy } from '../domain/i18n'
+import { FIVE_FLOOR_BUILDING_VERSION } from '../generator/version'
 
 interface CompletedGamesProps {
   readonly games?: readonly CompletedGame[]
@@ -47,7 +48,10 @@ export const CompletedGames = ({
             </div>
             <p>
               {game.puzzleVariant === 'cube' && (
-                <span className="completed-games__mode">5×5×3 · </span>
+                <span className="completed-games__mode">
+                  {game.generatorVersion >= FIVE_FLOOR_BUILDING_VERSION ? '5×5×5' : '5×5×3'}{' '}
+                  ·{' '}
+                </span>
               )}
               {formatCounter(game.elapsedSeconds)} · {game.moves} {movesLabel}
             </p>

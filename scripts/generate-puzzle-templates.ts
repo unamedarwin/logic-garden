@@ -7,6 +7,7 @@ import { generatePuzzleDirect, GENERATOR_VERSION } from '../src/generator/puzzle
 import {
   canonicalTemplateSignature,
   extractAdvancedPuzzleTemplate,
+  materializeAdvancedPuzzleTemplate,
   templateBucketKey,
   type AdvancedPuzzleTemplate,
 } from '../src/generator/puzzleTemplates'
@@ -71,9 +72,9 @@ const templateBuckets = (): readonly TemplateBucket[] => {
   ]
 }
 
-const profileMatches = (template: AdvancedPuzzleTemplate) => {
+const difficultyMetricsMatch = (template: AdvancedPuzzleTemplate) => {
   if (template.boardMode === 'logic-cube') {
-    return template.characterCount === 5 && template.depth === 3
+    return template.characterCount === 8 && template.depth === 5
   }
   const counts = template.landmarkCandidateCounts
   if (counts.length !== template.characterCount) return false
@@ -101,6 +102,32 @@ const assertCoverage = (templates: readonly AdvancedPuzzleTemplate[]) => {
   }
 }
 
+const assertCatalogDistribution = (templates: readonly AdvancedPuzzleTemplate[]) => {
+  const spatial = templates.filter((template) => template.boardMode === 'logic-grid')
+  const cubes = templates.filter((template) => template.boardMode === 'logic-cube')
+  if (spatial.length !== 950 || cubes.length !== 50) {
+    throw new Error(
+      `El catàleg conté ${spatial.length} plantilles 2D i ${cubes.length} plantilles 3D.`,
+    )
+  }
+  for (const audience of ['teens', 'adults'] as const) {
+    const audienceCubes = cubes.filter((template) => template.audience === audience)
+    if (audienceCubes.length !== 25) {
+      throw new Error(
+        `El catàleg 3D conté ${audienceCubes.length} plantilles per a ${audience}.`,
+      )
+    }
+  }
+  if (
+    cubes.some(
+      (template) =>
+        template.depth !== 5 || template.characterCount !== 8 || template.gridSize !== 5,
+    )
+  ) {
+    throw new Error('El catàleg 3D conté una geometria que no és 5×5×5 amb vuit residents.')
+  }
+}
+
 const checkCatalog = async () => {
   if (
     puzzleTemplateCatalogGeneratorVersion !== GENERATOR_VERSION ||
@@ -115,6 +142,12 @@ const checkCatalog = async () => {
     throw new Error(`El catàleg només conté ${signatures.size} estructures canòniques.`)
   }
   assertCoverage(templates)
+  assertCatalogDistribution(templates)
+  for (const template of templates.filter(
+    (candidate) => candidate.boardMode === 'logic-cube',
+  )) {
+    materializeAdvancedPuzzleTemplate(template, `catalog-check-${template.id}`)
+  }
 }
 
 const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: string) => {
@@ -124,7 +157,7 @@ const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: s
           'hard',
           `catalog-${GENERATOR_VERSION}-${candidateIndex}`,
           bucket.audience,
-          { boardMode: 'logic-cube', gridSize: 5, depth: 3, characterCount: 5 },
+          { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 },
         )
       : (() => {
           const plans = spatialPlanIdsForAudience(bucket.audience)
@@ -150,6 +183,14 @@ const generateTemplates = async () => {
   const buckets = templateBuckets()
   const templates: AdvancedPuzzleTemplate[] = []
   const signatures = new Set<string>()
+  const bucketCounts = new Map<string, number>()
+  const spatialBuckets = buckets.filter((bucket) => bucket.boardMode === 'logic-grid')
+  const quotaFor = (bucket: TemplateBucket) => {
+    if (requestedCount !== catalogSize) return Number.POSITIVE_INFINITY
+    if (bucket.boardMode === 'logic-cube') return 25
+    const index = spatialBuckets.indexOf(bucket)
+    return index < 14 ? 53 : 52
+  }
 
   for (
     let localIndex = 0;
@@ -159,6 +200,8 @@ const generateTemplates = async () => {
     const candidateIndex = seedOffset + localIndex
     const bucket = buckets[candidateIndex % buckets.length]
     if (!bucket) continue
+    const bucketKey = `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}`
+    if ((bucketCounts.get(bucketKey) ?? 0) >= quotaFor(bucket)) continue
     try {
       const candidate = generateCandidate(
         bucket,
@@ -166,9 +209,10 @@ const generateTemplates = async () => {
         `shard-${seedOffset}-${String(templates.length).padStart(4, '0')}`,
       )
       const signature = canonicalTemplateSignature(candidate)
-      if (!profileMatches(candidate) || signatures.has(signature)) continue
+      if (!difficultyMetricsMatch(candidate) || signatures.has(signature)) continue
       signatures.add(signature)
       templates.push(candidate)
+      bucketCounts.set(bucketKey, (bucketCounts.get(bucketKey) ?? 0) + 1)
       if (templates.length % 100 === 0) {
         process.stdout.write(`Plantilles del lot: ${templates.length}/${requestedCount}\n`)
       }
@@ -181,6 +225,7 @@ const generateTemplates = async () => {
     throw new Error(`Només s'han validat ${templates.length} de ${requestedCount} plantilles.`)
   }
   assertCoverage(templates)
+  if (requestedCount === catalogSize) assertCatalogDistribution(templates)
   return templates
 }
 
@@ -194,6 +239,7 @@ const writeCatalog = async (templates: readonly AdvancedPuzzleTemplate[]) => {
     throw new Error(`El catàleg només conté ${normalized.length} plantilles.`)
   }
   assertCoverage(normalized)
+  assertCatalogDistribution(normalized)
   await mkdir(dirname(outputPath), { recursive: true })
   await writeFile(outputPath, renderCatalog(normalized), 'utf8')
 }
@@ -224,7 +270,7 @@ const repairCatalog = async () => {
     if (!bucket) continue
     try {
       const candidate = generateCandidate(bucket, candidateIndex, `repair-${candidateIndex}`)
-      if (profileMatches(candidate))
+      if (difficultyMetricsMatch(candidate))
         unique.set(canonicalTemplateSignature(candidate), candidate)
     } catch {
       // Keep searching until all canonical slots are valid.
@@ -279,6 +325,10 @@ const migrateCatalogWithCubes = async () => {
   }
 
   const cubeTemplates: AdvancedPuzzleTemplate[] = []
+  const cubeCounts = new Map<'teens' | 'adults', number>([
+    ['teens', 0],
+    ['adults', 0],
+  ])
 
   for (
     let candidateIndex = 0;
@@ -286,18 +336,20 @@ const migrateCatalogWithCubes = async () => {
     candidateIndex += 1
   ) {
     const audience = candidateIndex % 2 === 0 ? 'teens' : 'adults'
+    if ((cubeCounts.get(audience) ?? 0) >= 25) continue
     try {
       const puzzle = generatePuzzleDirect(
         'hard',
         `cube-catalog-${GENERATOR_VERSION}-${candidateIndex}`,
         audience,
-        { boardMode: 'logic-cube', gridSize: 5, depth: 3, characterCount: 5 },
+        { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 },
       )
       const template = extractAdvancedPuzzleTemplate(puzzle, audience, `cube-${candidateIndex}`)
       const signature = canonicalTemplateSignature(template)
       if (signatures.has(signature)) continue
       signatures.add(signature)
       cubeTemplates.push(template)
+      cubeCounts.set(audience, (cubeCounts.get(audience) ?? 0) + 1)
     } catch {
       // Discard candidates that cannot be reduced to a unique cube.
     }

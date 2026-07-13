@@ -4,6 +4,7 @@ import {
   type Audience,
   type Difficulty,
   type Puzzle,
+  type PuzzleCollection,
   type PuzzleVariant,
   type Seed,
 } from '../domain/types'
@@ -237,8 +238,8 @@ export const generatePuzzle = (
     return generatePuzzleDirect('hard', source, audience, {
       boardMode: 'logic-cube',
       gridSize: 5,
-      depth: 3,
-      characterCount: 5,
+      depth: 5,
+      characterCount: 8,
     })
   }
 
@@ -259,6 +260,29 @@ export const generatePuzzle = (
     }
   }
   throw new Error('No s’ha pogut validar cap estructura espacial per a aquesta llavor.')
+}
+
+export const audienceForPuzzleCollection = (
+  collection: PuzzleCollection,
+  source: Seed | string,
+): Audience => {
+  if (collection === 'children') return 'children'
+  const selector = new SeededRandom(deriveSeed(seed(source), 211))
+  return selector.pick(['teens', 'adults'] as const)
+}
+
+export const generatePuzzleForCollection = (
+  difficulty: Difficulty,
+  source: Seed | string,
+  collection: PuzzleCollection,
+) => {
+  const audience = audienceForPuzzleCollection(collection, source)
+  return generatePuzzle(
+    collection === 'three-dimensional' ? 'hard' : difficulty,
+    source,
+    audience,
+    collection === 'three-dimensional' ? 'cube' : 'spatial',
+  )
 }
 
 const advancedGridSizes = [6, 9, 16] as const

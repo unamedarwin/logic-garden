@@ -36,28 +36,26 @@ import { GameHeader } from './components/GameHeader'
 import { GameTimer } from './components/GameTimer'
 import { HintCharacterDialog } from './components/HintCharacterDialog'
 import { InstallPrompt } from './components/InstallPrompt'
-import { ProfileSetup } from './components/ProfileSetup'
+import { PuzzleCollectionSelector } from './components/PuzzleCollectionSelector'
 import { ResultDialog } from './components/ResultDialog'
 import { SettingsDialog } from './components/SettingsDialog'
 import {
-  audienceHeroCopy,
-  audienceLabel,
   boardActionCopy,
   challengeInviteCopy,
   challengeResultCopy,
   challengeShareCopy,
   gameFeedbackCopy,
+  puzzleCollectionCopy,
   t,
   themeCopy,
 } from './domain/i18n'
-import { avatarOptions, type PlayerProfile } from './domain/profile'
 import { getTheme } from './domain/themes'
 import {
   seed,
   type Audience,
   type CharacterId,
   type Difficulty,
-  type PuzzleVariant,
+  type PuzzleCollection,
 } from './domain/types'
 import {
   gameReducer,
@@ -67,11 +65,11 @@ import {
 } from './game/gameReducer'
 import { progress, unplacedCharacters } from './game/selectors'
 import { elapsedSeconds, formatCounter } from './game/time'
-import { generatePuzzle } from './generator/puzzleGenerator'
+import { generatePuzzle, generatePuzzleForCollection } from './generator/puzzleGenerator'
 import { GENERATOR_VERSION } from './generator/version'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
-import { loadProfile, saveProfile } from './storage/profile'
 import { clearSavedGame, loadSavedGame, saveGame } from './storage/savedGame'
+import { hasVisited, markVisited } from './storage/visit'
 import {
   defaultPreferences,
   loadPreferences,
@@ -95,8 +93,8 @@ const emptyStatistics: Statistics = {
   history: [],
 }
 
-const HomeScene = ({ audience }: { readonly audience: Audience }) => {
-  if (audience === 'teens') {
+const HomeScene = ({ collection }: { readonly collection: PuzzleCollection }) => {
+  if (collection === 'two-dimensional') {
     return (
       <div className="home-hero__scene home-hero__scene--teens" aria-hidden="true">
         <span className="scene-neon scene-neon--one">✦</span>
@@ -109,14 +107,21 @@ const HomeScene = ({ audience }: { readonly audience: Audience }) => {
     )
   }
 
-  if (audience === 'adults') {
+  if (collection === 'three-dimensional') {
     return (
-      <div className="home-hero__scene home-hero__scene--adults" aria-hidden="true">
-        <span className="scene-paper scene-paper--one">📚</span>
-        <span className="scene-paper scene-paper--two">🪴</span>
-        <span className="scene-paper scene-paper--three">☕</span>
-        <span className="scene-line scene-line--one" />
-        <span className="scene-line scene-line--two" />
+      <div className="home-hero__scene home-hero__scene--three-dimensional" aria-hidden="true">
+        <span className="scene-building__roof" />
+        <span className="scene-building">
+          {Array.from({ length: 5 }, (_, floor) => (
+            <i key={floor}>
+              <span />
+              <span />
+              <span />
+              <span />
+            </i>
+          ))}
+        </span>
+        <span className="scene-building__path" />
       </div>
     )
   }
@@ -140,7 +145,6 @@ const createSeed = () => globalThis.crypto?.randomUUID?.() ?? `adventure-${Date.
 
 export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences)
-  const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [statistics, setStatistics] = useState<Statistics>(emptyStatistics)
   const [game, setGame] = useState<GameState | null>(null)
   const [ready, setReady] = useState(false)
@@ -148,7 +152,7 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
   const [notice, setNotice] = useState('')
-  const [editingProfile, setEditingProfile] = useState(false)
+  const [firstVisit, setFirstVisit] = useState(false)
   const [showHintPicker, setShowHintPicker] = useState(false)
   const [sharedChallenge, setSharedChallenge] = useState<SharedGameRoute | null>(null)
   const [showChallengeIntro, setShowChallengeIntro] = useState(false)
@@ -165,29 +169,25 @@ export default function App() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([
-      loadPreferences(),
-      loadStatistics(),
-      loadSavedGame(),
-      loadProfile(),
-    ]).then(([storedPreferences, storedStatistics, savedGame, storedProfile]) => {
-      if (!active) return
-      setPreferences(storedPreferences)
-      setStatistics(storedStatistics)
-      setProfile(storedProfile)
-      const shared = parseSharedGameRoute(window.location)
-      setChallengeFirstVisit(!storedProfile)
-      if (storedProfile && shared) {
-        setSharedChallenge(shared)
-        setShowChallengeIntro(true)
-      } else if (storedProfile && savedGame?.state.status === 'playing') {
-        setGame(savedGame.state)
-        setSharedChallenge(savedGame.challenge ?? null)
-      } else {
-        setSharedChallenge(shared)
-      }
-      setReady(true)
-    })
+    void Promise.all([loadPreferences(), loadStatistics(), loadSavedGame(), hasVisited()]).then(
+      ([storedPreferences, storedStatistics, savedGame, visited]) => {
+        if (!active) return
+        setPreferences(storedPreferences)
+        setStatistics(storedStatistics)
+        const shared = parseSharedGameRoute(window.location)
+        setFirstVisit(!visited)
+        setChallengeFirstVisit(!visited)
+        void markVisited()
+        if (shared) {
+          setSharedChallenge(shared)
+          setShowChallengeIntro(true)
+        } else if (savedGame?.state.status === 'playing') {
+          setGame(savedGame.state)
+          setSharedChallenge(savedGame.challenge ?? null)
+        }
+        setReady(true)
+      },
+    )
     return () => {
       active = false
     }
@@ -198,8 +198,14 @@ export default function App() {
     void savePreferences(preferences)
     document.documentElement.lang = preferences.locale
     document.documentElement.dataset.reducedMotion = String(preferences.reducedMotion)
-    document.documentElement.dataset.audience = profile?.audience ?? 'children'
-  }, [preferences, profile, ready])
+    document.documentElement.dataset.audience = game
+      ? (getTheme(game.puzzle.theme).audience ?? 'children')
+      : preferences.collection === 'children'
+        ? 'children'
+        : preferences.collection === 'two-dimensional'
+          ? 'teens'
+          : 'adults'
+  }, [game, preferences, ready])
 
   useEffect(() => {
     if (game?.status === 'playing') void saveGame(game, sharedChallenge ?? undefined)
@@ -240,15 +246,12 @@ export default function App() {
   const startGame = (
     difficulty: Difficulty = preferences.difficulty,
     source = createSeed(),
-    variant: PuzzleVariant = preferences.puzzleVariant,
+    collection: PuzzleCollection = preferences.collection,
   ) => {
-    if (!profile) return
     setGenerating(true)
     try {
-      const effectiveVariant = profile.audience === 'children' ? 'spatial' : variant
-      const effectiveDifficulty = effectiveVariant === 'cube' ? 'hard' : difficulty
       const nextGame = createGameState(
-        generatePuzzle(effectiveDifficulty, source, profile.audience, effectiveVariant),
+        generatePuzzleForCollection(difficulty, source, collection),
       )
       setGame(nextGame)
       setSharedChallenge(null)
@@ -275,23 +278,8 @@ export default function App() {
     setNotice('')
   }
 
-  const savePlayerProfile = (nextProfile: PlayerProfile) => {
-    setProfile(nextProfile)
-    void saveProfile(nextProfile)
-    void clearSavedGame()
-    if (sharedChallenge) {
-      setGame(null)
-      setShowChallengeIntro(true)
-    } else {
-      setGame(null)
-    }
-    setEditingProfile(false)
-    if (!sharedChallenge) window.history.replaceState({}, '', import.meta.env.BASE_URL)
-    resetPageScroll()
-  }
-
   const acceptSharedChallenge = () => {
-    if (!profile || !sharedChallenge) return
+    if (!sharedChallenge) return
     setGenerating(true)
     try {
       setGame(
@@ -321,8 +309,12 @@ export default function App() {
   const activeAudience: Audience = game
     ? game.puzzle.boardMode === 'map'
       ? 'children'
-      : (getTheme(game.puzzle.theme).audience ?? profile?.audience ?? 'adults')
-    : (profile?.audience ?? 'children')
+      : (getTheme(game.puzzle.theme).audience ?? 'adults')
+    : preferences.collection === 'children'
+      ? 'children'
+      : preferences.collection === 'two-dimensional'
+        ? 'teens'
+        : 'adults'
 
   const runGameAction = (action: GameAction) => {
     if (!game) return
@@ -392,7 +384,7 @@ export default function App() {
   }
 
   const shareCurrentGame = () => {
-    if (!game || !profile) return
+    if (!game) return
     const title = themeCopy(preferences.locale, game.puzzle.theme).title
     const completedSeconds =
       game.status === 'won' ? elapsedSeconds(game.startedAt, game.finishedAt) : undefined
@@ -467,29 +459,18 @@ export default function App() {
     return <main className="loading-screen">{t(preferences.locale, 'preparing')}</main>
   }
 
-  if (!profile || editingProfile) {
-    return (
-      <>
-        <ProfileSetup
-          profile={profile}
-          locale={preferences.locale}
-          onLocaleChange={(locale) => setPreferences({ ...preferences, locale })}
-          onSave={savePlayerProfile}
-        />
-        <InstallPrompt
-          label={t(preferences.locale, 'install')}
-          locale={preferences.locale}
-          prominent={!profile}
-        />
-      </>
-    )
-  }
-
   if (!game) {
-    const heroCopy = audienceHeroCopy(preferences.locale, profile.audience)
-    const avatar = avatarOptions.find((option) => option.id === profile.avatar)
+    const heroCopy = puzzleCollectionCopy(preferences.locale, preferences.collection)
+    const homeAudience =
+      preferences.collection === 'children'
+        ? 'children'
+        : preferences.collection === 'two-dimensional'
+          ? 'teens'
+          : 'adults'
     return (
-      <main className={`app-shell home-screen audience--${profile.audience}`}>
+      <main
+        className={`app-shell home-screen audience--${homeAudience} collection--${preferences.collection}`}
+      >
         <GameHeader
           online={online}
           connectionLabel={connectionLabel}
@@ -502,28 +483,23 @@ export default function App() {
             <p className="eyebrow">{heroCopy.eyebrow}</p>
             <h1>{heroCopy.title}</h1>
             <p className="home-hero__description">{heroCopy.description}</p>
-            <section className="profile-summary" aria-label={profile.name}>
-              <span className="profile-summary__avatar" aria-hidden="true">
-                {avatar?.emoji}
-              </span>
-              <div>
-                <strong>{profile.name}</strong>
-                <span>{audienceLabel(preferences.locale, profile.audience)}</span>
-              </div>
-              <button type="button" onClick={() => setEditingProfile(true)}>
-                {t(preferences.locale, 'editProfile')}
-              </button>
-            </section>
+            <PuzzleCollectionSelector
+              value={preferences.collection}
+              locale={preferences.locale}
+              label={t(preferences.locale, 'puzzleCollection')}
+              onChange={(collection) =>
+                setPreferences({
+                  ...preferences,
+                  collection,
+                })
+              }
+            />
             <DifficultySelector
               value={preferences.difficulty}
               locale={preferences.locale}
-              audience={profile.audience}
-              variant={preferences.puzzleVariant}
+              collection={preferences.collection}
               label={t(preferences.locale, 'difficulty')}
               onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
-              onVariantChange={(puzzleVariant) =>
-                setPreferences({ ...preferences, puzzleVariant })
-              }
             />
             <div className="home-hero__actions">
               <button
@@ -545,7 +521,7 @@ export default function App() {
               <p>{t(preferences.locale, 'howToPlayText')}</p>
             </details>
           </div>
-          <HomeScene audience={profile.audience} />
+          <HomeScene collection={preferences.collection} />
         </section>
         <CompletedGames
           games={statistics.history}
@@ -555,7 +531,11 @@ export default function App() {
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
           onShare={shareCompletedGame}
         />
-        <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
+        <InstallPrompt
+          label={t(preferences.locale, 'install')}
+          locale={preferences.locale}
+          prominent={firstVisit}
+        />
         {showChallengeIntro && challengeInvite && (
           <ChallengeIntroDialog
             title={challengeInvite.title}
@@ -596,8 +576,12 @@ export default function App() {
         ? 'logicGridInstruction'
         : 'mapInstruction',
   )
-  const currentPuzzleVariant: PuzzleVariant =
-    game.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial'
+  const currentPuzzleCollection: PuzzleCollection =
+    game.puzzle.boardMode === 'logic-cube'
+      ? 'three-dimensional'
+      : game.puzzle.boardMode === 'logic-grid'
+        ? 'two-dimensional'
+        : 'children'
   const activeBoardCharacterId = activeDragCharacterId ?? game.selectedCharacterId
   const activeDragCharacter = game.puzzle.characters.find(
     (character) => character.id === activeDragCharacterId,
@@ -656,15 +640,15 @@ export default function App() {
             <span>{t(preferences.locale, 'moves')}</span>
           </div>
         </div>
+        <div className="game-counter">
+          <GameTimer
+            startedAt={game.startedAt}
+            finishedAt={game.finishedAt}
+            label={t(preferences.locale, 'timer')}
+          />
+        </div>
       </section>
       <p className="objective-line">{copy.objective}</p>
-      <div className="game-counter">
-        <GameTimer
-          startedAt={game.startedAt}
-          finishedAt={game.finishedAt}
-          label={t(preferences.locale, 'timer')}
-        />
-      </div>
       <p className="sr-only" aria-live="polite">
         {localizedGameFeedback ?? notice}
       </p>
@@ -677,49 +661,56 @@ export default function App() {
       >
         <div className="game-layout">
           <section className="map-area">
-            <div className="map-area__heading">
-              <div>
-                <p className="eyebrow">{boardTitle}</p>
-                <h2>
-                  {activeBoardCharacterId
-                    ? game.puzzle.characters.find(
-                        (character) => character.id === activeBoardCharacterId,
-                      )?.name
-                    : boardInstruction}
-                </h2>
+            <div className="map-area__toolbar">
+              <div className="map-area__heading">
+                <div>
+                  <p className="eyebrow">{boardTitle}</p>
+                  <h2>
+                    {activeBoardCharacterId
+                      ? game.puzzle.characters.find(
+                          (character) => character.id === activeBoardCharacterId,
+                        )?.name
+                      : boardInstruction}
+                  </h2>
+                </div>
+                <span className="map-area__prompt">{boardInstruction}</span>
               </div>
-              <span className="map-area__prompt">{boardInstruction}</span>
-            </div>
-            <div
-              className="board-view-controls"
-              role="group"
-              aria-label={t(preferences.locale, 'boardZoom')}
-            >
-              <button
-                type="button"
-                aria-pressed={boardZoom === 1}
-                onClick={() => setBoardZoom(1)}
+              <div
+                className="board-view-controls"
+                role="group"
+                aria-label={t(preferences.locale, 'boardZoom')}
               >
-                <Scan aria-hidden="true" />
-                {t(preferences.locale, 'fitBoard')}
-              </button>
-              <button
-                type="button"
-                disabled={boardZoom === 1}
-                aria-label={t(preferences.locale, 'zoomOutBoard')}
-                onClick={() => setBoardZoom((current) => Math.max(1, current - 0.5))}
-              >
-                <ZoomOut aria-hidden="true" />
-              </button>
-              <span className="board-view-controls__value">{Math.round(boardZoom * 100)}%</span>
-              <button
-                type="button"
-                disabled={boardZoom === 2.5}
-                aria-label={t(preferences.locale, 'zoomInBoard')}
-                onClick={() => setBoardZoom((current) => Math.min(2.5, current + 0.5))}
-              >
-                <ZoomIn aria-hidden="true" />
-              </button>
+                <button
+                  type="button"
+                  aria-label={t(preferences.locale, 'fitBoard')}
+                  aria-pressed={boardZoom === 1}
+                  onClick={() => setBoardZoom(1)}
+                >
+                  <Scan aria-hidden="true" />
+                  <span className="board-view-controls__fit-label">
+                    {t(preferences.locale, 'fitBoard')}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={boardZoom === 1}
+                  aria-label={t(preferences.locale, 'zoomOutBoard')}
+                  onClick={() => setBoardZoom((current) => Math.max(1, current - 0.5))}
+                >
+                  <ZoomOut aria-hidden="true" />
+                </button>
+                <span className="board-view-controls__value">
+                  {Math.round(boardZoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  disabled={boardZoom === 2.5}
+                  aria-label={t(preferences.locale, 'zoomInBoard')}
+                  onClick={() => setBoardZoom((current) => Math.min(2.5, current + 0.5))}
+                >
+                  <ZoomIn aria-hidden="true" />
+                </button>
+              </div>
             </div>
             <div
               ref={boardScrollRef}
@@ -729,15 +720,20 @@ export default function App() {
                 <LogicCubeBoard
                   positions={game.puzzle.positions}
                   characters={game.puzzle.characters}
+                  items={game.puzzle.items}
                   assignments={game.assignments}
                   selectedCharacterId={activeBoardCharacterId}
                   draggedCharacterId={activeDragCharacterId ?? undefined}
                   boardLabel={boardTitle}
+                  elevatorLabel={t(preferences.locale, 'elevator')}
+                  floorUpLabel={t(preferences.locale, 'floorUp')}
+                  floorDownLabel={t(preferences.locale, 'floorDown')}
                   returnLabel={t(preferences.locale, 'returnToTray')}
                   moveToPositionLabel={boardActions.moveToPosition}
                   selectPositionLabel={boardActions.selectPosition}
                   locale={preferences.locale}
                   themeId={game.puzzle.theme}
+                  puzzleSeed={game.puzzle.seed}
                   zoom={boardZoom}
                   onMoveToPosition={(positionId) => {
                     if (game.selectedCharacterId) {
@@ -872,7 +868,7 @@ export default function App() {
           <button
             type="button"
             onClick={() =>
-              startGame(game.puzzle.difficulty, createSeed(), currentPuzzleVariant)
+              startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
             }
           >
             <Shuffle aria-hidden="true" />
@@ -935,7 +931,7 @@ export default function App() {
           challengeMessage={challengeResult?.message}
           challengeShareHint={challengeResult?.share}
           onNewGame={() =>
-            startGame(game.puzzle.difficulty, createSeed(), currentPuzzleVariant)
+            startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
           }
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}

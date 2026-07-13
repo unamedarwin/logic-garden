@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { LogicCubeBoard } from '../components/LogicCubeBoard'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 
-describe('5x5x3 building board', () => {
+describe('5x5x5 building board', () => {
   it('shows one accessible 5x5 floor and lets the player switch floors', () => {
     const puzzle = generatePuzzle('hard', 'cube-component', 'adults', 'cube')
     const first = puzzle.characters[0]!
@@ -11,11 +11,16 @@ describe('5x5x3 building board', () => {
       <LogicCubeBoard
         positions={puzzle.positions}
         characters={puzzle.characters}
+        items={puzzle.items}
         assignments={{}}
         selectedCharacterId={first.id}
         locale="ca"
         themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
         boardLabel="Cub de deducció"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
         returnLabel="Torna"
         moveToPositionLabel={(label) => `Mou a ${label}`}
         selectPositionLabel={(label) => `Tria ${label}`}
@@ -24,15 +29,40 @@ describe('5x5x3 building board', () => {
       />,
     )
 
-    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    const floorTabs = screen.getAllByRole('tab')
+    expect(floorTabs).toHaveLength(5)
+    expect(floorTabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
+      'Planta baixa',
+      'Primer pis',
+      'Segon pis',
+      'Tercer pis',
+      'Quart pis',
+    ])
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
-    expect(container.querySelector('[data-grid-depth="3"]')).toBeInTheDocument()
-    expect(screen.getByText('3 plantes · 8 llars')).toBeInTheDocument()
+    expect(container.querySelector('[data-grid-depth="5"]')).toBeInTheDocument()
+    expect(screen.getByText('5 plantes · 16 llars')).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Ascensor' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
+    const furniture = Array.from(
+      container.querySelectorAll<HTMLElement>('.logic-cube__furniture'),
+    )
+    expect(furniture.length).toBeGreaterThan(0)
+    expect(
+      furniture.some((icon) =>
+        puzzle.items.some((item) => item.emoji === icon.dataset.furnitureIcon),
+      ),
+    ).toBe(false)
     fireEvent.click(screen.getByRole('tab', { name: /Segon pis/u }))
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
-    fireEvent.click(screen.getByRole('tab', { name: /Planta baixa/u }))
+    const groundFloor = screen.getByRole('tab', { name: /Planta baixa/u })
+    fireEvent.click(groundFloor)
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(2)
+    fireEvent.keyDown(groundFloor, { key: 'ArrowRight' })
+    expect(screen.getByRole('tab', { name: /Primer pis/u })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
   })
 
   it('crosses the horizontal, vertical, and depth lines after a placement', () => {
@@ -43,11 +73,16 @@ describe('5x5x3 building board', () => {
       <LogicCubeBoard
         positions={puzzle.positions}
         characters={puzzle.characters}
+        items={puzzle.items}
         assignments={{ [first.id]: firstPosition.id }}
         selectedCharacterId={first.id}
         locale="ca"
         themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
         boardLabel="Cub"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
         returnLabel="Torna"
         moveToPositionLabel={(label) => `Mou a ${label}`}
         selectPositionLabel={(label) => `Tria ${label}`}
@@ -65,8 +100,5 @@ describe('5x5x3 building board', () => {
 
     // The same row/column coordinate is projected through the depth axis.
     expect(container.querySelectorAll('.location-cell--crossed')).toHaveLength(1)
-    expect(container.querySelectorAll('.logic-cube__layer-preview-cell--crossed')).toHaveLength(
-      10,
-    )
   })
 })

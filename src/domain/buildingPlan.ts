@@ -2,6 +2,11 @@ import type { Locale, Position } from './types'
 
 export type BuildingCellKind = 'home' | 'shop' | 'landing' | 'stairs' | 'entrance'
 
+export const BUILDING_ROWS = 5
+export const BUILDING_COLUMNS = 5
+export const BUILDING_DEPTH = 5
+export const BUILDING_CHARACTER_COUNT = 8
+
 interface BuildingCellDefinition {
   readonly unitId: string
   readonly kind: BuildingCellKind
@@ -36,13 +41,26 @@ const homeAnchors = new Set([
   '2:1:4',
   '2:4:1',
   '2:3:3',
+  '3:1:0',
+  '3:1:4',
+  '3:4:1',
+  '3:3:4',
+  '4:1:1',
+  '4:0:3',
+  '4:4:0',
+  '4:3:4',
 ])
+
+export const BUILDING_HOME_COUNT = homeAnchors.size
 
 export const buildingCellAt = (
   layer: number,
   row: number,
   column: number,
 ): BuildingCellDefinition => {
+  if (layer < 0 || layer >= BUILDING_DEPTH) {
+    throw new Error(`Pis d'edifici desconegut: ${layer}`)
+  }
   const unitId = unitAt(layer, row, column)
   if (!unitId) throw new Error(`Cel·la d'edifici desconeguda: ${layer}:${row}:${column}`)
   const kind: BuildingCellKind = unitId.startsWith('home-')
@@ -58,9 +76,15 @@ export const buildingCellAt = (
 }
 
 const floorNames: Record<Locale, readonly string[]> = {
-  ca: ['Planta baixa', 'Primer pis', 'Segon pis'],
-  es: ['Planta baja', 'Primer piso', 'Segundo piso'],
-  en: ['Ground floor', 'First floor', 'Second floor'],
+  ca: ['Planta baixa', 'Primer pis', 'Segon pis', 'Tercer pis', 'Quart pis'],
+  es: ['Planta baja', 'Primer piso', 'Segundo piso', 'Tercer piso', 'Cuarto piso'],
+  en: ['Ground floor', 'First floor', 'Second floor', 'Third floor', 'Fourth floor'],
+}
+
+const shortFloorNames: Record<Locale, readonly string[]> = {
+  ca: ['PB', '1r', '2n', '3r', '4t'],
+  es: ['PB', '1.º', '2.º', '3.º', '4.º'],
+  en: ['G', '1', '2', '3', '4'],
 }
 
 const unitNames: Record<Locale, Record<string, string>> = {
@@ -102,11 +126,14 @@ const unitNames: Record<Locale, Record<string, string>> = {
 export const buildingFloorLabel = (locale: Locale, layer: number) =>
   floorNames[locale][layer] ?? floorNames[locale][0]!
 
+export const buildingFloorShortLabel = (locale: Locale, layer: number) =>
+  shortFloorNames[locale][layer] ?? shortFloorNames[locale][0]!
+
 export const buildingSummary = (locale: Locale) =>
   ({
-    ca: '3 plantes · 8 llars',
-    es: '3 plantas · 8 hogares',
-    en: '3 floors · 8 homes',
+    ca: '5 plantes · 16 llars',
+    es: '5 plantas · 16 hogares',
+    en: '5 floors · 16 homes',
   })[locale]
 
 export const buildingUnitLabel = (locale: Locale, unitId: string, layer: number) => {
@@ -144,8 +171,8 @@ export const buildingUnitsAreNeighbors = (first: Position, second: Position) => 
     return false
   }
   const layer = first.layer
-  for (let row = 0; row < 5; row += 1) {
-    for (let column = 0; column < 5; column += 1) {
+  for (let row = 0; row < BUILDING_ROWS; row += 1) {
+    for (let column = 0; column < BUILDING_COLUMNS; column += 1) {
       if (unitAt(layer, row, column) !== first.buildingUnitId) continue
       const neighbors = [
         [row - 1, column],

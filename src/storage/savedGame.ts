@@ -1,5 +1,12 @@
 import { del, get, set } from 'idb-keyval'
 import { isChallengeMetadata, type ChallengeMetadata } from '../domain/types'
+import {
+  BUILDING_CHARACTER_COUNT,
+  BUILDING_COLUMNS,
+  BUILDING_DEPTH,
+  BUILDING_HOME_COUNT,
+  BUILDING_ROWS,
+} from '../domain/buildingPlan'
 import type { GameState } from '../game/gameReducer'
 import { GENERATOR_VERSION } from '../generator/version'
 import { analyzeSolutions } from '../solver/solver'
@@ -36,11 +43,13 @@ const isCompatibleState = (value: unknown): value is GameState => {
   if (puzzle.boardMode === 'logic-cube') {
     const layers = new Set(puzzle.positions.map((position) => position.layer))
     if (
-      puzzle.positions.length !== 75 ||
-      puzzle.characters.length !== 5 ||
-      puzzle.positions.filter((position) => !position.blocked).length !== 8 ||
-      layers.size !== 3 ||
-      ![0, 1, 2].every((layer) => layers.has(layer))
+      puzzle.positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
+      puzzle.characters.length !== BUILDING_CHARACTER_COUNT ||
+      puzzle.positions.filter((position) => !position.blocked).length !== BUILDING_HOME_COUNT ||
+      layers.size !== BUILDING_DEPTH ||
+      !Array.from({ length: BUILDING_DEPTH }, (_, layer) => layer).every((layer) =>
+        layers.has(layer),
+      )
     )
       return false
   }

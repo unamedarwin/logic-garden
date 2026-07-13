@@ -47,7 +47,7 @@ describe('shared routes', () => {
     })
   })
 
-  it('keeps the 5x5x3 variant in a shared challenge', () => {
+  it('keeps the 5x5x5 variant in a shared challenge', () => {
     const shared = new URL(
       shareUrl(
         {

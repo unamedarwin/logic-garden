@@ -38,7 +38,7 @@ describe('local completion statistics', () => {
     expect(statistics.history[0]?.legacyTitle).toBe('Old game')
   })
 
-  it('stores the generator version without an answer or profile data', async () => {
+  it('stores the generator version without an answer or personal data', async () => {
     vi.mocked(get).mockResolvedValue(undefined)
     const statistics = await recordCompletion({
       seed: 'new',

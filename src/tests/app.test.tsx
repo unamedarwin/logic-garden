@@ -14,10 +14,6 @@ const dndMock = vi.hoisted(() => ({
     ((event: { active: { id: string }; over: { id: string } | null }) => void) | undefined,
 }))
 
-const profileMock = vi.hoisted(() => ({
-  audience: 'children' as 'children' | 'teens' | 'adults',
-}))
-
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({
     children,
@@ -60,18 +56,18 @@ vi.mock('../pwa/registerServiceWorker', () => ({
 
 vi.mock('../storage/preferences', () => ({
   defaultPreferences: {
-    schemaVersion: 2,
+    schemaVersion: 3,
     difficulty: 'easy',
-    puzzleVariant: 'spatial',
+    collection: 'children',
     locale: 'ca',
     soundEnabled: false,
     reducedMotion: false,
   },
   loadPreferences: () =>
     Promise.resolve({
-      schemaVersion: 2,
+      schemaVersion: 3,
       difficulty: 'easy',
-      puzzleVariant: 'spatial',
+      collection: 'children',
       locale: 'ca',
       soundEnabled: false,
       reducedMotion: false,
@@ -79,20 +75,20 @@ vi.mock('../storage/preferences', () => ({
   savePreferences: vi.fn(),
 }))
 
-vi.mock('../storage/profile', () => ({
-  loadProfile: () =>
-    Promise.resolve({
-      schemaVersion: 1,
-      name: 'Aina',
-      audience: profileMock.audience,
-      avatar: 'leaf',
-    }),
-  saveProfile: vi.fn(),
+vi.mock('../storage/visit', () => ({
+  hasVisited: () => Promise.resolve(true),
+  markVisited: vi.fn(),
 }))
 
 vi.mock('../storage/statistics', () => ({
   loadStatistics: () =>
-    Promise.resolve({ schemaVersion: 1, completed: 0, hintsUsed: 0, recentSeeds: [] }),
+    Promise.resolve({
+      schemaVersion: 4,
+      completed: 0,
+      hintsUsed: 0,
+      recentSeeds: [],
+      history: [],
+    }),
   recordCompletion: vi.fn(),
 }))
 
@@ -107,7 +103,6 @@ describe('game interface', () => {
     dndMock.overId = null
     dndMock.onDragStart = undefined
     dndMock.onDragEnd = undefined
-    profileMock.audience = 'children'
   })
 
   it('opens a timed shared mystery with a clear challenge dialog', async () => {
@@ -231,9 +226,9 @@ describe('game interface', () => {
   })
 
   it('previews the exact drop cell and repositions a placed character', async () => {
-    profileMock.audience = 'adults'
     const user = userEvent.setup()
     const { container } = render(<App />)
+    await user.click(await screen.findByRole('radio', { name: /^Puzzles 2D/u }))
     await user.click(await screen.findByRole('button', { name: 'Juga' }))
 
     await waitFor(() =>
@@ -278,24 +273,38 @@ describe('game interface', () => {
     expect(container.querySelector('.location-cell__drop-preview')).not.toBeInTheDocument()
   })
 
-  it('starts the advanced 5x5x3 building from an adult profile', async () => {
-    profileMock.audience = 'adults'
+  it('starts the separate 5x5x5 building collection without a profile', async () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(await screen.findByRole('radio', { name: 'Avançat 3D · edifici 5×5×3' }))
+    expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeChecked()
+    expect(screen.getByRole('radio', { name: /^Puzzles 2D/u })).toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
+    expect(screen.getByRole('radio', { name: 'Avançat · edifici 5×5×5' })).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Juga' }))
 
     expect(
-      await screen.findByRole('grid', { name: /Edifici de deducció 5×5×3:/u }),
+      await screen.findByRole('grid', { name: /Edifici de deducció 5×5×5:/u }),
     ).toBeInTheDocument()
-    expect(screen.getAllByRole('tab')).toHaveLength(3)
+    expect(screen.getByRole('group', { name: "Ascensor de l'edifici" })).toBeInTheDocument()
+    expect(screen.getAllByRole('tab')).toHaveLength(5)
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     expect(
       screen.getByRole('heading', {
         name: "Tria una persona i una llar lliure de l'edifici.",
       }),
     ).toBeInTheDocument()
+  })
+
+  it('preserves the chosen 2D difficulty while visiting the 3D collection', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('radio', { name: /^Mitjà/u }))
+    await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
+    await user.click(screen.getByRole('radio', { name: /^Puzzles 2D/u }))
+
+    expect(screen.getByRole('radio', { name: /^Mitjà/u })).toBeChecked()
   })
 
   it('asks which person needs a hint when no person is selected', async () => {

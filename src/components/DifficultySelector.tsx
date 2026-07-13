@@ -1,14 +1,12 @@
 import { difficultyConfigs } from '../generator/difficulty'
-import type { Audience, Difficulty, Locale, PuzzleVariant } from '../domain/types'
+import type { Difficulty, Locale, PuzzleCollection } from '../domain/types'
 
 interface DifficultySelectorProps {
   readonly value: Difficulty
   readonly locale: Locale
-  readonly audience: Audience
-  readonly variant: PuzzleVariant
+  readonly collection: PuzzleCollection
   readonly label: string
   readonly onChange: (difficulty: Difficulty) => void
-  readonly onVariantChange: (variant: PuzzleVariant) => void
 }
 
 const labels: Record<Locale, Record<Difficulty, string>> = {
@@ -38,13 +36,29 @@ const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
 export const DifficultySelector = ({
   value,
   locale,
-  audience,
-  variant,
+  collection,
   label,
   onChange,
-  onVariantChange,
 }: DifficultySelectorProps) => {
-  const copy = audience === 'children' ? labels[locale] : logicGridLabels[locale]
+  const copy = collection === 'children' ? labels[locale] : logicGridLabels[locale]
+
+  if (collection === 'three-dimensional') {
+    return (
+      <fieldset className="difficulty-selector difficulty-selector--building">
+        <legend>{label}</legend>
+        <label className="difficulty-selector__selected">
+          <input type="radio" name="difficulty" value="hard" checked readOnly />
+          {
+            {
+              ca: 'Avançat · edifici 5×5×5',
+              es: 'Avanzado · edificio 5×5×5',
+              en: 'Advanced · 5×5×5 building',
+            }[locale]
+          }
+        </label>
+      </fieldset>
+    )
+  }
 
   return (
     <fieldset className="difficulty-selector">
@@ -52,44 +66,18 @@ export const DifficultySelector = ({
       {(Object.keys(difficultyConfigs) as Difficulty[]).map((difficulty) => (
         <label
           key={difficulty}
-          className={
-            value === difficulty && variant === 'spatial' ? 'difficulty-selector__selected' : ''
-          }
+          className={value === difficulty ? 'difficulty-selector__selected' : ''}
         >
           <input
             type="radio"
             name="difficulty"
             value={difficulty}
-            checked={value === difficulty && variant === 'spatial'}
-            onChange={() => {
-              onVariantChange('spatial')
-              onChange(difficulty)
-            }}
+            checked={value === difficulty}
+            onChange={() => onChange(difficulty)}
           />
           {copy[difficulty]}
         </label>
       ))}
-      {audience !== 'children' && (
-        <label className={variant === 'cube' ? 'difficulty-selector__selected' : ''}>
-          <input
-            type="radio"
-            name="difficulty"
-            value="cube"
-            checked={variant === 'cube'}
-            onChange={() => {
-              onChange('hard')
-              onVariantChange('cube')
-            }}
-          />
-          {
-            {
-              ca: 'Avançat 3D · edifici 5×5×3',
-              es: 'Avanzado 3D · edificio 5×5×3',
-              en: 'Advanced 3D · 5×5×3 building',
-            }[locale]
-          }
-        </label>
-      )}
     </fieldset>
   )
 }

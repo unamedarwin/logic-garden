@@ -1,10 +1,10 @@
 # Logic Garden
 
-Logic Garden is an offline-first logic puzzle game for children, teens, and adults. A local
-profile selects the interface language, visual direction, and age-appropriate themes before play. Children place
-friendly characters on a map; teens and adults use a deduction grid where a placed character
-crosses out its row and column. Every visible puzzle is generated locally, has exactly one
-solver-verified answer, and can be reproduced from its seed.
+Logic Garden is an offline-first logic puzzle game with three public collections: Children,
+Puzzles 2D, and Puzzles 3D. Children place friendly characters on compact illustrated maps. The
+2D collection uses irregular deduction plans, and the 3D collection uses a five-floor building
+where placement affects the horizontal, vertical, and height axes. Every visible puzzle is
+generated locally, has exactly one solver-verified answer, and can be reproduced from its seed.
 
 The game contains no ads, analytics, personal-data collection, remote APIs, user-generated
 content, violence, frightening material, or external game assets.
@@ -53,7 +53,7 @@ src/
   assets/       generated local SVG and answer-free puzzle-template data
   solver/       framework-independent backtracking constraint solver
   game/         reducer, selectors, validation, solver-based hints
-  storage/      IndexedDB profile, preferences, statistics, and saved game
+  storage/      IndexedDB preferences, visit state, statistics, and saved game
   pwa/          manifest and service-worker registration
   tests/        unit, integration, and property tests
 ```
@@ -68,11 +68,12 @@ code.
 positions, solution, clue variants, and clue ordering all come from seeded streams. The same
 generator version, variant, audience, difficulty, and seed therefore create the same puzzle.
 
-Teen and adult games select one of 1,000 pre-generated structural templates. The catalog contains
-950 spatial templates across both audiences, all three difficulties, and `6 x 6`, `9 x 9`, and
-`16 x 16` plans, plus 50 hard `5 x 5 x 3` building templates split between teen and adult. A template
+The 2D and 3D collections select one of 1,000 pre-generated structural templates. The catalog
+contains 950 spatial templates across the internal teen and adult content catalogs, all three
+difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 50 hard `5 x 5 x 5` building
+templates split evenly between those content catalogs. A template
 contains compact generic clue tuples, geometry references, and difficulty metrics, but never an
-answer, name, avatar, localized phrase, concrete object, or profile value. The public seed then
+answer, name, avatar, localized phrase, concrete object, or personal value. The public seed then
 selects new people, room names, objects, and phrase variants. The solver always validates the
 themed puzzle again with a limit of two before it is shown.
 
@@ -85,34 +86,37 @@ The solver uses backtracking with partial-constraint pruning, unique positions, 
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
 
-The optional building mode presents 75 visual cells as three accessible floor slices. Only eight
-reviewed home anchors are logical destinations for five residents; shops, entrances, landings,
-stairs, and non-anchor cells are scenery and are blocked throughout generation, solving, reducer
-actions, and the DOM. Placing a resident crosses the complete row and column on that floor plus the
-same position one floor above and below; non-adjacent floors remain independent so the building can
-grow in height. Doors are non-interactive wall fixtures centered between adjacent cells, never objects
-that occupy a destination. See [`docs/building-system.md`](docs/building-system.md).
+The 3D collection presents 125 visual cells as five accessible floor slices. Sixteen reviewed home
+anchors on four residential floors are logical destinations for eight residents; ground-floor
+shops, entrances, landings, stairs, and non-anchor cells are scenery and are blocked throughout
+generation, solving, reducer actions, and the DOM. Placing a resident crosses the complete row and
+column on that floor plus the same position one floor above and below; non-adjacent floors remain
+independent so the model can grow further in height. A detached elevator ordered from ground floor
+to fourth floor switches floors without narrowing or hiding the active plan. Doors are
+non-interactive wall fixtures centered between adjacent cells,
+never objects that occupy a destination. Seeded local furniture and plants warm the blocked scenery
+without becoming puzzle objects. See [`docs/building-system.md`](docs/building-system.md).
 
-## Profiles, difficulty, and play
+## Collections, difficulty, and play
 
-The first screen asks for a language, local name, generic avatar, and one of three audiences. The
-profile stays only on the device and can be changed from the home screen. Each audience has
-its own visual language and local themes:
+The first screen offers three direct play collections. No name, avatar, account, or profile is
+required. Language remains an independent local preference. Each collection has its own visual
+language and safe local themes:
 
-| Audience | Interaction            | Themes                                             |
-| -------- | ---------------------- | -------------------------------------------------- |
-| Children | Illustrated map        | Forests, farms, trips, and gentle discoveries      |
-| Teens    | Spatial deduction plan | Music studio, sports festival, and creative lab    |
-| Adults   | Spatial deduction plan | Book club, neighborhood garden, and weekend market |
+| Collection | Interaction            | Themes                                                      |
+| ---------- | ---------------------- | ----------------------------------------------------------- |
+| Children   | Illustrated map        | Forests, farms, trips, and gentle discoveries               |
+| Puzzles 2D | Spatial deduction plan | Music, sports, creative spaces, books, gardens, and markets |
+| Puzzles 3D | Five-floor building    | Friendly neighbors, shared landings, homes, and local shops |
 
 Children keep the compact map difficulties below. Seeded rectangular boards alternate their
 orientation, so a `2 x 3` board can also appear as `3 x 2`.
 
 | Difficulty | Map   | Friends |
 | ---------- | ----- | ------- |
-| Easy       | 2 × 2 | 4       |
-| Medium     | 2 × 3 | 6       |
-| Hard       | 2 × 4 | 8       |
+| Easy       | 2 x 2 | 4       |
+| Medium     | 2 x 3 | 6       |
+| Hard       | 2 x 4 | 8       |
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
 focus and activate a character button, then activate a location button. Touching a placed
@@ -120,7 +124,8 @@ character returns it to the waiting tray. A placed character can also be dragged
 cell is excluded while valid destinations light up, a cell-sized preview shows the exact drop
 target under the pointer, and dropping on the current cell does not count as a move. A single
 top-layer guide draws the complete drag grid, so room textures and scene art cannot interrupt or
-change individual grid lines. Teen and adult modes use the same deduction rules.
+change individual grid lines. The 2D collection uses the same deduction rules across its internal
+teen and adult content catalogs.
 Every advanced difficulty can use `6 x 6`, `9 x 9`, or `16 x 16`; grid size does not define
 difficulty and never dictates the number of people. The seeded selector chooses one of the three
 sizes first, with equal probability, and only then chooses a template from that size. Easy
@@ -141,9 +146,9 @@ always choose another difficulty before starting a new adventure.
 ## Visual direction
 
 Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
-a playful title scene, and a map that stays visually dominant during play. Teen profiles use a
-poster-like, high-contrast scene; adult profiles use a calm editorial layout. Teen and adult
-boards use a local catalog of twelve floor-plan variants per audience. A seeded game selects a
+a playful title scene, and a map that stays visually dominant during play. The 2D collection
+alternates between poster-like creative scenes and calm editorial scenes from the internal teen
+and adult content catalogs. Its boards use twelve local floor-plan variants per content catalog. A seeded game selects a
 plan, transform, people, item emojis, obstacle locations, and phrase variants deterministically.
 The catalog only describes architecture: it never encodes a name, object assignment, phrase,
 answer, or player information. Every room is part of one complete orthogonal partition: rooms
@@ -201,8 +206,8 @@ reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
 
-Catalan, Spanish, and English are available before profile creation and in settings. Every clue is a discriminated
-union value; `renderClue` converts it into a short local template for the selected language.
+Catalan, Spanish, and English are available from the collection picker and in settings. Every clue
+is a discriminated union value; `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
 Reducer and solver feedback is also stored as structured message data; the interface localizes it
 at render time, so saved games never retain wording from a previously selected language.
@@ -226,7 +231,7 @@ an offline status only when connectivity is lost. On a first mobile
 visit, Android receives the native install action when available; iPhone and iPad receive the
 short Share > Add to Home Screen instruction.
 
-Share links never contain the answer or profile data. Payload schema 4 stores a generator version,
+Share links never contain the answer or personal data. Payload schema 4 stores a generator version,
 variant, difficulty, seed, audience, and an optional bounded completion-time benchmark
 in a URL-safe Base64 payload:
 
@@ -235,7 +240,7 @@ in a URL-safe Base64 payload:
 ```
 
 After a solve, the local history stores the theme identifier, audience, difficulty, generator version,
-elapsed time, moves, hint count, and seed. It never stores the answer or profile data. Each saved result exposes the
+elapsed time, moves, hint count, and seed. It never stores the answer or personal data. Each saved result exposes the
 same share action, using the platform share sheet on supported Android and Apple devices and
 copying the link as a fallback. Opening a timed link shows an accessible challenge dialog; after
 the timer starts only when that dialog is accepted, and its benchmark survives an in-progress
@@ -244,8 +249,9 @@ copy, creating a safe back-and-forth challenge without transmitting a player nam
 
 ## Persistence
 
-The local profile, preferences, statistics, and in-progress game are stored in IndexedDB
-through small safe wrappers. The schemas are versioned; in-progress games currently use schema 4. An in-progress game is restored only
+Preferences, first-visit state, statistics, and the in-progress game are stored in IndexedDB
+through small safe wrappers. The preferences migration deletes the retired local profile record.
+The schemas are versioned; in-progress games currently use schema 4. An in-progress game is restored only
 when its persistence schema and generator version are current, preventing old clues or geometry
 from leaking into a new release. If browser storage is unavailable, play still works without
 persistence.

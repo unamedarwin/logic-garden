@@ -2,7 +2,9 @@
 
 ## Product
 
-This is an offline-first logic puzzle PWA with child, teen, and adult profile modes.
+This is an offline-first logic puzzle PWA with Children, Puzzles 2D, and Puzzles 3D collections.
+The teen and adult audiences remain internal safe-content catalogs for the two advanced collections,
+not player profiles.
 
 The game must never include murder, death, weapons, violence, threats, punishment,
 frightening content, advertising, tracking, personal-data collection, or remote generated
@@ -23,7 +25,7 @@ and seed must produce the same puzzle. Never publish or display a generated puzz
 the solver confirms that it has exactly one solution.
 Advanced games are selected from the generated structural template catalog. Templates may store
 only audience, difficulty, grid size, plan id, generic clue tuples, and difficulty metrics; they
-must never store an answer, profile data, names, localized phrases, or concrete theme objects.
+must never store an answer, personal data, names, localized phrases, or concrete theme objects.
 Keep all 1,000 catalog entries structurally distinct, cover both advanced audiences and every
 difficulty/size combination, and rerun the solver with a limit of two after every runtime theme application.
 Canonical structural identity must ignore clue-list ordering, and catalog checks must reject
@@ -32,9 +34,9 @@ size so uneven bucket counts cannot couple board size back to difficulty.
 Board size and difficulty are independent. Grade advanced difficulty through the number of
 candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
 to each difficulty.
-Keep the structural catalog split at 950 spatial entries and 50 hard `5 x 5 x 3` building entries,
+Keep the structural catalog split at 950 spatial entries and 50 hard `5 x 5 x 5` building entries,
 with 25 building entries for teens and 25 for adults. The building subset must use generator
-version 13 or later and remain answer-free under the same canonical-identity rules.
+version 14 or later and remain answer-free under the same canonical-identity rules.
 
 ## TypeScript
 
@@ -68,9 +70,9 @@ difficulty picker before a player starts another adventure.
 
 Treat the child mode as an illustrated field guide, not a collection of interchangeable cards.
 Keep the map visually dominant, make the current action easy to scan, and preserve the warm
-paper, garden, and hand-drawn-ink direction across responsive layouts. Teen and adult profiles
-must have visibly distinct themes while preserving the same safe, local, accessible game
-mechanics. Use PixiJS only as a decorative grid renderer; keep semantic DOM controls as the
+paper, garden, and hand-drawn-ink direction across responsive layouts. Teen and adult content
+themes within the unified 2D and 3D collections must remain visibly distinct while preserving the
+same safe, local, accessible game mechanics. Use PixiJS only as a decorative grid renderer; keep semantic DOM controls as the
 interaction and accessibility layer.
 Scale room labels, textures, objects, placed avatars, and crossed cells from the actual grid
 dimension rather than viewport units. Character/avatar emoji catalogs and object/obstacle emoji
@@ -123,7 +125,7 @@ coordinate-heavy distance, step, or row/column clue wording. Spatial clue copy m
 precise logical fact with a short positive social action or motivation in every supported
 language; do not reduce advanced clues to bare coordinates. The game counter and solved-history
 records are local-only; history may retain shareable seed metadata and completion statistics, but
-never a solution or profile data.
+never a solution or personal data.
 
 Spatial boards use the local `spatialPlan` catalog. A plan can define only geometry, decorative
 anchors, and visible blocked cells. The seeded generator must choose the plan, people, item
@@ -142,22 +144,29 @@ Every spatial position must inherit its `placeId` from the room polygon that con
 Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
-The advanced building board contains three `5 x 5` floor slices, 75 visual cells, eight playable
-home anchors, and five residents. Shops, entrance cells, landings, stairs, and non-anchor home
+The advanced building board contains five `5 x 5` floor slices, 125 visual cells, 16 playable
+home anchors, and eight residents. The ground floor provides shared services and four residential
+floors provide the homes. Shops, entrance cells, landings, stairs, and non-anchor home
 cells are blocked scenery in every layer of the architecture. Placed residents conflict across the
 complete row and column of their current floor. A height conflict at the same row and column reaches
 only the immediately adjacent floor above and below, so adding more floors does not create an
 unbounded full-height exclusion.
-Render each floor as semantic DOM controls and use the other-floor miniatures only as context.
+Render each floor as semantic DOM controls and use a keyboard-accessible, non-wrapping elevator to
+switch among all five floors without changing placements or timer state. Keep the elevator outside
+the active-floor frame, order its floor buttons from ground floor to fourth floor, and let the fitted
+`5 x 5` plan use the available mobile width.
 Corner clues are secondary variety and must retain the same positive social wording rule as other
 advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
 must not consume either cell, alter solver geometry, obscure a target, or receive pointer events.
 Home and shop doors should face a landing, stair, or entrance route where the floor plan allows it.
+Decorate blocked building cells with seeded local furniture, storage, plants, and shop fixtures.
+Keep this scenery behind interaction, sparse in shared routes, absent from stairs, disjoint from
+resident-carried item icons, and semantically inert.
 
-Profile names and avatars are local-only. Shared URLs may contain a version, audience,
+The app must not ask for or store a player name or avatar. Shared URLs may contain a version, audience,
 difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
-solution or any profile data. A received challenge must explain the benchmark before play and
+solution or any personal data. A received challenge must explain the benchmark before play and
 offer a return challenge after completion. Start its timer only after the player accepts the
 challenge, and persist the benchmark with an in-progress game. Store theme identifiers rather
 than localized titles in new history records so history follows the active language.
@@ -184,7 +193,8 @@ mode, broken zoom/pan restoration, and touch targets obscured by artwork before 
 During drag QA, compare the pixel center of every fixed object and placed avatar with its semantic
 cell, and verify that every valid destination has the same visible overlay while invalid and
 blocked cells remain clearly distinct.
-Also inspect every floor of the `5 x 5 x 3` building at 390x844. Verify centered wall doors, floor
+Also inspect every floor of the `5 x 5 x 5` building at 390x844. Verify centered wall doors, floor
 switching, 25 cells per slice, exact avatar/drop-preview centers, and crossed destinations on the
 horizontal and vertical axes plus the neighboring-floor height axis, without unintended fit-mode
-panning. A non-adjacent floor at the same row and column must remain available.
+panning. A non-adjacent floor at the same row and column must remain available. Verify that seeded
+furniture and plants neither cover controls nor reuse a resident's carried item icon.
