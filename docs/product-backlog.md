@@ -30,7 +30,7 @@
 - The published model now ranges from `5 x 5 x 3` through `5 x 5 x 10`, with one accessible floor
   slice at a time, `4(d-1)` semantic homes, two shops, `14(d-1) + 10` playable room cells, eight
   people, and crossing on horizontal, vertical, and adjacent-height axes.
-- The answer-free catalog reserves 50 hard building templates, split between teen and adult.
+- The answer-free catalog reserves 16 hard building templates, one per internal audience and height.
   Runtime materialization is still checked with a two-solution limit, and height is selected
   uniformly before a template so the unequal per-height quotas do not bias play.
 - The level step is now real for every height: easy ensures direct home or landmark guidance for at
@@ -44,6 +44,6 @@
 
 ## Catalog verification
 
-- Materialize all 1,000 structures across rotating compatible themes in scheduled verification,
+- Materialize all 100 structures across rotating compatible themes in scheduled verification,
   checking uniqueness, node limits, localized clue rendering, and obstacle rejection without
   making the normal deployment workflow unreasonably slow.

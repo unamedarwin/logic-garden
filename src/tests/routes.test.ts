@@ -108,6 +108,7 @@ describe('shared routes', () => {
 
   it('round-trips and regenerates every shareable size and difficulty', () => {
     const difficulties = ['easy', 'medium', 'hard'] as const
+    const advancedAudiences = ['teens', 'adults'] as const
     for (const difficulty of difficulties) {
       for (const childMapSize of [4, 6, 8] as const) {
         const puzzle = generatePuzzle(
@@ -145,78 +146,80 @@ describe('shared routes', () => {
         ).toEqual(puzzle)
       }
 
-      for (const gridSize of [6, 9, 16] as const) {
-        const puzzle = generatePuzzle(
-          difficulty,
-          `share-spatial-${difficulty}-${gridSize}`,
-          'adults',
-          'spatial',
-          gridSize,
-        )
-        const parsed = parseSharedGameRoute(
-          new URL(
-            shareUrl(
-              {
-                difficulty,
-                seed: puzzle.seed,
-                generatorVersion: GENERATOR_VERSION,
-                gridSize,
-              },
-              'adults',
+      for (const audience of advancedAudiences) {
+        for (const gridSize of [6, 9, 16] as const) {
+          const puzzle = generatePuzzle(
+            difficulty,
+            `share-spatial-${audience}-${difficulty}-${gridSize}`,
+            audience,
+            'spatial',
+            gridSize,
+          )
+          const parsed = parseSharedGameRoute(
+            new URL(
+              shareUrl(
+                {
+                  difficulty,
+                  seed: puzzle.seed,
+                  generatorVersion: GENERATOR_VERSION,
+                  gridSize,
+                },
+                audience,
+              ),
+            ) as unknown as Location,
+          )
+          expect(parsed).toMatchObject({ audience, gridSize })
+          expect(
+            generatePuzzle(
+              parsed!.difficulty,
+              parsed!.seed,
+              parsed!.audience,
+              parsed!.variant,
+              parsed!.gridSize,
             ),
-          ) as unknown as Location,
-        )
-        expect(parsed?.gridSize).toBe(gridSize)
-        expect(
-          generatePuzzle(
+          ).toEqual(puzzle)
+        }
+
+        for (const buildingDepth of [3, 4, 5, 6, 7, 8, 9, 10] as const) {
+          const puzzle = generatePuzzle(
+            difficulty,
+            `share-building-${audience}-${difficulty}-${buildingDepth}`,
+            audience,
+            'cube',
+            undefined,
+            undefined,
+            buildingDepth,
+          )
+          const parsed = parseSharedGameRoute(
+            new URL(
+              shareUrl(
+                {
+                  difficulty,
+                  seed: puzzle.seed,
+                  generatorVersion: GENERATOR_VERSION,
+                  variant: 'cube',
+                  buildingDepth,
+                },
+                audience,
+              ),
+            ) as unknown as Location,
+          )
+          expect(parsed).toMatchObject({ audience, buildingDepth })
+          const replayed = generatePuzzle(
             parsed!.difficulty,
             parsed!.seed,
             parsed!.audience,
             parsed!.variant,
             parsed!.gridSize,
-          ),
-        ).toEqual(puzzle)
-      }
-
-      for (const buildingDepth of [3, 4, 5, 6, 7, 8, 9, 10] as const) {
-        const puzzle = generatePuzzle(
-          difficulty,
-          `share-building-${difficulty}-${buildingDepth}`,
-          'adults',
-          'cube',
-          undefined,
-          undefined,
-          buildingDepth,
-        )
-        const parsed = parseSharedGameRoute(
-          new URL(
-            shareUrl(
-              {
-                difficulty,
-                seed: puzzle.seed,
-                generatorVersion: GENERATOR_VERSION,
-                variant: 'cube',
-                buildingDepth,
-              },
-              'adults',
-            ),
-          ) as unknown as Location,
-        )
-        expect(parsed?.buildingDepth).toBe(buildingDepth)
-        const replayed = generatePuzzle(
-          parsed!.difficulty,
-          parsed!.seed,
-          parsed!.audience,
-          parsed!.variant,
-          parsed!.gridSize,
-          parsed!.childMapSize,
-          parsed!.buildingDepth,
-        )
-        expect(buildingDepthForPositions(replayed.positions)).toBe(buildingDepth)
-        expect(replayed).toEqual(puzzle)
+            parsed!.childMapSize,
+            parsed!.buildingDepth,
+          )
+          expect(buildingDepthForPositions(replayed.positions)).toBe(buildingDepth)
+          expect(replayed).toEqual(puzzle)
+        }
       }
     }
-  }, 60_000)
+  }, 120_000)
 
   it('refuses to create a share link from an obsolete generator version', () => {
     expect(() =>

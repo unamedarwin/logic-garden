@@ -14,23 +14,23 @@ import { countSolutions } from '../solver/solver'
 import { BUILDING_DEPTHS, buildingDepthForPositions } from '../domain/buildingPlan'
 
 describe('validated advanced puzzle templates', () => {
-  it('contains one thousand distinct answer-free structures across every content bucket', () => {
-    expect(advancedPuzzleTemplates).toHaveLength(1_000)
-    expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(1_000)
+  it('contains one hundred distinct answer-free structures across every content bucket', () => {
+    expect(advancedPuzzleTemplates).toHaveLength(100)
+    expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(100)
     expect(JSON.stringify(advancedPuzzleTemplates)).not.toContain('solution')
     expect(new Set(advancedPuzzleTemplates.map(templateBucketKey)).size).toBe(34)
     expect(
       advancedPuzzleTemplates.filter((template) => template.boardMode === 'logic-grid'),
-    ).toHaveLength(950)
+    ).toHaveLength(84)
     const buildingTemplates = advancedPuzzleTemplates.filter(
       (template) => template.boardMode === 'logic-cube',
     )
-    expect(buildingTemplates).toHaveLength(50)
+    expect(buildingTemplates).toHaveLength(16)
     expect(buildingTemplates.filter((template) => template.audience === 'teens')).toHaveLength(
-      25,
+      8,
     )
     expect(buildingTemplates.filter((template) => template.audience === 'adults')).toHaveLength(
-      25,
+      8,
     )
     for (const audience of ['teens', 'adults'] as const) {
       for (const depth of BUILDING_DEPTHS) {
@@ -38,7 +38,7 @@ describe('validated advanced puzzle templates', () => {
           buildingTemplates.filter(
             (template) => template.audience === audience && template.depth === depth,
           ),
-        ).toHaveLength(depth === 3 ? 4 : 3)
+        ).toHaveLength(1)
       }
     }
     expect(buildingTemplates.every((template) => template.characterCount === 8)).toBe(true)

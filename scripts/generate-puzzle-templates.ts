@@ -22,7 +22,9 @@ import {
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outputPath = resolve(root, 'src/assets/generated/puzzleTemplateData.ts')
-const catalogSize = 1_000
+const spatialCatalogSize = 84
+const cubeCatalogSize = 16
+const catalogSize = spatialCatalogSize + cubeCatalogSize
 const expectedBucketCount = 34
 const isCheck = process.argv.includes('--check')
 const isRepair = process.argv.includes('--repair')
@@ -37,9 +39,9 @@ const seedOffset = Number(argumentValue('offset') ?? 0)
 const jsonOutput = argumentValue('json-output')
 const mergeInputs = argumentValue('merge')?.split(',').filter(Boolean)
 
-// Four templates at the smallest height plus three at every other height keep
-// exactly 25 answer-free structures per advanced audience.
-const cubeTemplateQuota = (depth: BuildingDepth) => (depth === 3 ? 4 : 3)
+// One structure per audience and height keeps complete 3D coverage while the
+// catalog remains inexpensive to regenerate during active development.
+const cubeTemplateQuota = 1
 
 type TemplateBucket =
   | {
@@ -83,6 +85,17 @@ const templateBuckets = (): readonly TemplateBucket[] => {
   ]
 }
 
+const bucketKeyForBucket = (bucket: TemplateBucket) =>
+  `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}:${bucket.boardMode === 'logic-cube' ? bucket.depth : ''}`
+
+const catalogQuotaForBucket = (bucket: TemplateBucket) => {
+  if (bucket.boardMode === 'logic-cube') return cubeTemplateQuota
+  const spatialIndex = templateBuckets()
+    .filter((candidate) => candidate.boardMode === 'logic-grid')
+    .findIndex((candidate) => bucketKeyForBucket(candidate) === bucketKeyForBucket(bucket))
+  return spatialIndex < 12 ? 5 : 4
+}
+
 const difficultyMetricsMatch = (template: AdvancedPuzzleTemplate) => {
   if (template.boardMode === 'logic-cube') {
     return template.characterCount === 8 && BUILDING_DEPTHS.includes(template.depth)
@@ -116,20 +129,20 @@ const assertCoverage = (templates: readonly AdvancedPuzzleTemplate[]) => {
 const assertCatalogDistribution = (templates: readonly AdvancedPuzzleTemplate[]) => {
   const spatial = templates.filter((template) => template.boardMode === 'logic-grid')
   const cubes = templates.filter((template) => template.boardMode === 'logic-cube')
-  if (spatial.length !== 950 || cubes.length !== 50) {
+  if (spatial.length !== spatialCatalogSize || cubes.length !== cubeCatalogSize) {
     throw new Error(
       `El catàleg conté ${spatial.length} plantilles 2D i ${cubes.length} plantilles 3D.`,
     )
   }
   for (const audience of ['teens', 'adults'] as const) {
     const audienceCubes = cubes.filter((template) => template.audience === audience)
-    if (audienceCubes.length !== 25) {
+    if (audienceCubes.length !== BUILDING_DEPTHS.length) {
       throw new Error(
         `El catàleg 3D conté ${audienceCubes.length} plantilles per a ${audience}.`,
       )
     }
     for (const depth of BUILDING_DEPTHS) {
-      const expected = cubeTemplateQuota(depth)
+      const expected = cubeTemplateQuota
       const actual = audienceCubes.filter((template) => template.depth === depth).length
       if (actual !== expected) {
         throw new Error(
@@ -157,7 +170,7 @@ const checkCatalog = async () => {
   if (
     puzzleTemplateCatalogGeneratorVersion !== GENERATOR_VERSION ||
     advancedPuzzleTemplates.length !== catalogSize ||
-    advancedPuzzleTemplates.at(-1)?.id !== 'template-0999'
+    advancedPuzzleTemplates.at(-1)?.id !== 'template-0099'
   ) {
     throw new Error('El catàleg de plantilles no correspon al generador actual.')
   }
@@ -214,12 +227,9 @@ const generateTemplates = async () => {
   const templates: AdvancedPuzzleTemplate[] = []
   const signatures = new Set<string>()
   const bucketCounts = new Map<string, number>()
-  const spatialBuckets = buckets.filter((bucket) => bucket.boardMode === 'logic-grid')
   const quotaFor = (bucket: TemplateBucket) => {
     if (requestedCount !== catalogSize) return Number.POSITIVE_INFINITY
-    if (bucket.boardMode === 'logic-cube') return cubeTemplateQuota(bucket.depth)
-    const index = spatialBuckets.indexOf(bucket)
-    return index < 14 ? 53 : 52
+    return catalogQuotaForBucket(bucket)
   }
 
   for (
@@ -230,7 +240,7 @@ const generateTemplates = async () => {
     const candidateIndex = seedOffset + localIndex
     const bucket = buckets[candidateIndex % buckets.length]
     if (!bucket) continue
-    const bucketKey = `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}:${bucket.boardMode === 'logic-cube' ? bucket.depth : ''}`
+    const bucketKey = bucketKeyForBucket(bucket)
     if ((bucketCounts.get(bucketKey) ?? 0) >= quotaFor(bucket)) continue
     try {
       const candidate = generateCandidate(
@@ -288,25 +298,45 @@ const mergeCatalog = async (inputs: readonly string[]) => {
 }
 
 const repairCatalog = async () => {
-  const unique = new Map<string, AdvancedPuzzleTemplate>()
+  const selected: AdvancedPuzzleTemplate[] = []
+  const signatures = new Set<string>()
+  const bucketCounts = new Map<string, number>()
+  const bucketQuotas = new Map(
+    templateBuckets().map((bucket) => [
+      bucketKeyForBucket(bucket),
+      catalogQuotaForBucket(bucket),
+    ]),
+  )
+  const addCandidate = (template: AdvancedPuzzleTemplate) => {
+    const signature = canonicalTemplateSignature(template)
+    const bucketKey = templateBucketKey(template)
+    if (
+      signatures.has(signature) ||
+      !difficultyMetricsMatch(template) ||
+      (bucketCounts.get(bucketKey) ?? 0) >= (bucketQuotas.get(bucketKey) ?? 0)
+    ) {
+      return
+    }
+    signatures.add(signature)
+    selected.push(template)
+    bucketCounts.set(bucketKey, (bucketCounts.get(bucketKey) ?? 0) + 1)
+  }
   for (const template of advancedPuzzleTemplates as readonly AdvancedPuzzleTemplate[]) {
-    unique.set(canonicalTemplateSignature(template), template)
+    addCandidate(template)
   }
   const buckets = templateBuckets()
   const firstCandidate = seedOffset || 20_000
-  for (let offset = 0; offset < 12_000 && unique.size < catalogSize; offset += 1) {
+  for (let offset = 0; offset < 12_000 && selected.length < catalogSize; offset += 1) {
     const candidateIndex = firstCandidate + offset
     const bucket = buckets[candidateIndex % buckets.length]
     if (!bucket) continue
     try {
-      const candidate = generateCandidate(bucket, candidateIndex, `repair-${candidateIndex}`)
-      if (difficultyMetricsMatch(candidate))
-        unique.set(canonicalTemplateSignature(candidate), candidate)
+      addCandidate(generateCandidate(bucket, candidateIndex, `repair-${candidateIndex}`))
     } catch {
       // Keep searching until all canonical slots are valid.
     }
   }
-  await writeCatalog([...unique.values()])
+  await writeCatalog(selected)
 }
 
 const migrateCatalogWithCubes = async () => {
@@ -314,7 +344,7 @@ const migrateCatalogWithCubes = async () => {
   const migratedSpatial: AdvancedPuzzleTemplate[] = current
     .filter((template) => template.boardMode === 'logic-grid')
     // Preserve the verified 2D structures and rebuild only the rule-sensitive building subset.
-    .slice(0, 950)
+    .slice(0, spatialCatalogSize)
     .map(
       (template) =>
         ({
@@ -331,7 +361,7 @@ const migrateCatalogWithCubes = async () => {
   )
   for (
     let candidateIndex = 0;
-    candidateIndex < 4_000 && migratedSpatial.length < 950;
+    candidateIndex < 4_000 && migratedSpatial.length < spatialCatalogSize;
     candidateIndex += 1
   ) {
     const bucket = spatialBuckets[candidateIndex % spatialBuckets.length]
@@ -350,8 +380,10 @@ const migrateCatalogWithCubes = async () => {
       // Keep replacing legacy cube slots with freshly verified spatial structures.
     }
   }
-  if (migratedSpatial.length !== 950) {
-    throw new Error(`Només s'han recuperat ${migratedSpatial.length} de 950 plantilles 2D.`)
+  if (migratedSpatial.length !== spatialCatalogSize) {
+    throw new Error(
+      `Només s'han recuperat ${migratedSpatial.length} de ${spatialCatalogSize} plantilles 2D.`,
+    )
   }
 
   const cubeTemplates: AdvancedPuzzleTemplate[] = []
@@ -359,13 +391,13 @@ const migrateCatalogWithCubes = async () => {
 
   for (
     let candidateIndex = 0;
-    candidateIndex < 12_000 && cubeTemplates.length < 50;
+    candidateIndex < 12_000 && cubeTemplates.length < cubeCatalogSize;
     candidateIndex += 1
   ) {
     const audience = candidateIndex % 2 === 0 ? 'teens' : 'adults'
     const depth = BUILDING_DEPTHS[Math.floor(candidateIndex / 2) % BUILDING_DEPTHS.length]!
     const bucketKey = `${audience}:${depth}`
-    const target = cubeTemplateQuota(depth)
+    const target = cubeTemplateQuota
     if ((cubeCounts.get(bucketKey) ?? 0) >= target) continue
     try {
       const puzzle = generatePuzzleDirect(
@@ -384,8 +416,8 @@ const migrateCatalogWithCubes = async () => {
       // Discard candidates that cannot be reduced to a unique cube.
     }
   }
-  if (cubeTemplates.length !== 50) {
-    throw new Error(`Només s'han generat ${cubeTemplates.length} de 50 cubs.`)
+  if (cubeTemplates.length !== cubeCatalogSize) {
+    throw new Error(`Només s'han generat ${cubeTemplates.length} de ${cubeCatalogSize} cubs.`)
   }
   await writeCatalog([...migratedSpatial, ...cubeTemplates])
 }

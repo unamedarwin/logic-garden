@@ -18,26 +18,24 @@ type Templates = Record<Clue['type'], readonly string[]>
 const mapTemplates: Record<Locale, Templates> = {
   ca: {
     'character-at-position': [
-      '{a} ha arribat a l’espai «{p}» amb {i} i un gran somriure.',
-      'A l’espai «{p}», {a} prepara {i} amb molta il·lusió.',
+      '{a} ha arribat a l’espai «{p}» amb un gran somriure.',
+      'A l’espai «{p}», {a} participa amb molta il·lusió.',
     ],
     'character-not-at-position': [
       '{a} vol explorar un altre racó; no és a l’espai «{p}».',
-      '{a} porta {i} a un altre lloc, lluny de l’espai «{p}».',
+      '{a} continua l’aventura en un altre lloc, lluny de l’espai «{p}».',
     ],
     'character-in-place': [
-      '{a} ajuda el grup a l’espai «{p}» i hi porta {i}.',
-      'A l’espai «{p}», {a} té {i} a punt per a l’aventura.',
+      '{a} ajuda el grup a l’espai «{p}».',
+      'A l’espai «{p}», {a} està a punt per a l’aventura.',
     ],
     'character-not-in-place': [
       '{a} continua l’aventura en un altre lloc, lluny de l’espai «{p}».',
-      '{a} prepara {i} fora de l’espai «{p}».',
+      '{a} ajuda el grup fora de l’espai «{p}».',
     ],
-    'in-corner': ['{a} ha triat una cantonada tranquil·la per mirar {i}.'],
-    'not-in-corner': ['{a} no ha triat cap cantonada per preparar {i}.'],
-    'character-next-to-obstacle': [
-      'A l’espai «{p}», {a} prepara {i} al costat del punt de referència «{o}».',
-    ],
+    'in-corner': ['{a} ha triat una cantonada tranquil·la per participar.'],
+    'not-in-corner': ['{a} participa lluny de les cantonades.'],
+    'character-next-to-obstacle': ['A l’espai «{p}», {a} participa al costat de «{o}».'],
     adjacent: [
       '{a} i {b} han triat llocs veïns per compartir l’aventura.',
       '{a} té {b} ben a prop, en un lloc veí.',
@@ -64,21 +62,21 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} saluda {b} des del lloc de l’esquerra.',
-      '{a} prepara {i} a l’esquerra de {b}.',
+      '{a} ajuda el grup a l’esquerra de {b}.',
     ],
     'right-of': [
       '{a} saluda {b} des del lloc de la dreta.',
-      '{a} prepara {i} a la dreta de {b}.',
+      '{a} ajuda el grup a la dreta de {b}.',
     ],
-    above: ['{a} saluda {b} des del lloc de sobre.', '{a}, amb {i}, mira {b} des de sobre.'],
-    below: ['{a} saluda {b} des del lloc de sota.', '{a}, amb {i}, mira {b} des de sota.'],
+    above: ['{a} saluda {b} des del lloc de sobre.', '{a} mira {b} des de sobre.'],
+    below: ['{a} saluda {b} des del lloc de sota.', '{a} mira {b} des de sota.'],
     distance: [
       '{a} camina {n} passos pel mapa per trobar {b}.',
       '{a} recorre {n} passos del mapa per trobar {b}.',
     ],
     between: [
       '{a} comparteix el camí entre {b} i {c}.',
-      '{a} prepara {i} al mig de {b} i {c}.',
+      '{a} ajuda el grup al mig de {b} i {c}.',
     ],
     'has-item': ['{a} ha triat {i} per a l’aventura.', '{a} porta {i} per compartir.'],
     'does-not-have-item': [
@@ -92,24 +90,24 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   es: {
     'character-at-position': [
-      '{a} ha llegado a {p} con {i} y una gran sonrisa.',
-      'En {p}, {a} prepara {i} con mucha ilusión.',
+      '{a} ha llegado a {p} con una gran sonrisa.',
+      'En {p}, {a} participa con mucha ilusión.',
     ],
     'character-not-at-position': [
       '{a} quiere explorar otro rincón; no está en {p}.',
-      '{a} lleva {i} a otro lugar, no a {p}.',
+      '{a} continúa la aventura en otro lugar, no en {p}.',
     ],
     'character-in-place': [
-      '{a} ayuda al grupo en {p} y lleva {i}.',
-      'En {p}, {a} guarda {i} para la aventura.',
+      '{a} ayuda al grupo en {p}.',
+      'En {p}, {a} está listo para la aventura.',
     ],
     'character-not-in-place': [
       '{a} sigue la aventura en otro lugar, no en {p}.',
-      '{a} no prepara {i} en {p}.',
+      '{a} ayuda al grupo fuera de {p}.',
     ],
-    'in-corner': ['{a} ha elegido un rincón tranquilo para mirar {i}.'],
-    'not-in-corner': ['{a} no ha elegido ningún rincón para preparar {i}.'],
-    'character-next-to-obstacle': ['En {p}, {a} prepara {i} junto a {o}.'],
+    'in-corner': ['{a} ha elegido un rincón tranquilo para participar.'],
+    'not-in-corner': ['{a} participa lejos de los rincones.'],
+    'character-next-to-obstacle': ['En {p}, {a} participa junto a {o}.'],
     adjacent: [
       '{a} y {b} han elegido lugares vecinos para compartir la aventura.',
       '{a} tiene a {b} muy cerca, en un lugar vecino.',
@@ -136,25 +134,19 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} saluda a {b} desde el lugar de la izquierda.',
-      '{a} prepara {i} a la izquierda de {b}.',
+      '{a} ayuda al grupo a la izquierda de {b}.',
     ],
     'right-of': [
       '{a} saluda a {b} desde el lugar de la derecha.',
-      '{a} prepara {i} a la derecha de {b}.',
+      '{a} ayuda al grupo a la derecha de {b}.',
     ],
-    above: [
-      '{a} saluda a {b} desde el lugar de arriba.',
-      '{a}, con {i}, mira a {b} desde arriba.',
-    ],
-    below: [
-      '{a} saluda a {b} desde el lugar de abajo.',
-      '{a}, con {i}, mira a {b} desde abajo.',
-    ],
+    above: ['{a} saluda a {b} desde el lugar de arriba.', '{a} mira a {b} desde arriba.'],
+    below: ['{a} saluda a {b} desde el lugar de abajo.', '{a} mira a {b} desde abajo.'],
     distance: [
       '{a} camina {n} pasos por el mapa para encontrar a {b}.',
       '{a} recorre {n} pasos del mapa para encontrar a {b}.',
     ],
-    between: ['{a} comparte el camino entre {b} y {c}.', '{a} prepara {i} entre {b} y {c}.'],
+    between: ['{a} comparte el camino entre {b} y {c}.', '{a} ayuda al grupo entre {b} y {c}.'],
     'has-item': ['{a} ha elegido {i} para la aventura.', '{a} lleva {i} para compartir.'],
     'does-not-have-item': [
       '{a} lleva otra cosa, no {i}.',
@@ -167,24 +159,24 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   en: {
     'character-at-position': [
-      '{a} arrived at {p} with {i} and a big smile.',
-      'At {p}, {a} prepares {i} with great excitement.',
+      '{a} arrived at {p} with a big smile.',
+      'At {p}, {a} joins in with great excitement.',
     ],
     'character-not-at-position': [
       '{a} wants to explore another spot, not {p}.',
-      '{a} takes {i} somewhere else, not {p}.',
+      '{a} continues the adventure somewhere else, not at {p}.',
     ],
     'character-in-place': [
-      '{a} helps the group at {p} and brings {i}.',
-      'At {p}, {a} has {i} ready for the adventure.',
+      '{a} helps the group at {p}.',
+      'At {p}, {a} is ready for the adventure.',
     ],
     'character-not-in-place': [
       '{a} continues the adventure somewhere else, not {p}.',
-      '{a} does not prepare {i} at {p}.',
+      '{a} helps the group away from {p}.',
     ],
-    'in-corner': ['{a} chose a quiet corner to look at {i}.'],
-    'not-in-corner': ['{a} did not choose a corner to prepare {i}.'],
-    'character-next-to-obstacle': ['At {p}, {a} prepares {i} next to {o}.'],
+    'in-corner': ['{a} chose a quiet corner to join in.'],
+    'not-in-corner': ['{a} joins in away from the corners.'],
+    'character-next-to-obstacle': ['At {p}, {a} joins in next to {o}.'],
     adjacent: [
       '{a} and {b} chose neighboring places to share the adventure.',
       '{a} has {b} nearby, in a neighboring place.',
@@ -211,27 +203,21 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} waves to {b} from the place on the left.',
-      '{a} prepares {i} to the left of {b}.',
+      '{a} helps the group to the left of {b}.',
     ],
     'right-of': [
       '{a} waves to {b} from the place on the right.',
-      '{a} prepares {i} to the right of {b}.',
+      '{a} helps the group to the right of {b}.',
     ],
-    above: [
-      '{a} waves to {b} from the place above.',
-      '{a}, carrying {i}, looks at {b} from above.',
-    ],
-    below: [
-      '{a} waves to {b} from the place below.',
-      '{a}, carrying {i}, looks at {b} from below.',
-    ],
+    above: ['{a} waves to {b} from the place above.', '{a} looks at {b} from above.'],
+    below: ['{a} waves to {b} from the place below.', '{a} looks at {b} from below.'],
     distance: [
       '{a} walks {n} map steps to find {b}.',
       '{a} travels {n} map steps to find {b}.',
     ],
     between: [
       '{a} shares the path between {b} and {c}.',
-      '{a} prepares {i} between {b} and {c}.',
+      '{a} helps the group between {b} and {c}.',
     ],
     'has-item': ['{a} chose {i} for the adventure.', '{a} brings {i} to share.'],
     'does-not-have-item': [
@@ -245,25 +231,25 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   eu: {
     'character-at-position': [
-      'Hona hemen {a} «{p}» gunean, {i} aldean eta irribarre handi batekin.',
-      '«{p}» gunean, {a} prest dago abenturarako. Berekin duen objektua: {i}.',
+      'Hona hemen {a} «{p}» gunean, irribarre handi batekin.',
+      '«{p}» gunean, {a} prest dago abenturarako.',
     ],
     'character-not-at-position': [
       '{a} beste txoko bat esploratzen ari da, ez «{p}» gunea.',
-      '{a} beste leku batean dago, {i} aldean; ez «{p}» gunean.',
+      '{a} beste leku batean dago; ez «{p}» gunean.',
     ],
     'character-in-place': [
-      '{a} taldeari laguntzen ari da «{p}» gunean, {i} aldean.',
-      '«{p}» gunean, {a} prest dago abenturarako. Berekin duen objektua: {i}.',
+      '{a} taldeari laguntzen ari da «{p}» gunean.',
+      '«{p}» gunean, {a} prest dago abenturarako.',
     ],
     'character-not-in-place': [
       '{a} beste leku batean ari da abenturan, ez «{p}» gunean.',
-      '{a} «{p}» gunetik kanpo dago, {i} prestatzeko gogoz.',
+      '{a} «{p}» gunetik kanpo dago, laguntzeko gogoz.',
     ],
-    'in-corner': ['{a} txoko lasai batean dago, {i} begiratzeko prest.'],
-    'not-in-corner': ['{a} izkinetatik urrun dago, {i} prestatzeko gogoz.'],
+    'in-corner': ['{a} txoko lasai batean dago, parte hartzeko prest.'],
+    'not-in-corner': ['{a} izkinetatik urrun dago, laguntzeko gogoz.'],
     'character-next-to-obstacle': [
-      '«{p}» gunean, {a} «{o}» erreferentziaren ondoan dago, {i} prestatzeko gogoz.',
+      '«{p}» gunean, {a} «{o}» erreferentziaren ondoan dago, laguntzeko gogoz.',
     ],
     adjacent: [
       '{a} eta {b} elkarren ondoko lekuetan daude, abentura partekatzeko.',
@@ -291,19 +277,19 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       'Ezkerretik eskuinera, {a} dago lehenengo eta {b} gero; biak elkarlanean ari dira.',
-      '{a}, {i} aldean, {b} baino ezkerrerago dago.',
+      '{a} {b} baino ezkerrerago dago.',
     ],
     'right-of': [
       'Ezkerretik eskuinera, {b} dago lehenengo eta {a} gero; biak elkarlanean ari dira.',
-      '{a}, {i} aldean, {b} baino eskuinerago dago.',
+      '{a} {b} baino eskuinerago dago.',
     ],
     above: [
       'Goitik behera, {a} dago lehenengo eta {b} gero; elkar agurtzeko prest daude.',
-      '{a}, {i} aldean, {b} baino gorago dago.',
+      '{a} {b} baino gorago dago.',
     ],
     below: [
       'Goitik behera, {b} dago lehenengo eta {a} gero; elkar agurtzeko prest daude.',
-      '{a}, {i} aldean, {b} baino beherago dago.',
+      '{a} {b} baino beherago dago.',
     ],
     distance: [
       '{a} eta {b} elkarrengandik {n} mapa-urratsera daude.',
@@ -311,7 +297,7 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     between: [
       'Hiru lagunen ordenan, {a} erdian dago; alboetan {b} eta {c} daude.',
-      '{a}, {i} aldean, bi lagunen erdian dago: {b} eta {c}.',
+      '{a} bi lagunen erdian dago: {b} eta {c}.',
     ],
     'has-item': [
       '{a} honako honekin dabil abenturan: {i}.',
@@ -328,25 +314,25 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   gl: {
     'character-at-position': [
-      '{a} chegou ao espazo «{p}» con {i} e un gran sorriso.',
-      'No espazo «{p}», {a} prepara {i} con moita ilusión.',
+      '{a} chegou ao espazo «{p}» cun gran sorriso.',
+      'No espazo «{p}», {a} participa con moita ilusión.',
     ],
     'character-not-at-position': [
       '{a} quere explorar outro recuncho; non está no espazo «{p}».',
-      '{a} leva {i} a outro lugar, lonxe do espazo «{p}».',
+      '{a} continúa a aventura noutro lugar, lonxe do espazo «{p}».',
     ],
     'character-in-place': [
-      '{a} axuda o grupo no espazo «{p}» e leva {i}.',
-      'No espazo «{p}», {a} ten {i} a punto para a aventura.',
+      '{a} axuda o grupo no espazo «{p}».',
+      'No espazo «{p}», {a} está a punto para a aventura.',
     ],
     'character-not-in-place': [
       '{a} continúa a aventura noutro lugar, lonxe do espazo «{p}».',
-      '{a} prepara {i} fóra do espazo «{p}».',
+      '{a} axuda o grupo fóra do espazo «{p}».',
     ],
-    'in-corner': ['{a} escolleu un recuncho tranquilo para mirar {i}.'],
-    'not-in-corner': ['{a} non escolleu ningún recuncho para preparar {i}.'],
+    'in-corner': ['{a} escolleu un recuncho tranquilo para participar.'],
+    'not-in-corner': ['{a} participa lonxe dos recunchos.'],
     'character-next-to-obstacle': [
-      'No espazo «{p}», {a} prepara {i} a carón da referencia «{o}».',
+      'No espazo «{p}», {a} participa a carón da referencia «{o}».',
     ],
     adjacent: [
       '{a} e {b} escolleron lugares veciños para compartir a aventura.',
@@ -374,25 +360,19 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} saúda a {b} desde o lugar da esquerda.',
-      '{a} prepara {i} á esquerda de {b}.',
+      '{a} axuda o grupo á esquerda de {b}.',
     ],
     'right-of': [
       '{a} saúda a {b} desde o lugar da dereita.',
-      '{a} prepara {i} á dereita de {b}.',
+      '{a} axuda o grupo á dereita de {b}.',
     ],
-    above: [
-      '{a} saúda a {b} desde o lugar de arriba.',
-      '{a}, con {i}, mira a {b} desde arriba.',
-    ],
-    below: [
-      '{a} saúda a {b} desde o lugar de abaixo.',
-      '{a}, con {i}, mira a {b} desde abaixo.',
-    ],
+    above: ['{a} saúda a {b} desde o lugar de arriba.', '{a} mira a {b} desde arriba.'],
+    below: ['{a} saúda a {b} desde o lugar de abaixo.', '{a} mira a {b} desde abaixo.'],
     distance: [
       '{a} camiña {n} pasos polo mapa para atopar a {b}.',
       '{a} percorre {n} pasos do mapa para atopar a {b}.',
     ],
-    between: ['{a} comparte o camiño entre {b} e {c}.', '{a} prepara {i} entre {b} e {c}.'],
+    between: ['{a} comparte o camiño entre {b} e {c}.', '{a} axuda o grupo entre {b} e {c}.'],
     'has-item': ['{a} escolleu {i} para a aventura.', '{a} leva {i} para compartir.'],
     'does-not-have-item': [
       '{a} leva outra cousa, non {i}.',
@@ -405,25 +385,25 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   fr: {
     'character-at-position': [
-      'Objet apporté : {i}. {a} arrive dans l’espace « {p} » avec un grand sourire.',
-      'Dans l’espace « {p} », {a} prépare cet objet avec enthousiasme : {i}.',
+      '{a} arrive dans l’espace « {p} » avec un grand sourire.',
+      'Dans l’espace « {p} », {a} participe avec enthousiasme.',
     ],
     'character-not-at-position': [
       '{a} explore un autre lieu, ailleurs que dans l’espace « {p} ».',
-      '{a} emporte cet objet ailleurs que dans l’espace « {p} » : {i}.',
+      '{a} poursuit l’aventure ailleurs que dans l’espace « {p} ».',
     ],
     'character-in-place': [
-      '{a} aide le groupe dans l’espace « {p} » et apporte cet objet : {i}.',
-      'Dans l’espace « {p} », {a} garde cet objet à portée de main pour l’aventure : {i}.',
+      '{a} aide le groupe dans l’espace « {p} ».',
+      'Dans l’espace « {p} », {a} est prêt pour l’aventure.',
     ],
     'character-not-in-place': [
       '{a} poursuit l’aventure ailleurs que dans l’espace « {p} ».',
-      '{a} prépare cet objet hors de l’espace « {p} » : {i}.',
+      '{a} aide le groupe hors de l’espace « {p} ».',
     ],
-    'in-corner': ['{a} choisit un coin tranquille pour regarder cet objet : {i}.'],
-    'not-in-corner': ['{a} ne choisit aucun coin pour préparer cet objet : {i}.'],
+    'in-corner': ['{a} choisit un coin tranquille pour participer.'],
+    'not-in-corner': ['{a} participe loin des coins.'],
     'character-next-to-obstacle': [
-      'Dans l’espace « {p} », {a} prépare cet objet près du repère « {o} » : {i}.',
+      'Dans l’espace « {p} », {a} participe près du repère « {o} ».',
     ],
     adjacent: [
       '{a} et {b} choisissent des places voisines pour partager l’aventure.',
@@ -451,19 +431,19 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} salue {b} depuis la place à gauche.',
-      '{a} prépare cet objet à gauche de {b} : {i}.',
+      '{a} aide le groupe à gauche de {b}.',
     ],
     'right-of': [
       '{a} salue {b} depuis la place à droite.',
-      '{a} prépare cet objet à droite de {b} : {i}.',
+      '{a} aide le groupe à droite de {b}.',
     ],
     above: [
       '{a} salue {b} depuis la place au-dessus.',
-      '{a}, avec cet objet, regarde {b} depuis la place au-dessus : {i}.',
+      '{a} regarde {b} depuis la place au-dessus.',
     ],
     below: [
       '{a} salue {b} depuis la place en dessous.',
-      '{a}, avec cet objet, regarde {b} depuis la place en dessous : {i}.',
+      '{a} regarde {b} depuis la place en dessous.',
     ],
     distance: [
       '{a} parcourt {n} pas sur la carte pour retrouver {b}.',
@@ -471,7 +451,7 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     between: [
       '{a} partage le chemin entre {b} et {c}.',
-      '{a} prépare cet objet entre {b} et {c} : {i}.',
+      '{a} aide le groupe entre {b} et {c}.',
     ],
     'has-item': [
       '{a} choisit cet objet pour l’aventure : {i}.',
@@ -490,25 +470,25 @@ const mapTemplates: Record<Locale, Templates> = {
   },
   de: {
     'character-at-position': [
-      '{a} ist mit diesem Gegenstand und einem großen Lächeln am Ort „{p}“ angekommen: {i}.',
-      'Am Ort „{p}“ bereitet {a} voller Freude diesen Gegenstand vor: {i}.',
+      '{a} ist mit einem großen Lächeln am Ort „{p}“ angekommen.',
+      'Am Ort „{p}“ macht {a} voller Freude mit.',
     ],
     'character-not-at-position': [
       '{a} erkundet eine andere Ecke und ist nicht am Ort „{p}“.',
-      '{a} bringt diesen Gegenstand an einen anderen Ort, nicht zum Ort „{p}“: {i}.',
+      '{a} setzt das Abenteuer anderswo fort, nicht am Ort „{p}“.',
     ],
     'character-in-place': [
-      '{a} hilft der Gruppe am Ort „{p}“ und bringt diesen Gegenstand mit: {i}.',
-      'Am Ort „{p}“ hält {a} diesen Gegenstand für das Abenteuer bereit: {i}.',
+      '{a} hilft der Gruppe am Ort „{p}“.',
+      'Am Ort „{p}“ ist {a} bereit für das Abenteuer.',
     ],
     'character-not-in-place': [
       '{a} setzt das Abenteuer anderswo fort, nicht am Ort „{p}“.',
-      '{a} bereitet diesen Gegenstand außerhalb des Ortes „{p}“ vor: {i}.',
+      '{a} hilft der Gruppe außerhalb des Ortes „{p}“.',
     ],
-    'in-corner': ['{a} wählt eine ruhige Ecke, um diesen Gegenstand anzusehen: {i}.'],
-    'not-in-corner': ['{a} wählt keine Ecke, um diesen Gegenstand vorzubereiten: {i}.'],
+    'in-corner': ['{a} wählt eine ruhige Ecke zum Mitmachen.'],
+    'not-in-corner': ['{a} macht abseits der Ecken mit.'],
     'character-next-to-obstacle': [
-      'Am Ort „{p}“ bereitet {a} diesen Gegenstand neben dem Orientierungspunkt „{o}“ vor: {i}.',
+      'Am Ort „{p}“ macht {a} neben dem Orientierungspunkt „{o}“ mit.',
     ],
     adjacent: [
       '{a} und {b} wählen benachbarte Plätze, um das Abenteuer zu teilen.',
@@ -536,27 +516,21 @@ const mapTemplates: Record<Locale, Templates> = {
     ],
     'left-of': [
       '{a} grüßt {b} vom Platz auf der linken Seite.',
-      '{a} bereitet diesen Gegenstand links von {b} vor: {i}.',
+      '{a} hilft der Gruppe links von {b}.',
     ],
     'right-of': [
       '{a} grüßt {b} vom Platz auf der rechten Seite.',
-      '{a} bereitet diesen Gegenstand rechts von {b} vor: {i}.',
+      '{a} hilft der Gruppe rechts von {b}.',
     ],
-    above: [
-      '{a} grüßt {b} vom Platz darüber.',
-      '{a} blickt mit diesem Gegenstand vom Platz darüber zu {b}: {i}.',
-    ],
-    below: [
-      '{a} grüßt {b} vom Platz darunter.',
-      '{a} blickt mit diesem Gegenstand vom Platz darunter zu {b}: {i}.',
-    ],
+    above: ['{a} grüßt {b} vom Platz darüber.', '{a} blickt vom Platz darüber zu {b}.'],
+    below: ['{a} grüßt {b} vom Platz darunter.', '{a} blickt vom Platz darunter zu {b}.'],
     distance: [
       '{a} geht {n} Schritte über die Karte, um {b} zu treffen.',
       '{a} legt {n} Kartenschritte zurück, um {b} zu erreichen.',
     ],
     between: [
       '{a} teilt den Weg zwischen {b} und {c}.',
-      '{a} bereitet diesen Gegenstand zwischen {b} und {c} vor: {i}.',
+      '{a} hilft der Gruppe zwischen {b} und {c}.',
     ],
     'has-item': [
       '{a} wählt diesen Gegenstand für das Abenteuer: {i}.',
@@ -576,26 +550,26 @@ const mapTemplates: Record<Locale, Templates> = {
 const gridTemplates: Record<Locale, Templates> = {
   ca: {
     'character-at-position': [
-      'A {a} li agrada molt participar. A la zona «{p}», és a la casella {d} del marcador «{o}» i porta {i}.',
-      '{a} ha arribat amb moltes ganes a la zona «{p}». És a la casella {d} del marcador «{o}» i porta {i}.',
-      '{a} ajuda a preparar la zona «{p}». La seva casella és {d} del marcador «{o}» i hi porta {i}.',
+      'A {a} li agrada molt participar. A la zona «{p}», és a la casella {d} del marcador «{o}».',
+      '{a} ha arribat amb moltes ganes a la zona «{p}». És a la casella {d} del marcador «{o}».',
+      '{a} ajuda a preparar la zona «{p}». La seva casella és {d} del marcador «{o}».',
     ],
     'character-not-at-position': [
       '{a} prefereix donar un cop de mà en un altre espai: no és a la casella {d} del marcador «{o}» de la zona «{p}».',
     ],
     'character-in-place': [
-      '{a} entra per la porta de l’espai «{p}» amb {i} i saluda tothom.',
-      '{a} se sent a gust a l’espai «{p}» i hi porta {i}.',
+      '{a} entra per la porta de l’espai «{p}» i saluda tothom.',
+      '{a} se sent a gust a l’espai «{p}».',
     ],
     'character-not-in-place': [
       '{a} prefereix ajudar en un altre espai, fora de la zona «{p}».',
     ],
-    'in-corner': ['{a}, amb {i}, prepara una cantonada lluminosa de l’espai.'],
-    'not-in-corner': ['{a}, amb {i}, treballa lluny de les cantonades.'],
+    'in-corner': ['{a} prepara una cantonada lluminosa de l’espai.'],
+    'not-in-corner': ['{a} treballa lluny de les cantonades.'],
     'character-next-to-obstacle': [
-      '{a} prepara amb il·lusió la zona «{p}», al costat del punt de referència «{o}», i hi porta {i}.',
-      'A la zona «{p}», {a} dona un cop de mà al costat del punt de referència «{o}» i porta {i}.',
-      '{a} té cura de la zona «{p}» des d’un espai al costat del punt de referència «{o}», amb {i}.',
+      '{a} prepara amb il·lusió la zona «{p}», al costat de «{o}».',
+      'A la zona «{p}», {a} dona un cop de mà al costat de «{o}».',
+      '{a} té cura de la zona «{p}» des d’un espai al costat de «{o}».',
     ],
     adjacent: ['{a} i {b} preparen junts dos espais veïns.'],
     'not-adjacent': ['{a} i {b} col·laboren en espais que no són veïns.'],
@@ -603,12 +577,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-row': ['{a} i {b} ajuden des de franges diferents del plànol.'],
     'same-column': ['{a} i {b} col·laboren dins la mateixa zona.'],
     'different-column': ['{a} i {b} col·laboren en zones diferents.'],
-    'left-of': ['{a}, amb {i}, ajuda en un espai a l’esquerra de {b}.'],
-    'right-of': ['{a}, amb {i}, ajuda en un espai a la dreta de {b}.'],
-    above: ['{a}, amb {i}, prepara un espai per damunt de {b}.'],
-    below: ['{a}, amb {i}, prepara un espai per sota de {b}.'],
+    'left-of': ['{a} ajuda en un espai a l’esquerra de {b}.'],
+    'right-of': ['{a} ajuda en un espai a la dreta de {b}.'],
+    above: ['{a} prepara un espai per damunt de {b}.'],
+    below: ['{a} prepara un espai per sota de {b}.'],
     distance: ['{a} i {b} col·laboren des d’espais separats exactament per {n} caselles.'],
-    between: ['{a}, amb {i}, ajuda des d’un espai entre {b} i {c}.'],
+    between: ['{a} ajuda des d’un espai entre {b} i {c}.'],
     'has-item': ['{a} porta {i}.'],
     'does-not-have-item': ['{i} no acompanya {a}.'],
     'item-in-place': ['A la zona «{p}», {i} ja és a punt per a l’activitat.'],
@@ -618,24 +592,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   es: {
     'character-at-position': [
-      'A {a} le hace ilusión participar. En la zona «{p}», está en la casilla {d} del marcador {o} y lleva {i}.',
-      '{a} ha llegado con muchas ganas a la zona «{p}». Está en la casilla {d} del marcador {o} y lleva {i}.',
-      '{a} ayuda a preparar la zona «{p}». Su casilla está {d} del marcador {o} y lleva {i}.',
+      'A {a} le hace ilusión participar. En la zona «{p}», está en la casilla {d} del marcador {o}.',
+      '{a} ha llegado con muchas ganas a la zona «{p}». Está en la casilla {d} del marcador {o}.',
+      '{a} ayuda a preparar la zona «{p}». Su casilla está {d} del marcador {o}.',
     ],
     'character-not-at-position': [
       '{a} prefiere colaborar en otro espacio: no está en la casilla {d} del marcador {o}, en «{p}».',
     ],
     'character-in-place': [
-      '{a} entra por la puerta de «{p}» con {i} y saluda a todos.',
-      '{a} se siente a gusto en «{p}» y lleva {i}.',
+      '{a} entra por la puerta de «{p}» y saluda a todos.',
+      '{a} se siente a gusto en «{p}».',
     ],
     'character-not-in-place': ['{a} prefiere ayudar en otro espacio, no en «{p}».'],
-    'in-corner': ['{a}, con {i}, prepara un rincón luminoso del espacio.'],
-    'not-in-corner': ['{a}, con {i}, trabaja lejos de los rincones.'],
+    'in-corner': ['{a} prepara un rincón luminoso del espacio.'],
+    'not-in-corner': ['{a} trabaja lejos de los rincones.'],
     'character-next-to-obstacle': [
-      '{a} prepara con ilusión la zona «{p}», junto a {o}, y lleva {i}.',
-      'En «{p}», {a} echa una mano junto a {o} y lleva {i}.',
-      '{a} cuida de «{p}» desde un espacio junto a {o}, con {i}.',
+      '{a} prepara con ilusión la zona «{p}», junto a {o}.',
+      'En «{p}», {a} echa una mano junto a {o}.',
+      '{a} cuida de «{p}» desde un espacio junto a {o}.',
     ],
     adjacent: ['{a} y {b} preparan juntos dos espacios vecinos.'],
     'not-adjacent': ['{a} y {b} colaboran en espacios que no son vecinos.'],
@@ -643,12 +617,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-row': ['{a} y {b} ayudan desde franjas distintas del plano.'],
     'same-column': ['{a} y {b} colaboran dentro de la misma zona.'],
     'different-column': ['{a} y {b} colaboran en zonas distintas.'],
-    'left-of': ['{a}, con {i}, ayuda en un espacio a la izquierda de {b}.'],
-    'right-of': ['{a}, con {i}, ayuda en un espacio a la derecha de {b}.'],
-    above: ['{a}, con {i}, prepara un espacio por encima de {b}.'],
-    below: ['{a}, con {i}, prepara un espacio por debajo de {b}.'],
+    'left-of': ['{a} ayuda en un espacio a la izquierda de {b}.'],
+    'right-of': ['{a} ayuda en un espacio a la derecha de {b}.'],
+    above: ['{a} prepara un espacio por encima de {b}.'],
+    below: ['{a} prepara un espacio por debajo de {b}.'],
     distance: ['{a} y {b} colaboran desde espacios separados exactamente por {n} casillas.'],
-    between: ['{a}, con {i}, ayuda desde un espacio entre {b} y {c}.'],
+    between: ['{a} ayuda desde un espacio entre {b} y {c}.'],
     'has-item': ['{a} lleva {i}.'],
     'does-not-have-item': ['{i} no acompaña a {a}.'],
     'item-in-place': ['En «{p}» tienen preparado {i} para la actividad.'],
@@ -658,24 +632,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   en: {
     'character-at-position': [
-      '{a} is excited to join in. In the “{p}” zone, they are in the cell {d} the {o} marker and carry {i}.',
-      '{a} has arrived ready to help in the “{p}” zone. Their cell is {d} the {o} marker, and they carry {i}.',
-      '{a} is helping prepare the “{p}” zone. Their cell is {d} the {o} marker, and they carry {i}.',
+      '{a} is excited to join in. In the “{p}” zone, they are in the cell {d} the {o} marker.',
+      '{a} has arrived ready to help in the “{p}” zone. Their cell is {d} the {o} marker.',
+      '{a} is helping prepare the “{p}” zone. Their cell is {d} the {o} marker.',
     ],
     'character-not-at-position': [
       '{a} would rather help elsewhere and is not in the cell {d} the {o} marker in “{p}”.',
     ],
     'character-in-place': [
-      '{a} comes through the door of “{p}” with {i} and greets everyone.',
-      '{a} feels at home in “{p}” and carries {i}.',
+      '{a} comes through the door of “{p}” and greets everyone.',
+      '{a} feels at home in “{p}”.',
     ],
     'character-not-in-place': ['{a} would rather help elsewhere, not in “{p}”.'],
-    'in-corner': ['{a}, with {i}, prepares a bright corner of the space.'],
-    'not-in-corner': ['{a}, with {i}, works away from the corners.'],
+    'in-corner': ['{a} prepares a bright corner of the space.'],
+    'not-in-corner': ['{a} works away from the corners.'],
     'character-next-to-obstacle': [
-      '{a} is excited to prepare “{p}” beside {o}, carrying {i}.',
-      'In “{p}”, {a} lends a hand beside {o} and carries {i}.',
-      '{a} looks after “{p}” from a space beside {o}, with {i}.',
+      '{a} is excited to prepare “{p}” beside {o}.',
+      'In “{p}”, {a} lends a hand beside {o}.',
+      '{a} looks after “{p}” from a space beside {o}.',
     ],
     adjacent: ['{a} and {b} prepare two neighboring spaces together.'],
     'not-adjacent': ['{a} and {b} help in spaces that are not neighbors.'],
@@ -683,12 +657,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-row': ['{a} and {b} help from different strips of the plan.'],
     'same-column': ['{a} and {b} work together in the same zone.'],
     'different-column': ['{a} and {b} work together in different zones.'],
-    'left-of': ['{a}, with {i}, helps in a space left of {b}.'],
-    'right-of': ['{a}, with {i}, helps in a space right of {b}.'],
-    above: ['{a}, with {i}, prepares a space above {b}.'],
-    below: ['{a}, with {i}, prepares a space below {b}.'],
+    'left-of': ['{a} helps in a space left of {b}.'],
+    'right-of': ['{a} helps in a space right of {b}.'],
+    above: ['{a} prepares a space above {b}.'],
+    below: ['{a} prepares a space below {b}.'],
     distance: ['{a} and {b} help from spaces exactly {n} cells apart.'],
-    between: ['{a}, with {i}, helps from a space between {b} and {c}.'],
+    between: ['{a} helps from a space between {b} and {c}.'],
     'has-item': ['{a} carries {i}.'],
     'does-not-have-item': ['{i} is not with {a}.'],
     'item-in-place': ['The activity in “{p}” has {i} ready.'],
@@ -698,24 +672,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   eu: {
     'character-at-position': [
-      '{a} pozik ari da parte hartzen. «{p}» gunean, «{o}» erreferentziarekiko {d} dagoen gelaxkan dago, {i} aldean.',
-      '{a} laguntzeko prest iritsi da «{p}» gunera. Bere gelaxka «{o}» erreferentziarekiko {d} dago. Berekin duen objektua: {i}.',
-      '{a} «{p}» gunea prestatzen ari da. Bere gelaxka «{o}» erreferentziarekiko {d} dago, {i} aldean.',
+      '{a} pozik ari da parte hartzen. «{p}» gunean, «{o}» erreferentziarekiko {d} dagoen gelaxkan dago.',
+      '{a} laguntzeko prest iritsi da «{p}» gunera. Bere gelaxka «{o}» erreferentziarekiko {d} dago.',
+      '{a} «{p}» gunea prestatzen ari da. Bere gelaxka «{o}» erreferentziarekiko {d} dago.',
     ],
     'character-not-at-position': [
       '{a} beste espazio batean laguntzen ari da: ez dago «{p}» guneko «{o}» erreferentziarekiko {d} dagoen gelaxkan.',
     ],
     'character-in-place': [
-      '{a} «{p}» guneko atetik sartu da, {i} aldean, eta denak agurtu ditu.',
-      '{a} gustura dago «{p}» gunean. Berekin duen objektua: {i}.',
+      '{a} «{p}» guneko atetik sartu da eta denak agurtu ditu.',
+      '{a} gustura dago «{p}» gunean.',
     ],
     'character-not-in-place': ['{a} beste espazio batean ari da laguntzen, ez «{p}» gunean.'],
-    'in-corner': ['{a}, {i} aldean, espazioko txoko argitsu bat prestatzen ari da.'],
-    'not-in-corner': ['{a}, {i} aldean, izkinetatik urrun ari da lanean.'],
+    'in-corner': ['{a} espazioko txoko argitsu bat prestatzen ari da.'],
+    'not-in-corner': ['{a} izkinetatik urrun ari da lanean.'],
     'character-next-to-obstacle': [
-      '{a} gogotsu ari da «{p}» gunea prestatzen, «{o}» erreferentziaren ondoan, {i} aldean.',
-      '«{p}» gunean, {a} laguntzen ari da «{o}» erreferentziaren ondoan, {i} aldean.',
-      '{a} «{p}» gunea zaintzen ari da «{o}» erreferentziaren ondoko espaziotik, {i} aldean.',
+      '{a} gogotsu ari da «{p}» gunea prestatzen, «{o}» erreferentziaren ondoan.',
+      '«{p}» gunean, {a} laguntzen ari da «{o}» erreferentziaren ondoan.',
+      '{a} «{p}» gunea zaintzen ari da «{o}» erreferentziaren ondoko espaziotik.',
     ],
     adjacent: ['{a} eta {b} elkarren ondoko bi espazio prestatzen ari dira.'],
     'not-adjacent': ['{a} eta {b} auzokoak ez diren espazioetan ari dira elkarlanean.'],
@@ -723,14 +697,14 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-row': ['{a} eta {b} planoaren zerrenda desberdinetan ari dira laguntzen.'],
     'same-column': ['{a} eta {b} gune berean ari dira elkarlanean.'],
     'different-column': ['{a} eta {b} gune desberdinetan ari dira elkarlanean.'],
-    'left-of': ['{a}, {i} aldean, {b} baino ezkerrerago ari da laguntzen.'],
-    'right-of': ['{a}, {i} aldean, {b} baino eskuinerago ari da laguntzen.'],
-    above: ['{a}, {i} aldean, {b} baino goragoko espazio bat prestatzen ari da.'],
-    below: ['{a}, {i} aldean, {b} baino beheragoko espazio bat prestatzen ari da.'],
+    'left-of': ['{a} {b} baino ezkerrerago ari da laguntzen.'],
+    'right-of': ['{a} {b} baino eskuinerago ari da laguntzen.'],
+    above: ['{a} {b} baino goragoko espazio bat prestatzen ari da.'],
+    below: ['{a} {b} baino beheragoko espazio bat prestatzen ari da.'],
     distance: [
       '{a} eta {b} zehazki {n} gelaxkako tartea duten lekuetatik ari dira elkarlanean.',
     ],
-    between: ['{a}, {i} aldean, bi lagunen arteko espazioan ari da laguntzen: {b} eta {c}.'],
+    between: ['{a} bi lagunen arteko espazioan ari da laguntzen: {b} eta {c}.'],
     'has-item': ['{a} honako honekin dabil: {i}.'],
     'does-not-have-item': ['{a} beste objektu batekin dabil, ez {i}.'],
     'item-in-place': ['«{p}» guneko jarduerarako prestatutako objektua: {i}.'],
@@ -740,24 +714,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   gl: {
     'character-at-position': [
-      'A {a} encántalle participar. Na zona «{p}», está na cela {d} do marcador «{o}» e leva {i}.',
-      '{a} chegou con moitas ganas á zona «{p}». Está na cela {d} do marcador «{o}» e leva {i}.',
-      '{a} axuda a preparar a zona «{p}». A súa cela está {d} do marcador «{o}» e leva {i}.',
+      'A {a} encántalle participar. Na zona «{p}», está na cela {d} do marcador «{o}».',
+      '{a} chegou con moitas ganas á zona «{p}». Está na cela {d} do marcador «{o}».',
+      '{a} axuda a preparar a zona «{p}». A súa cela está {d} do marcador «{o}».',
     ],
     'character-not-at-position': [
       '{a} prefire colaborar noutro espazo: non está na cela {d} do marcador «{o}» da zona «{p}».',
     ],
     'character-in-place': [
-      '{a} entra pola porta do espazo «{p}» con {i} e saúda a todo o mundo.',
-      '{a} está a gusto no espazo «{p}» e leva {i}.',
+      '{a} entra pola porta do espazo «{p}» e saúda a todo o mundo.',
+      '{a} está a gusto no espazo «{p}».',
     ],
     'character-not-in-place': ['{a} prefire axudar noutro espazo, fóra da zona «{p}».'],
-    'in-corner': ['{a}, con {i}, prepara un recuncho luminoso do espazo.'],
-    'not-in-corner': ['{a}, con {i}, traballa lonxe dos recunchos.'],
+    'in-corner': ['{a} prepara un recuncho luminoso do espazo.'],
+    'not-in-corner': ['{a} traballa lonxe dos recunchos.'],
     'character-next-to-obstacle': [
-      '{a} prepara con ilusión a zona «{p}», a carón da referencia «{o}», e leva {i}.',
-      'Na zona «{p}», {a} bota unha man a carón da referencia «{o}» e leva {i}.',
-      '{a} coida a zona «{p}» desde un espazo a carón da referencia «{o}», con {i}.',
+      '{a} prepara con ilusión a zona «{p}», a carón da referencia «{o}».',
+      'Na zona «{p}», {a} bota unha man a carón da referencia «{o}».',
+      '{a} coida a zona «{p}» desde un espazo a carón da referencia «{o}».',
     ],
     adjacent: ['{a} e {b} preparan xuntos dous espazos veciños.'],
     'not-adjacent': ['{a} e {b} colaboran en espazos que non son veciños.'],
@@ -765,12 +739,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-row': ['{a} e {b} axudan desde franxas diferentes do plano.'],
     'same-column': ['{a} e {b} colaboran dentro da mesma zona.'],
     'different-column': ['{a} e {b} colaboran en zonas diferentes.'],
-    'left-of': ['{a}, con {i}, axuda nun espazo á esquerda de {b}.'],
-    'right-of': ['{a}, con {i}, axuda nun espazo á dereita de {b}.'],
-    above: ['{a}, con {i}, prepara un espazo por riba de {b}.'],
-    below: ['{a}, con {i}, prepara un espazo por baixo de {b}.'],
+    'left-of': ['{a} axuda nun espazo á esquerda de {b}.'],
+    'right-of': ['{a} axuda nun espazo á dereita de {b}.'],
+    above: ['{a} prepara un espazo por riba de {b}.'],
+    below: ['{a} prepara un espazo por baixo de {b}.'],
     distance: ['{a} e {b} colaboran desde espazos separados exactamente por {n} celas.'],
-    between: ['{a}, con {i}, axuda desde un espazo entre {b} e {c}.'],
+    between: ['{a} axuda desde un espazo entre {b} e {c}.'],
     'has-item': ['{a} leva {i}.'],
     'does-not-have-item': ['{a} leva outro obxecto, non {i}.'],
     'item-in-place': ['Na zona «{p}» teñen este obxecto a punto para a actividade: {i}.'],
@@ -780,24 +754,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   fr: {
     'character-at-position': [
-      '{a} participe avec plaisir. Dans la zone « {p} », sa case se trouve {d} du repère « {o} » et {a} apporte cet objet : {i}.',
-      '{a} arrive avec beaucoup d’enthousiasme dans la zone « {p} ». Sa case se trouve {d} du repère « {o} » et {a} apporte cet objet : {i}.',
-      '{a} aide à préparer la zone « {p} ». Sa case se trouve {d} du repère « {o} » et {a} apporte cet objet : {i}.',
+      '{a} participe avec plaisir. Dans la zone « {p} », sa case se trouve {d} du repère « {o} ».',
+      '{a} arrive avec beaucoup d’enthousiasme dans la zone « {p} ». Sa case se trouve {d} du repère « {o} ».',
+      '{a} aide à préparer la zone « {p} ». Sa case se trouve {d} du repère « {o} ».',
     ],
     'character-not-at-position': [
       '{a} préfère aider ailleurs : sa place n’est pas dans la case {d} du repère « {o} » de la zone « {p} ».',
     ],
     'character-in-place': [
-      'Objet apporté : {i}. {a} entre par la porte de l’espace « {p} » et salue tout le monde.',
-      '{a} se sent bien dans l’espace « {p} » et apporte cet objet : {i}.',
+      '{a} entre par la porte de l’espace « {p} » et salue tout le monde.',
+      '{a} se sent bien dans l’espace « {p} ».',
     ],
     'character-not-in-place': ['{a} préfère aider ailleurs, hors de la zone « {p} ».'],
-    'in-corner': ['{a} prépare un coin lumineux avec cet objet : {i}.'],
-    'not-in-corner': ['{a} travaille loin des coins avec cet objet : {i}.'],
+    'in-corner': ['{a} prépare un coin lumineux.'],
+    'not-in-corner': ['{a} travaille loin des coins.'],
     'character-next-to-obstacle': [
-      '{a} prépare avec plaisir la zone « {p} », près du repère « {o} », et apporte cet objet : {i}.',
-      'Dans la zone « {p} », {a} donne un coup de main près du repère « {o} » et apporte cet objet : {i}.',
-      '{a} prend soin de la zone « {p} » depuis une place près du repère « {o} », avec cet objet : {i}.',
+      '{a} prépare avec plaisir la zone « {p} », près du repère « {o} ».',
+      'Dans la zone « {p} », {a} donne un coup de main près du repère « {o} ».',
+      '{a} prend soin de la zone « {p} » depuis une place près du repère « {o} ».',
     ],
     adjacent: ['{a} et {b} préparent ensemble deux espaces voisins.'],
     'not-adjacent': ['{a} et {b} coopèrent dans des espaces qui ne sont pas voisins.'],
@@ -807,12 +781,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-column': [
       '{a} et {b} coopèrent dans des bandes verticales différentes du plan.',
     ],
-    'left-of': ['{a} aide à gauche de {b} avec cet objet : {i}.'],
-    'right-of': ['{a} aide à droite de {b} avec cet objet : {i}.'],
-    above: ['{a} prépare un espace au-dessus de {b} avec cet objet : {i}.'],
-    below: ['{a} prépare un espace en dessous de {b} avec cet objet : {i}.'],
+    'left-of': ['{a} aide à gauche de {b}.'],
+    'right-of': ['{a} aide à droite de {b}.'],
+    above: ['{a} prépare un espace au-dessus de {b}.'],
+    below: ['{a} prépare un espace en dessous de {b}.'],
     distance: ['{a} et {b} se trouvent à exactement {n} cases d’écart.'],
-    between: ['{a} aide entre {b} et {c} avec cet objet : {i}.'],
+    between: ['{a} aide entre {b} et {c}.'],
     'has-item': ['{a} apporte cet objet : {i}.'],
     'does-not-have-item': ['{a} n’apporte pas cet objet : {i}.'],
     'item-in-place': ['Dans la zone « {p} », l’activité peut commencer avec cet objet : {i}.'],
@@ -824,24 +798,24 @@ const gridTemplates: Record<Locale, Templates> = {
   },
   de: {
     'character-at-position': [
-      '{a} macht mit großer Freude mit. In der Zone „{p}“ liegt der Platz {d} vom Orientierungspunkt „{o}“, und {a} bringt diesen Gegenstand mit: {i}.',
-      '{a} kommt voller Tatendrang in die Zone „{p}“. Der Platz liegt {d} vom Orientierungspunkt „{o}“, und {a} bringt diesen Gegenstand mit: {i}.',
-      '{a} hilft bei der Vorbereitung der Zone „{p}“. Der Platz liegt {d} vom Orientierungspunkt „{o}“, und {a} bringt diesen Gegenstand mit: {i}.',
+      '{a} macht mit großer Freude mit. In der Zone „{p}“ liegt der Platz {d} vom Orientierungspunkt „{o}“.',
+      '{a} kommt voller Tatendrang in die Zone „{p}“. Der Platz liegt {d} vom Orientierungspunkt „{o}“.',
+      '{a} hilft bei der Vorbereitung der Zone „{p}“. Der Platz liegt {d} vom Orientierungspunkt „{o}“.',
     ],
     'character-not-at-position': [
       '{a} hilft lieber woanders und ist nicht auf dem Platz {d} vom Orientierungspunkt „{o}“ in der Zone „{p}“.',
     ],
     'character-in-place': [
-      'Mitgebrachter Gegenstand: {i}. {a} kommt durch die Tür des Bereichs „{p}“ und begrüßt alle.',
-      '{a} fühlt sich im Bereich „{p}“ wohl und bringt diesen Gegenstand mit: {i}.',
+      '{a} kommt durch die Tür des Bereichs „{p}“ und begrüßt alle.',
+      '{a} fühlt sich im Bereich „{p}“ wohl.',
     ],
     'character-not-in-place': ['{a} hilft lieber woanders, außerhalb der Zone „{p}“.'],
-    'in-corner': ['{a} bereitet mit diesem Gegenstand eine helle Ecke vor: {i}.'],
-    'not-in-corner': ['{a} arbeitet mit diesem Gegenstand abseits der Ecken: {i}.'],
+    'in-corner': ['{a} bereitet eine helle Ecke vor.'],
+    'not-in-corner': ['{a} arbeitet abseits der Ecken.'],
     'character-next-to-obstacle': [
-      '{a} bereitet voller Freude die Zone „{p}“ neben dem Orientierungspunkt „{o}“ vor und bringt diesen Gegenstand mit: {i}.',
-      'In der Zone „{p}“ hilft {a} neben dem Orientierungspunkt „{o}“ und bringt diesen Gegenstand mit: {i}.',
-      '{a} kümmert sich mit diesem Gegenstand von einem Platz neben dem Orientierungspunkt „{o}“ aus um die Zone „{p}“: {i}.',
+      '{a} bereitet voller Freude die Zone „{p}“ neben dem Orientierungspunkt „{o}“ vor.',
+      'In der Zone „{p}“ hilft {a} neben dem Orientierungspunkt „{o}“.',
+      '{a} kümmert sich von einem Platz neben dem Orientierungspunkt „{o}“ aus um die Zone „{p}“.',
     ],
     adjacent: ['{a} und {b} bereiten gemeinsam zwei benachbarte Bereiche vor.'],
     'not-adjacent': ['{a} und {b} helfen in Bereichen, die nicht benachbart sind.'],
@@ -851,12 +825,12 @@ const gridTemplates: Record<Locale, Templates> = {
     'different-column': [
       '{a} und {b} arbeiten in verschiedenen vertikalen Streifen des Plans.',
     ],
-    'left-of': ['{a} hilft links von {b} mit diesem Gegenstand: {i}.'],
-    'right-of': ['{a} hilft rechts von {b} mit diesem Gegenstand: {i}.'],
-    above: ['{a} bereitet oberhalb von {b} einen Bereich mit diesem Gegenstand vor: {i}.'],
-    below: ['{a} bereitet unterhalb von {b} einen Bereich mit diesem Gegenstand vor: {i}.'],
+    'left-of': ['{a} hilft links von {b}.'],
+    'right-of': ['{a} hilft rechts von {b}.'],
+    above: ['{a} bereitet oberhalb von {b} einen Bereich vor.'],
+    below: ['{a} bereitet unterhalb von {b} einen Bereich vor.'],
     distance: ['{a} und {b} befinden sich in einem Abstand von genau {n} Feldern.'],
-    between: ['{a} hilft zwischen {b} und {c} mit diesem Gegenstand: {i}.'],
+    between: ['{a} hilft zwischen {b} und {c}.'],
     'has-item': ['{a} bringt diesen Gegenstand mit: {i}.'],
     'does-not-have-item': ['{a} bringt diesen Gegenstand nicht mit: {i}.'],
     'item-in-place': [
@@ -874,11 +848,11 @@ const cubeTemplates: Record<Locale, Templates> = {
   ca: {
     ...gridTemplates.ca,
     'character-at-position': [
-      '{a} viu a «{p}», a la casella {d} de la referència «{o}», i hi té {i} a punt per compartir.',
-      'A «{p}», {a} fa comunitat des de la casella {d} de la referència «{o}» i hi guarda {i}.',
+      '{a} viu a «{p}», a la casella {d} de «{o}», i comparteix estones amb el veïnat.',
+      'A «{p}», {a} fa comunitat des de la casella {d} de «{o}».',
     ],
     'character-not-at-position': [
-      '{a} ajuda des d’una altra casella; no és a la casella {d} de la referència «{o}» de «{p}».',
+      '{a} ajuda des d’una altra casella; no és a la casella {d} de «{o}» a «{p}».',
     ],
     'character-in-place': [
       'La porta de la llar de {a} s’obre a l’espai «{p}», on sempre saluda el veïnat.',
@@ -900,8 +874,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   es: {
     ...gridTemplates.es,
     'character-at-position': [
-      '{a} vive en «{p}», en la casilla {d} de la referencia «{o}», y tiene {i} listo para compartir.',
-      'En «{p}», {a} hace comunidad desde la casilla {d} de la referencia «{o}» y guarda allí {i}.',
+      '{a} vive en «{p}», en la casilla {d} de la referencia «{o}», y comparte momentos con el vecindario.',
+      'En «{p}», {a} hace comunidad desde la casilla {d} de la referencia «{o}».',
     ],
     'character-not-at-position': [
       '{a} ayuda desde otra casilla; no está en la casilla {d} de la referencia «{o}» de «{p}».',
@@ -924,8 +898,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   en: {
     ...gridTemplates.en,
     'character-at-position': [
-      '{a} lives in “{p}”, in the cell {d} “{o}”, and keeps {i} ready to share.',
-      'In “{p}”, {a} helps the community from the cell {d} “{o}” and keeps {i} there.',
+      '{a} lives in “{p}”, in the cell {d} “{o}”, and shares time with the neighbors.',
+      'In “{p}”, {a} helps the community from the cell {d} “{o}”.',
     ],
     'character-not-at-position': [
       '{a} helps from another cell, not the cell {d} “{o}” in “{p}”.',
@@ -948,8 +922,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   eu: {
     ...gridTemplates.eu,
     'character-at-position': [
-      '{a} «{p}» kokapeneko «{o}» erreferentziaren {d} dagoen gelaxkan bizi da. Partekatzeko prest duen objektua: {i}.',
-      '«{p}» kokapenean, {a} «{o}» erreferentziaren {d} dagoen gelaxkatik ari da laguntzen. Prest duen objektua: {i}.',
+      '{a} «{p}» kokapeneko «{o}» erreferentziaren {d} dagoen gelaxkan bizi da eta auzokideekin egoten da.',
+      '«{p}» kokapenean, {a} «{o}» erreferentziaren {d} dagoen gelaxkatik ari da laguntzen.',
     ],
     'character-not-at-position': [
       '{a} beste gelaxka batetik ari da auzoari laguntzen; ez dago «{p}» kokapeneko «{o}» erreferentziaren {d} dagoen gelaxkan.',
@@ -976,8 +950,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   gl: {
     ...gridTemplates.gl,
     'character-at-position': [
-      '{a} vive en «{p}», na cela {d} da referencia «{o}», e ten {i} a punto para compartir.',
-      'En «{p}», {a} fai comunidade desde a cela {d} da referencia «{o}» e garda alí {i}.',
+      '{a} vive en «{p}», na cela {d} da referencia «{o}», e comparte momentos coa veciñanza.',
+      'En «{p}», {a} fai comunidade desde a cela {d} da referencia «{o}».',
     ],
     'character-not-at-position': [
       '{a} axuda desde outra cela; non está na cela {d} da referencia «{o}» de «{p}».',
@@ -1000,8 +974,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   fr: {
     ...gridTemplates.fr,
     'character-at-position': [
-      '{a} habite dans « {p} », dans la case {d} de la référence « {o} », et garde cet objet à portée de main : {i}.',
-      'Dans « {p} », {a} aide le voisinage depuis la case {d} de la référence « {o} » et y garde cet objet : {i}.',
+      '{a} habite dans « {p} », dans la case {d} de la référence « {o} », et partage de bons moments avec le voisinage.',
+      'Dans « {p} », {a} aide le voisinage depuis la case {d} de la référence « {o} ».',
     ],
     'character-not-at-position': [
       '{a} aide depuis une autre case, pas depuis la case {d} de la référence « {o} » dans « {p} ».',
@@ -1030,8 +1004,8 @@ const cubeTemplates: Record<Locale, Templates> = {
   de: {
     ...gridTemplates.de,
     'character-at-position': [
-      '{a} wohnt in „{p}“, im Feld {d} von der Markierung „{o}“, und hält diesen Gegenstand zum Teilen bereit: {i}.',
-      'In „{p}“ hilft {a} der Hausgemeinschaft vom Feld {d} von der Markierung „{o}“ aus und bewahrt dort diesen Gegenstand auf: {i}.',
+      '{a} wohnt in „{p}“, im Feld {d} von der Markierung „{o}“, und verbringt gern Zeit mit der Nachbarschaft.',
+      'In „{p}“ hilft {a} der Hausgemeinschaft vom Feld {d} von der Markierung „{o}“ aus.',
     ],
     'character-not-at-position': [
       '{a} hilft von einem anderen Feld aus, nicht vom Feld {d} von der Markierung „{o}“ in „{p}“.',
@@ -1063,11 +1037,11 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   ca: {
     ...cubeTemplates.ca,
     'character-at-position': [
-      '{a} obre «{p}» cada matí des de la casella {d} de la referència «{o}» i prepara {i} per rebre el barri.',
-      'A «{p}», {a} atén el veïnat des de la casella {d} de la referència «{o}» i té {i} a punt.',
+      '{a} obre «{p}» cada matí des de la casella {d} de «{o}» per rebre el barri.',
+      'A «{p}», {a} atén el veïnat des de la casella {d} de «{o}».',
     ],
     'character-not-at-position': [
-      '{a} ajuda des d’una altra casella; no és a la casella {d} de la referència «{o}» de «{p}».',
+      '{a} ajuda des d’una altra casella; no és a la casella {d} de «{o}» a «{p}».',
     ],
     'character-in-place': ['{a} prepara l’aparador de l’espai «{p}» abans d’obrir.'],
     'character-not-in-place': [
@@ -1085,8 +1059,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   es: {
     ...cubeTemplates.es,
     'character-at-position': [
-      '{a} abre «{p}» cada mañana desde la casilla {d} de la referencia «{o}» y prepara {i} para recibir al barrio.',
-      'En «{p}», {a} atiende al vecindario desde la casilla {d} de la referencia «{o}» y tiene {i} a punto.',
+      '{a} abre «{p}» cada mañana desde la casilla {d} de la referencia «{o}» para recibir al barrio.',
+      'En «{p}», {a} atiende al vecindario desde la casilla {d} de la referencia «{o}».',
     ],
     'character-not-at-position': [
       '{a} ayuda desde otra casilla; no está en la casilla {d} de la referencia «{o}» de «{p}».',
@@ -1105,8 +1079,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   en: {
     ...cubeTemplates.en,
     'character-at-position': [
-      '{a} opens “{p}” each morning from the cell {d} “{o}” and prepares {i} to welcome the neighborhood.',
-      'At “{p}”, {a} helps customers from the cell {d} “{o}” and keeps {i} ready.',
+      '{a} opens “{p}” each morning from the cell {d} “{o}” to welcome the neighborhood.',
+      'At “{p}”, {a} helps customers from the cell {d} “{o}”.',
     ],
     'character-not-at-position': [
       '{a} helps from another cell, not the cell {d} “{o}” in “{p}”.',
@@ -1127,8 +1101,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   eu: {
     ...cubeTemplates.eu,
     'character-at-position': [
-      '{a} da «{p}» goizero irekitzen duena; «{o}» erreferentziaren {d} dagoen gelaxkan auzoari harrera egiteko prestatzen duen objektua: {i}.',
-      '«{p}» kokapenean, {a} «{o}» erreferentziaren {d} dagoen gelaxkatik ari da auzoari laguntzen. Prest duen objektua: {i}.',
+      '{a} da «{p}» goizero irekitzen duena; «{o}» erreferentziaren {d} dagoen gelaxkatik egiten dio harrera auzoari.',
+      '«{p}» kokapenean, {a} «{o}» erreferentziaren {d} dagoen gelaxkatik ari da auzoari laguntzen.',
     ],
     'character-not-at-position': [
       '{a} beste gelaxka batean ari da auzoari laguntzen; ez dago «{p}» kokapeneko «{o}» erreferentziaren {d} dagoen gelaxkan.',
@@ -1153,8 +1127,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   gl: {
     ...cubeTemplates.gl,
     'character-at-position': [
-      '{a} abre «{p}» cada mañá desde a cela {d} da referencia «{o}» e prepara {i} para recibir o barrio.',
-      'En «{p}», {a} atende a veciñanza desde a cela {d} da referencia «{o}» e ten {i} a punto.',
+      '{a} abre «{p}» cada mañá desde a cela {d} da referencia «{o}» para recibir o barrio.',
+      'En «{p}», {a} atende a veciñanza desde a cela {d} da referencia «{o}».',
     ],
     'character-not-at-position': [
       '{a} axuda desde outra cela; non está na cela {d} da referencia «{o}» de «{p}».',
@@ -1175,8 +1149,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   fr: {
     ...cubeTemplates.fr,
     'character-at-position': [
-      '{a} ouvre « {p} » chaque matin depuis la case {d} de la référence « {o} » et prépare cet objet pour accueillir le quartier : {i}.',
-      'Dans « {p} », {a} aide le voisinage depuis la case {d} de la référence « {o} » et garde cet objet à portée de main : {i}.',
+      '{a} ouvre « {p} » chaque matin depuis la case {d} de la référence « {o} » pour accueillir le quartier.',
+      'Dans « {p} », {a} aide le voisinage depuis la case {d} de la référence « {o} ».',
     ],
     'character-not-at-position': [
       '{a} aide depuis une autre case, pas depuis la case {d} de la référence « {o} » dans « {p} ».',
@@ -1201,8 +1175,8 @@ const cubeShopTemplates: Record<Locale, Templates> = {
   de: {
     ...cubeTemplates.de,
     'character-at-position': [
-      '{a} öffnet „{p}“ jeden Morgen vom Feld {d} von der Markierung „{o}“ aus und bereitet diesen Gegenstand für die Nachbarschaft vor: {i}.',
-      'In „{p}“ hilft {a} der Nachbarschaft vom Feld {d} von der Markierung „{o}“ aus und hält diesen Gegenstand bereit: {i}.',
+      '{a} öffnet „{p}“ jeden Morgen vom Feld {d} von der Markierung „{o}“ aus und begrüßt die Nachbarschaft.',
+      'In „{p}“ hilft {a} der Nachbarschaft vom Feld {d} von der Markierung „{o}“ aus.',
     ],
     'character-not-at-position': [
       '{a} hilft von einem anderen Feld aus, nicht vom Feld {d} von der Markierung „{o}“ in „{p}“.',
@@ -1229,13 +1203,13 @@ const cubeShopTemplates: Record<Locale, Templates> = {
 }
 
 const requiredTemplatePlaceholders: Readonly<Record<Clue['type'], readonly string[]>> = {
-  'character-at-position': ['a', 'p', 'i'],
+  'character-at-position': ['a', 'p'],
   'character-not-at-position': ['a', 'p'],
   'character-in-place': ['a', 'p'],
   'character-not-in-place': ['a', 'p'],
   'in-corner': ['a'],
   'not-in-corner': ['a'],
-  'character-next-to-obstacle': ['a', 'p', 'o', 'i'],
+  'character-next-to-obstacle': ['a', 'p', 'o'],
   adjacent: ['a', 'b'],
   'not-adjacent': ['a', 'b'],
   'same-row': ['a', 'b'],
@@ -1284,6 +1258,66 @@ export const auditClueTemplatePlaceholders = (): readonly string[] => {
             issues.push(
               `${family.name}:${locale}:${clueType}:${variant} missing ${missing.join(',')}`,
             )
+          }
+        }
+      }
+    }
+  }
+  return issues
+}
+
+export const auditCatalanClueReadability = (): readonly string[] => {
+  const families = [
+    { name: 'map', templates: mapTemplates.ca },
+    { name: 'grid', templates: gridTemplates.ca },
+    { name: 'cube-home', templates: cubeTemplates.ca },
+    { name: 'cube-shop', templates: cubeShopTemplates.ca },
+  ] as const
+  const issues: string[] = []
+  const logicalItemClues = new Set<Clue['type']>([
+    'has-item',
+    'does-not-have-item',
+    'item-in-place',
+    'item-not-in-place',
+  ])
+
+  for (const family of families) {
+    for (const clueType of Object.keys(family.templates) as Clue['type'][]) {
+      for (const [variant, template] of family.templates[clueType].entries()) {
+        if (/\breferència\b/iu.test(template)) {
+          issues.push(`${family.name}:${clueType}:${variant}`)
+        }
+        if (!logicalItemClues.has(clueType) && template.includes('{i}')) {
+          issues.push(`${family.name}:${clueType}:${variant}:decorative-item`)
+        }
+      }
+    }
+  }
+  return issues
+}
+
+export const auditClueObjectRelevance = (): readonly string[] => {
+  const families = [
+    { name: 'map', templates: mapTemplates },
+    { name: 'grid', templates: gridTemplates },
+    { name: 'cube-home', templates: cubeTemplates },
+    { name: 'cube-shop', templates: cubeShopTemplates },
+  ] as const
+  const logicalItemClues = new Set<Clue['type']>([
+    'has-item',
+    'does-not-have-item',
+    'item-in-place',
+    'item-not-in-place',
+  ])
+  const issues: string[] = []
+
+  for (const family of families) {
+    for (const locale of Object.keys(family.templates) as Locale[]) {
+      for (const clueType of Object.keys(family.templates[locale]) as Clue['type'][]) {
+        if (logicalItemClues.has(clueType)) continue
+        for (const [variant, template] of family.templates[locale][clueType].entries()) {
+          if (template.includes('{i}')) {
+            issues.push(`${family.name}:${locale}:${clueType}:${variant}`)
           }
         }
       }

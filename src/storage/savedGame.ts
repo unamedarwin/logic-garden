@@ -1,5 +1,6 @@
 import { del, get, set } from 'idb-keyval'
 import { isChallengeMetadata, type ChallengeMetadata } from '../domain/types'
+import { getTheme } from '../domain/themes'
 import {
   BUILDING_CHARACTER_COUNT,
   buildingPlayableCount,
@@ -80,6 +81,8 @@ const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
         candidate.challenge.generatorVersion === GENERATOR_VERSION &&
         candidate.challenge.seed === state.puzzle.seed &&
         candidate.challenge.difficulty === state.puzzle.difficulty &&
+        candidate.challenge.audience ===
+          (getTheme(state.puzzle.theme).audience ?? 'children') &&
         (candidate.challenge.variant === 'cube') ===
           (state.puzzle.boardMode === 'logic-cube') &&
         challengeSizeMatches))

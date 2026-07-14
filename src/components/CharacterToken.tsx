@@ -34,7 +34,7 @@ export const CharacterToken = ({
       <span className="character-token__emoji" aria-hidden="true">
         <SceneIcon emoji={character.emoji} />
       </span>
-      <span>{character.name}</span>
+      <span className="character-token__name">{character.name}</span>
     </button>
   )
 }

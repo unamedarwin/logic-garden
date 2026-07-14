@@ -33,7 +33,7 @@ store an answer to preserve that choice.
 Advanced games are selected from the generated structural template catalog. Templates may store
 only audience, difficulty, grid size, plan id, generic clue tuples, and difficulty metrics; they
 must never store an answer, personal data, names, localized phrases, or concrete theme objects.
-Keep all 1,000 catalog entries structurally distinct, cover both advanced audiences and every
+Keep all 100 catalog entries structurally distinct, cover both advanced audiences and every
 difficulty/size combination, and rerun the solver with a limit of two after every runtime theme application.
 Canonical structural identity must ignore clue-list ordering, and catalog checks must reject
 order-only duplicates. The player chooses advanced board size independently from deductive
@@ -44,10 +44,10 @@ uses eight people so row and column crossing remains meaningful across the full 
 Keep child size independent from child difficulty too. At every 4/6/8 size, easy protects direct
 friendly placement clues, medium protects fewer, and hard prioritizes relational deductions before
 using direct placement clues.
-Keep the structural catalog split at 950 spatial entries and 50 hard building entries covering
-every height from `5 x 5 x 3` through `5 x 5 x 10`, with 25 building entries for teens and 25 for
-adults. Choose height uniformly before choosing a template so uneven per-height quotas cannot bias
-selection. The building subset must remain answer-free under the same canonical-identity rules.
+Keep the structural catalog split at 84 spatial entries and 16 hard building entries covering
+every height from `5 x 5 x 3` through `5 x 5 x 10`, with one building entry per internal audience
+and height. Choose height uniformly before choosing a template so future uneven per-height quotas
+cannot bias selection. The building subset must remain answer-free under the same canonical-identity rules.
 Expose easy, medium, and hard play on every building height without duplicating structural
 templates. Easy deterministically ensures that at least four people have direct home or landmark
 guidance, medium ensures at least two, and hard uses the base clue set. Count existing direct facts
@@ -70,6 +70,10 @@ Reducer, validation, and solver feedback must remain structured data and be loca
 interface; never persist a rendered feedback sentence in game state.
 Child clue copy must pair each precise fact with a short friendly action, object, or motivation in
 all supported languages. Do not reduce child clues to bare placement commands.
+Catalan clues must name a visible landmark directly; do not insert a repeated generic label such as
+`referència` before every object token when the icon and object name already identify it.
+Position and relationship clues in every locale must not mention a character's carried item merely
+for decoration. Render an item token only when that item participates in the structured clue fact.
 
 ## Accessibility
 
@@ -197,6 +201,9 @@ switch among all floors without changing placements or timer state. Keep the ele
 active-floor frame, order its floor buttons from ground floor to the selected height's top floor,
 and let the fitted `5 x 5` plan use the available mobile width. Keep all floor targets at least
 44 pixels and use one horizontally scrollable, non-wrapping tab strip when ten targets do not fit.
+Derive visible room walls from the same `buildingUnitId` map as the puzzle geometry. Merge adjacent
+edges into continuous horizontal or vertical runs, keep shared landing/stair/entrance circulation
+open, and render walls above floor materials but below upright doors and interactive characters.
 Corner clues are secondary variety and must retain the same positive social wording rule as other
 advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
@@ -212,6 +219,9 @@ person-carried item icons, and semantically inert.
 Accept clue-incorrect placements as normal player hypotheses. Validate clue truth only when solving,
 checking, or producing a hint; persist structurally valid wrong guesses so reload never corrects the
 player by silently discarding an error.
+Checking an incorrect proposal must report the result without moving or removing pieces, changing
+the move history, or revealing which individual hypothesis is wrong. Automatic correction is never
+part of ordinary play; a solver placement occurs only after an explicit hint request.
 
 The app must not ask for or store a player name or avatar. Shared URLs may contain a version, audience,
 difficulty, selected board size, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
@@ -219,6 +229,8 @@ solution or any personal data. A received challenge must explain the benchmark b
 offer a return challenge after completion. Start its timer only after the player accepts the
 challenge, and persist the benchmark with an in-progress game. Store theme identifiers rather
 than localized titles in new history records so history follows the active language.
+When restoring a challenge, verify that its seed, difficulty, variant, collection-specific size,
+and audience match the saved puzzle's current theme and geometry; reject inconsistent metadata.
 
 ## Delivery
 
@@ -241,6 +253,15 @@ duplicate precache URLs and missing offline resources rather than relaxing the m
 
 After meaningful changes, run formatting, lint, type checking, unit tests, and the
 production build. A task is not complete while any check fails.
+Prefer `docker compose run --rm --build verify` when host execution would require new permissions
+or tool installation. The `verify` image must install from the frozen lockfile and execute the same
+`pnpm verify` pipeline as GitHub Pages; do not weaken checks in the container-only path.
+Run `docker compose run --rm --build e2e` after board or responsive-layout changes. Keep its official
+Playwright image version equal to `@playwright/test`, and retain the Chromium, Firefox, and WebKit
+mobile projects at `390 x 844` rather than relying on a single rendering engine.
+Keep the checked-in V8 coverage thresholds at or above 84% statements, 78% branches, 84%
+functions, and 86% lines. Raise them when reproducible full-suite evidence permits it; never lower
+them merely to make a release pass.
 After changes to boards, icons, labels, clues, or responsive layout, visually inspect teen and
 adult games at a 390x844 mobile viewport for 6x6, 9x9, and 16x16 boards. Check both an empty board
 and a board with a placed character where relevant. Reject clipped or overlapping labels,

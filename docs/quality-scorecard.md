@@ -6,7 +6,7 @@ must not infer that an untested behavior works.
 
 ## Required evidence corpus
 
-- Logic: all 1,000 structural templates, every compatible theme application, and deterministic
+- Logic: all 100 structural templates, every compatible theme application, and deterministic
   replay from fixed seeds. Uniqueness checks stop after two solutions.
 - Interface: 390 x 844 at DPR 3 and 1440 x 900 at DPR 1; all seven locales, collections,
   difficulties, advanced grid sizes, representative 3-, 6-, and 10-floor buildings with every

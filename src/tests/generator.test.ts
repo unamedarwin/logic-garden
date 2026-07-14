@@ -2,7 +2,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { getTheme, themes } from '../domain/themes'
 import { fluentIconData } from '../assets/generated/fluentIconData'
-import type { Audience, Difficulty } from '../domain/types'
+import type { Audience, Difficulty, Puzzle } from '../domain/types'
 import { renderClue, renderClueParts } from '../domain/vocabulary'
 import { supportedLocales } from '../domain/i18n'
 import {
@@ -25,6 +25,15 @@ import { countSolutions, solve } from '../solver/solver'
 
 const bannedTerms =
   /murder|death|weapon|violence|threat|punishment|assassinat|mort|arma|violència|amenaça|càstig|asesinato|muerte|arma|violencia|amenaza|castigo/iu
+
+const directlyGuidedCharacterCount = (puzzle: Puzzle) =>
+  new Set(
+    puzzle.clues.flatMap((clue) =>
+      clue.type === 'character-at-position' || clue.type === 'character-in-place'
+        ? [clue.characterId]
+        : [],
+    ),
+  ).size
 
 describe('seeded puzzle generator', () => {
   it('maps the three public collections to child, unified 2D, and 3D games', () => {
@@ -89,63 +98,64 @@ describe('seeded puzzle generator', () => {
   })
 
   it('grades child deduction independently from the selected map size', () => {
-    const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
-      generatePuzzleForCollection(difficulty, 'child-difficulty-matrix', 'children', 6, 8),
-    )
-    const directClues = puzzles.map(
-      (puzzle) =>
-        puzzle.clues.filter(
-          (clue) => clue.type === 'character-at-position' || clue.type === 'character-in-place',
-        ).length,
-    )
+    for (const childMapSize of [4, 6, 8] as const) {
+      const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
+        generatePuzzle(
+          difficulty,
+          `child-difficulty-${childMapSize}`,
+          'children',
+          'spatial',
+          undefined,
+          childMapSize,
+        ),
+      )
+      const directClues = puzzles.map(directlyGuidedCharacterCount)
 
-    expect(puzzles.every((puzzle) => puzzle.characters.length === 8)).toBe(true)
-    expect(directClues[0]).toBeGreaterThanOrEqual(7)
-    expect(directClues[1]).toBeGreaterThanOrEqual(2)
-    expect(directClues[2]).toBeLessThan(directClues[1]!)
-    for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+      expect(puzzles.every((puzzle) => puzzle.characters.length === childMapSize)).toBe(true)
+      expect(puzzles.every((puzzle) => puzzle.positions.length === childMapSize)).toBe(true)
+      expect(directClues[0]).toBeGreaterThanOrEqual(childMapSize - 1)
+      expect(directClues[1]).toBeGreaterThanOrEqual(Math.floor(childMapSize / 3))
+      expect(directClues[2]).toBeLessThan(directClues[1]!)
+      for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+    }
   })
 
-  it('grades building guidance independently from the selected height', () => {
-    const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
-      generatePuzzleForCollection(
-        difficulty,
-        'building-difficulty-matrix',
-        'three-dimensional',
-        6,
-        4,
-        10,
-      ),
-    )
-    const guidanceClues = puzzles.map(
-      (puzzle) =>
-        puzzle.clues.filter((clue) => clue.id.startsWith('building-guidance:')).length,
-    )
-    const directlyGuidedCharacters = puzzles.map(
-      (puzzle) =>
-        new Set(
-          puzzle.clues.flatMap((clue) =>
-            clue.type === 'character-at-position' || clue.type === 'character-in-place'
-              ? [clue.characterId]
-              : [],
+  it('grades building guidance across every height and advanced content catalog', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      for (const depth of BUILDING_DEPTHS) {
+        const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
+          generatePuzzle(
+            difficulty,
+            `building-guidance-${audience}-${depth}`,
+            audience,
+            'cube',
+            undefined,
+            undefined,
+            depth,
           ),
-        ).size,
-    )
-    const baseDirectCharacters = directlyGuidedCharacters[2]!
+        )
+        const guidanceClues = puzzles.map(
+          (puzzle) =>
+            puzzle.clues.filter((clue) => clue.id.startsWith('building-guidance:')).length,
+        )
+        const directlyGuidedCharacters = puzzles.map(directlyGuidedCharacterCount)
+        const baseDirectCharacters = directlyGuidedCharacters[2]!
 
-    expect(puzzles.map((puzzle) => puzzle.difficulty)).toEqual(['easy', 'medium', 'hard'])
-    expect(puzzles.every((puzzle) => buildingDepthForPositions(puzzle.positions) === 10)).toBe(
-      true,
-    )
-    expect(guidanceClues).toEqual([
-      Math.max(0, 4 - baseDirectCharacters),
-      Math.max(0, 2 - baseDirectCharacters),
-      0,
-    ])
-    expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(4)
-    expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(2)
-    for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
-  })
+        expect(puzzles.map((puzzle) => puzzle.difficulty)).toEqual(['easy', 'medium', 'hard'])
+        expect(
+          puzzles.every((puzzle) => buildingDepthForPositions(puzzle.positions) === depth),
+        ).toBe(true)
+        expect(guidanceClues).toEqual([
+          Math.max(0, 4 - baseDirectCharacters),
+          Math.max(0, 2 - baseDirectCharacters),
+          0,
+        ])
+        expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(4)
+        expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(2)
+        for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+      }
+    }
+  }, 120_000)
 
   it('builds deterministic 5x5 buildings at every height with three spatial axes', () => {
     for (const depth of BUILDING_DEPTHS) {

@@ -39,6 +39,12 @@ The active floor, placed-person count, and disabled limits are available without
 `Home`, and `End` follow the same ordered tab model and respect reduced-motion preferences.
 Switching floors never changes placements or timer state.
 
+Each floor derives a wall layer from the same semantic unit map used by the solver and controls.
+Adjacent boundary edges are merged into continuous horizontal or vertical runs between homes,
+shops, and the shared circulation spine. The landing, stairs, and entrance stay visually open to
+one another. Walls render above the floor textures but below doors and character controls, so they
+remain visible without changing which cells are playable.
+
 Blocked cells use deterministic furniture, storage, plants, and shop fixtures from the same local
 Fluent SVG subset as the rest of the scene. The selection is seeded by the puzzle, respects each
 space type, remains behind the semantic controls, and never uses an icon carried by a person.
@@ -84,10 +90,10 @@ structured clue data.
 
 ## Generation and persistence
 
-Generator version 19 combines the player-selected height with a seeded plan, structural template,
-people, objects, furniture, and wording. The answer-free template catalog contains 950 spatial structures and
-50 building structures. The building subset contains 25 teen-themed and 25 adult-themed internal
-content structures while the player sees one unified 3D collection. Runtime materialization always
+Generator version 20 combines the player-selected height with a seeded plan, structural template,
+people, objects, furniture, and wording. The answer-free template catalog contains 84 spatial structures and
+16 building structures. The building subset contains one structure for every internal teen/adult
+content catalog and height combination while the player sees one unified 3D collection. Runtime materialization always
 reruns the solver with a two-solution limit before a puzzle is shown.
 Every 3-10-floor height supports three independent play levels over those same hard structural
 templates. Easy deterministically ensures direct home or landmark guidance for at least four
@@ -119,6 +125,8 @@ someone, but deliberately omits placements and the answer.
   or semantic controls.
 - Verify that every blocked home or shop cell renders furniture, every furniture-free room cell is
   enabled, and a known clue-incorrect placement survives reducer and persistence round trips.
+- Derive canonical cells for every 3-to-10-floor height and assert that room boundaries merge into
+  exactly four continuous wall runs per floor without closing the shared circulation spine.
 - At `390 x 844`, inspect every floor with an empty board and a placed person. The title, timer,
   instruction, and fit/zoom controls must share compact rows above the detached elevator. Doors must remain
   centered on boundaries, cells and avatars must share one origin, and fit mode must not introduce

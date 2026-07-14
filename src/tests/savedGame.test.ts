@@ -98,6 +98,72 @@ describe('saved game compatibility', () => {
     await expect(loadSavedGame()).resolves.toBeNull()
   })
 
+  it('restores only matching advanced board dimensions and content catalogs', async () => {
+    const cases = [
+      {
+        puzzle: generatePuzzle('medium', 'saved-spatial-size', 'teens', 'spatial', 16),
+        challenge: {
+          difficulty: 'medium' as const,
+          audience: 'teens' as const,
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'spatial' as const,
+          gridSize: 16 as const,
+        },
+        wrongSize: { gridSize: 9 as const },
+      },
+      {
+        puzzle: generatePuzzle(
+          'easy',
+          'saved-building-depth',
+          'adults',
+          'cube',
+          undefined,
+          undefined,
+          10,
+        ),
+        challenge: {
+          difficulty: 'easy' as const,
+          audience: 'adults' as const,
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'cube' as const,
+          buildingDepth: 10 as const,
+        },
+        wrongSize: { buildingDepth: 9 as const },
+      },
+    ]
+
+    for (const { puzzle, challenge, wrongSize } of cases) {
+      const advancedState = createGameState(puzzle)
+      const matchingChallenge = { ...challenge, seed: puzzle.seed }
+      vi.mocked(get).mockResolvedValue({
+        schemaVersion: 4,
+        generatorVersion: GENERATOR_VERSION,
+        state: advancedState,
+        challenge: matchingChallenge,
+      })
+      await expect(loadSavedGame()).resolves.toEqual({
+        state: advancedState,
+        challenge: matchingChallenge,
+      })
+
+      vi.mocked(get).mockResolvedValue({
+        schemaVersion: 4,
+        generatorVersion: GENERATOR_VERSION,
+        state: advancedState,
+        challenge: { ...matchingChallenge, ...wrongSize },
+      })
+      await expect(loadSavedGame()).resolves.toBeNull()
+
+      vi.mocked(get).mockResolvedValue({
+        schemaVersion: 4,
+        generatorVersion: GENERATOR_VERSION,
+        state: advancedState,
+        challenge: { ...matchingChallenge, audience: 'children' },
+      })
+      await expect(loadSavedGame()).resolves.toBeNull()
+    }
+  }, 15_000)
+
   it('restores a structurally valid wrong deduction', async () => {
     const puzzle = generatePuzzle(
       'hard',
@@ -121,6 +187,31 @@ describe('saved game compatibility', () => {
 
     await expect(loadSavedGame()).resolves.toEqual({ state: wrongState })
   })
+
+  it('restores a checked wrong 2D hypothesis without correcting it', async () => {
+    const puzzle = generatePuzzle('medium', 'saved-spatial-hypothesis', 'teens', 'spatial', 6)
+    const solution = solve(puzzle)
+    const character = puzzle.characters[0]
+    if (!solution || !character) throw new Error('Expected a solved 2D puzzle')
+    const wrongPosition = puzzle.positions.find(
+      (position) => !position.blocked && position.id !== solution[character.id],
+    )
+    if (!wrongPosition) throw new Error('Expected a wrong 2D position')
+    const placedState = gameReducer(createGameState(puzzle), {
+      type: 'move-character',
+      characterId: character.id,
+      positionId: wrongPosition.id,
+    })
+    const checkedState = gameReducer(placedState, { type: 'check' })
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state: checkedState,
+    })
+
+    await expect(loadSavedGame()).resolves.toEqual({ state: checkedState })
+    expect(checkedState.assignments).toEqual(placedState.assignments)
+  }, 15_000)
 
   it('restores a wrong child-map hypothesis without correcting it', async () => {
     const puzzle = generatePuzzle('medium', 'saved-child-hypothesis', 'children')

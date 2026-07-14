@@ -18,6 +18,22 @@ pnpm dev
 
 Use `pnpm build` and `pnpm preview` to run the production PWA locally.
 
+For an isolated environment that does not install project tools on the host, use Docker Desktop:
+
+```sh
+docker compose up --build -d dev
+docker compose run --rm --build verify
+docker compose run --rm --build e2e
+docker compose down
+```
+
+The development app is available at `http://localhost:5173/logic-garden/`. Source files are bind
+mounted for hot reload, while `node_modules` stays in the named Docker volume `dependencies`.
+The verification service is rebuilt from the checked-in lockfile and runs the same `pnpm verify`
+pipeline used by GitHub Pages without reusing host dependencies. The `e2e` service uses the pinned
+official Playwright image and checks Chromium, Firefox, and WebKit at `390 x 844`, retaining traces
+and screenshots under `test-results` and `playwright-report`.
+
 The published build is available at `https://unamedarwin.github.io/logic-garden/`.
 `main` is deployed with `.github/workflows/deploy-pages.yml`; it builds the app and publishes
 only `dist` through GitHub Pages.
@@ -34,15 +50,18 @@ only `dist` through GitHub Pages.
 | `pnpm lint`                    | Run ESLint.                                      |
 | `pnpm typecheck`               | Run strict TypeScript checking.                  |
 | `pnpm test`                    | Run unit, property, and interface tests.         |
-| `pnpm test:coverage`           | Run tests with V8 coverage.                      |
+| `pnpm test:coverage`           | Run tests and enforce V8 coverage thresholds.    |
 | `pnpm pwa:check`               | Validate generated PWA files.                    |
 | `pnpm build:budget`            | Enforce JavaScript, CSS, chunk, and dist limits. |
 | `pnpm release:metrics`         | Print reproducible build metrics as JSON.        |
-| `pnpm templates:build`         | Regenerate 1,000 structural puzzle templates.    |
+| `pnpm templates:build`         | Regenerate 100 structural puzzle templates.      |
 | `pnpm templates:check`         | Check the generated catalog version and size.    |
 | `pnpm icons:build`             | Refresh the local Fluent SVG subset.             |
 | `pnpm terrain:samples`         | Rebuild the 14 fixed terrain PNG references.     |
 | `pnpm verify`                  | Run every required check and production build.   |
+
+The equivalent host-isolated release checks are `docker compose run --rm --build verify` and
+`docker compose run --rm --build e2e`.
 
 ## Architecture
 
@@ -70,11 +89,11 @@ code.
 positions, solution, clue variants, and clue ordering all come from seeded streams. The same
 generator version, variant, audience, difficulty, selected size, and seed therefore create the same puzzle.
 
-The 2D and 3D collections select one of 1,000 pre-generated structural templates. The catalog
-contains 950 spatial templates across the internal teen and adult content catalogs, all three
-difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 50 hard variable-height
-`5 x 5 x 3` through `5 x 5 x 10` building
-templates split evenly between those content catalogs. A template
+The 2D and 3D collections select one of 100 pre-generated structural templates. The catalog
+contains 84 spatial templates across the internal teen and adult content catalogs, all three
+difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 16 hard variable-height
+`5 x 5 x 3` through `5 x 5 x 10` building templates: one for every internal content catalog and
+height combination. A template
 contains compact generic clue tuples, geometry references, and difficulty metrics, but never an
 answer, name, avatar, localized phrase, concrete object, or personal value. The public seed then
 selects new people, room names, objects, and phrase variants. The solver always validates the
@@ -158,6 +177,9 @@ that hypothesis incorrect. `Comprovar` evaluates clue truth, while local persist
 wrong guesses instead of silently correcting them on reload. The same rule applies to the child map:
 a child can test a free place, replace its occupant, return a person to the waiting area, and undo the
 whole experiment without the interface revealing the answer early.
+Checking a wrong proposal never moves or removes a piece and never rewrites undo/redo history. It
+reports only overall progress; the game changes a hypothesis automatically only when the player
+explicitly asks for a solver hint.
 
 Every check opens an accessible result dialog instead of placing feedback below the game. By default,
 it reports the solver-verified number of correctly placed people as `N/total`. A local setting can hide
@@ -308,6 +330,9 @@ The schemas are versioned; preferences use schema 5 and in-progress games use sc
 when its persistence schema and generator version are current, preventing old clues or geometry
 from leaking into a new release. If browser storage is unavailable, play still works without
 persistence.
+Restored challenges must also match the puzzle's seed, difficulty, variant, selected dimension,
+and internal safe-content catalog; inconsistent records are discarded instead of silently changing
+the received challenge.
 
 ## Add content
 
@@ -320,7 +345,7 @@ When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:b
 `pnpm templates:repair` when a canonical integrity check finds duplicate clue sets whose only
 difference is clue order. The catalog
 builder may generate extra candidates and discard impossible geometry or duplicates, but it must
-stop at exactly 1,000 valid structures and retain all 18 spatial audience/difficulty/size buckets
+stop at exactly 100 valid structures and retain all 18 spatial audience/difficulty/size buckets
 plus the two hard structural building audience buckets. Runtime 3D guidance derives easy and medium
 variants from those unique structures without storing an answer.
 
@@ -332,9 +357,11 @@ alter seed output.
 
 ## Verification and limitations
 
-Tests cover solver edge cases, every constraint family, deterministic generation, all 1,000
+Tests cover solver edge cases, every constraint family, deterministic generation, all 100
 answer-free templates, runtime uniqueness across all 18 advanced buckets, clue truth,
 minimality, safe-content scanning, hundreds of seeds, reducer history, click and
 keyboard play, localization, and manifest settings. `pnpm pwa:check` verifies the output
 manifest, service worker, unique precache, and offline asset coverage after a production build;
 `pnpm build` also fails when a release exceeds the checked-in bundle budgets.
+The coverage command enforces global minimums of 84% statements, 78% branches, 84% functions, and
+86% lines so new work cannot silently reduce the current regression evidence.

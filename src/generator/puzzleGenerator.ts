@@ -165,7 +165,7 @@ const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle =>
   }
   const validation = analyzeSolutions(candidate, { limit: 2 })
   if (validation.count !== 1 || validation.reachedNodeLimit) {
-    throw new Error('La guia de l\u2019edifici no conserva una soluci\u00f3 \u00fanica.')
+    throw new Error('La guia de l’edifici no conserva una solució única.')
   }
   return {
     ...candidate,
@@ -288,7 +288,10 @@ export const generatePuzzleDirect = (
           : []
       const childDirectCandidates =
         world.boardMode === 'map'
-          ? orderedCandidates.filter((clue) => clue.type === 'character-at-position')
+          ? orderedCandidates.filter(
+              (clue) =>
+                clue.type === 'character-at-position' || clue.type === 'character-in-place',
+            )
           : []
       const childAnchors =
         world.boardMode !== 'map' || difficulty === 'hard'

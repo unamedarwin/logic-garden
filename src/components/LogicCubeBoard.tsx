@@ -19,6 +19,7 @@ import {
   buildingFloorShortLabel,
   buildingSummary,
   buildingUnitLabel,
+  buildingWallSegmentsForLayer,
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
 import type {
@@ -328,6 +329,7 @@ export const LogicCubeBoard = ({
       break
     }
   }
+  const floorWalls = buildingWallSegmentsForLayer(visiblePositions, activeLayer)
   const cubeStyle = {
     '--board-columns': BUILDING_COLUMNS,
     '--board-rows': BUILDING_ROWS,
@@ -478,6 +480,31 @@ export const LogicCubeBoard = ({
           aria-label={`${boardLabel}: ${buildingFloorLabel(locale, activeLayer)}`}
         >
           {draggedCharacter && <div className="game-board__drop-grid" aria-hidden="true" />}
+          <div className="logic-cube__walls" aria-hidden="true">
+            {floorWalls.map((wall) => (
+              <span
+                key={`${wall.axis}:${wall.line}:${wall.start}`}
+                className={`logic-cube__wall logic-cube__wall--${wall.axis}`}
+                data-wall-axis={wall.axis}
+                data-wall-line={wall.line}
+                data-wall-start={wall.start}
+                data-wall-span={wall.span}
+                style={
+                  wall.axis === 'vertical'
+                    ? {
+                        left: `${(wall.line / BUILDING_COLUMNS) * 100}%`,
+                        top: `${(wall.start / BUILDING_ROWS) * 100}%`,
+                        height: `${(wall.span / BUILDING_ROWS) * 100}%`,
+                      }
+                    : {
+                        top: `${(wall.line / BUILDING_ROWS) * 100}%`,
+                        left: `${(wall.start / BUILDING_COLUMNS) * 100}%`,
+                        width: `${(wall.span / BUILDING_COLUMNS) * 100}%`,
+                      }
+                }
+              />
+            ))}
+          </div>
           <div className="logic-cube__doors" aria-hidden="true">
             {[...floorDoors.entries()].map(([unitId, door]) => (
               <span

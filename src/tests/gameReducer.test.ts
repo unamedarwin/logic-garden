@@ -112,6 +112,39 @@ describe('game reducer', () => {
     expect(gameReducer(state, { type: 'check' }).status).toBe('won')
   })
 
+  it('reports a wrong complete hypothesis without correcting or moving any piece', () => {
+    const puzzle = generatePuzzle('medium', 'human-error-check', 'children')
+    const solution = solve(puzzle)
+    if (!solution) throw new Error('Expected a solvable generated puzzle')
+    const solvedPositions = puzzle.characters.map((character) => solution[character.id])
+    let state = createGameState(puzzle)
+
+    for (const [index, character] of puzzle.characters.entries()) {
+      state = gameReducer(state, {
+        type: 'move-character',
+        characterId: character.id,
+        positionId: solvedPositions[(index + 1) % solvedPositions.length],
+      })
+    }
+
+    const beforeCheck = {
+      assignments: state.assignments,
+      moves: state.moves,
+      past: state.past,
+      future: state.future,
+      selectedCharacterId: state.selectedCharacterId,
+    }
+    const checked = gameReducer(state, { type: 'check' })
+
+    expect(checked.status).toBe('playing')
+    expect(checked.feedback).toMatchObject({ type: 'assignment-incorrect' })
+    expect(checked.assignments).toEqual(beforeCheck.assignments)
+    expect(checked.moves).toBe(beforeCheck.moves)
+    expect(checked.past).toEqual(beforeCheck.past)
+    expect(checked.future).toEqual(beforeCheck.future)
+    expect(checked.selectedCharacterId).toBe(beforeCheck.selectedCharacterId)
+  })
+
   it('derives hints from the solver rather than an exposed solution', () => {
     const puzzle = generatePuzzle('easy', 'hint')
     const character = puzzle.characters[0]!

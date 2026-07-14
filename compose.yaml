@@ -1,0 +1,61 @@
+name: logic-garden
+
+services:
+  dev:
+    build:
+      context: .
+    init: true
+    command:
+      - pnpm
+      - exec
+      - vite
+      - --host
+      - 0.0.0.0
+    ports:
+      - '5173:5173'
+    environment:
+      CHOKIDAR_USEPOLLING: 'true'
+      CI: 'false'
+    volumes:
+      - .:/workspace
+      - dependencies:/workspace/node_modules
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:5173/logic-garden/').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  verify:
+    build:
+      context: .
+    init: true
+    profiles:
+      - tools
+    command:
+      - pnpm
+      - run
+      - verify
+
+  e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    init: true
+    ipc: host
+    profiles:
+      - tools
+    command:
+      - pnpm
+      - run
+      - test:e2e
+    volumes:
+      - ./playwright-report:/workspace/playwright-report
+      - ./test-results:/workspace/test-results
+
+volumes:
+  dependencies:

@@ -1,9 +1,37 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { LogicCubeBoard } from '../components/LogicCubeBoard'
-import { buildingFloorLabel } from '../domain/buildingPlan'
+import {
+  BUILDING_COLUMNS,
+  BUILDING_DEPTHS,
+  BUILDING_ROWS,
+  buildingCellAt,
+  buildingFloorLabel,
+  buildingWallSegmentsForLayer,
+} from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
+import { placeId, positionId, type BuildingSize, type Position } from '../domain/types'
 import { generatePuzzle, generatePuzzleDirect } from '../generator/puzzleGenerator'
+
+const canonicalBuildingPositions = (depth: BuildingSize): readonly Position[] =>
+  Array.from({ length: depth * BUILDING_ROWS * BUILDING_COLUMNS }, (_, index) => {
+    const layerSize = BUILDING_ROWS * BUILDING_COLUMNS
+    const layer = Math.floor(index / layerSize)
+    const row = Math.floor((index % layerSize) / BUILDING_COLUMNS)
+    const column = index % BUILDING_COLUMNS
+    const cell = buildingCellAt(layer, row, column)
+    return {
+      id: positionId(`wall-test-${layer}-${row}-${column}`),
+      placeId: placeId(`wall-test-${layer}-${cell.unitId}`),
+      row,
+      column,
+      layer,
+      label: cell.unitId,
+      buildingUnitId: cell.unitId,
+      buildingKind: cell.kind,
+      blocked: cell.blocked,
+    }
+  })
 
 describe('variable-height 5x5 building board', () => {
   it('shows one accessible 5x5 floor and all ten elevator stops', () => {
@@ -60,6 +88,9 @@ describe('variable-height 5x5 building board', () => {
     )
     expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
+    expect(container.querySelectorAll('.logic-cube__wall')).toHaveLength(4)
+    expect(container.querySelectorAll('.logic-cube__wall--vertical')).toHaveLength(2)
+    expect(container.querySelectorAll('.logic-cube__wall--horizontal')).toHaveLength(2)
     expect(container.querySelector('[class*="logic-cube__door--"]')).not.toBeInTheDocument()
     const furniture = Array.from(
       container.querySelectorAll<HTMLElement>('.logic-cube__furniture'),
@@ -95,6 +126,44 @@ describe('variable-height 5x5 building board', () => {
     )
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'building-floor-9')
   }, 15_000)
+
+  it('draws continuous room walls on every floor without dividing shared circulation', () => {
+    for (const depth of BUILDING_DEPTHS) {
+      const positions = canonicalBuildingPositions(depth)
+      for (let layer = 0; layer < depth; layer += 1) {
+        const walls = buildingWallSegmentsForLayer(positions, layer)
+        expect(walls).toHaveLength(4)
+        expect(walls.filter((wall) => wall.axis === 'vertical')).toEqual([
+          {
+            axis: 'vertical',
+            line: 2,
+            start: 0,
+            span: layer === 0 ? 4 : 5,
+          },
+          {
+            axis: 'vertical',
+            line: 3,
+            start: 0,
+            span: layer === 0 ? 4 : 5,
+          },
+        ])
+        expect(walls.filter((wall) => wall.axis === 'horizontal')).toEqual([
+          {
+            axis: 'horizontal',
+            line: layer === 0 ? 4 : 3,
+            start: 0,
+            span: 2,
+          },
+          {
+            axis: 'horizontal',
+            line: layer === 0 ? 4 : 3,
+            start: 3,
+            span: 2,
+          },
+        ])
+      }
+    }
+  })
 
   it('crosses the horizontal, vertical, and depth lines after a placement', () => {
     const puzzle = generatePuzzle('hard', 'cube-three-axes', 'teens', 'cube')
@@ -149,7 +218,7 @@ describe('variable-height 5x5 building board', () => {
 
     // The same row/column coordinate is projected through the depth axis.
     expect(container.querySelectorAll('.location-cell--crossed')).toHaveLength(1)
-  })
+  }, 15_000)
 
   it('keeps a visually free non-solution cell interactive', () => {
     const puzzle = generatePuzzle(

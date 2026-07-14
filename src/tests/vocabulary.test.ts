@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  auditCatalanClueReadability,
+  auditClueObjectRelevance,
   auditClueTemplatePlaceholders,
   renderClue,
   renderClueParts,
@@ -11,6 +13,14 @@ import { characterIds, createPuzzle, positionIds } from './fixtures'
 describe('local clue templates', () => {
   it('preserves every logical placeholder in every locale and clue family', () => {
     expect(auditClueTemplatePlaceholders()).toEqual([])
+  })
+
+  it('names visible Catalan objects directly without a repeated reference label', () => {
+    expect(auditCatalanClueReadability()).toEqual([])
+  })
+
+  it('mentions an object only when the structured clue constrains that object', () => {
+    expect(auditClueObjectRelevance()).toEqual([])
   })
 
   it('renders the same structured clue in every supported language', () => {
@@ -27,7 +37,7 @@ describe('local clue templates', () => {
     }
   })
 
-  it('gives child clues a warm action without losing their structured item token', () => {
+  it('gives child clues a warm action without an unrelated item token', () => {
     const clue: Clue = {
       id: 'child-story',
       type: 'character-at-position',
@@ -47,13 +57,10 @@ describe('local clue templates', () => {
       if (locale === 'ca' || locale === 'es' || locale === 'en') {
         expect(sentence).toMatch(expectedActions[locale])
       }
-      expect(
-        renderClueParts(puzzle, clue, locale).find((part) => part.type === 'icon'),
-      ).toMatchObject({
-        type: 'icon',
-        emoji: '🌼',
-      })
       expect(sentence).not.toContain('{')
+      expect(renderClueParts(puzzle, clue, locale).some((part) => part.type === 'icon')).toBe(
+        false,
+      )
     }
   })
 

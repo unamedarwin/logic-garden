@@ -2,6 +2,13 @@ import type { BuildingSize, Locale, Position } from './types'
 
 export type BuildingCellKind = 'home' | 'shop' | 'landing' | 'stairs' | 'entrance'
 
+export interface BuildingWallSegment {
+  readonly axis: 'horizontal' | 'vertical'
+  readonly line: number
+  readonly start: number
+  readonly span: number
+}
+
 export const BUILDING_ROWS = 5
 export const BUILDING_COLUMNS = 5
 export const BUILDING_DEPTHS = [3, 4, 5, 6, 7, 8, 9, 10] as const
@@ -87,6 +94,78 @@ const residentialFloor = [
 
 const unitAt = (layer: number, row: number, column: number) =>
   (layer === 0 ? groundFloor : residentialFloor)[row]?.[column]
+
+const circulationKinds = new Set<BuildingCellKind>(['landing', 'stairs', 'entrance'])
+
+const needsBuildingWall = (first: Position, second: Position) =>
+  first.buildingUnitId !== second.buildingUnitId &&
+  !(
+    first.buildingKind !== undefined &&
+    second.buildingKind !== undefined &&
+    circulationKinds.has(first.buildingKind) &&
+    circulationKinds.has(second.buildingKind)
+  )
+
+export const buildingWallSegmentsForLayer = (
+  positions: readonly Position[],
+  layer: number,
+): readonly BuildingWallSegment[] => {
+  const floorPositions = positions.filter((position) => position.layer === layer)
+  const positionAt = new Map(
+    floorPositions.map((position) => [`${position.row}:${position.column}`, position]),
+  )
+  const groups = new Map<
+    string,
+    {
+      readonly axis: BuildingWallSegment['axis']
+      readonly line: number
+      readonly starts: number[]
+    }
+  >()
+  const addBoundary = (axis: BuildingWallSegment['axis'], line: number, start: number) => {
+    const key = `${axis}:${line}`
+    const group = groups.get(key)
+    if (group) group.starts.push(start)
+    else groups.set(key, { axis, line, starts: [start] })
+  }
+
+  for (const position of floorPositions) {
+    const right = positionAt.get(`${position.row}:${position.column + 1}`)
+    if (right && needsBuildingWall(position, right)) {
+      addBoundary('vertical', position.column + 1, position.row)
+    }
+    const below = positionAt.get(`${position.row + 1}:${position.column}`)
+    if (below && needsBuildingWall(position, below)) {
+      addBoundary('horizontal', position.row + 1, position.column)
+    }
+  }
+
+  return [...groups.values()]
+    .flatMap(({ axis, line, starts }) => {
+      const orderedStarts = [...new Set(starts)].sort((first, second) => first - second)
+      const segments: BuildingWallSegment[] = []
+      let runStart = orderedStarts[0]
+      let previous = orderedStarts[0]
+      if (runStart === undefined || previous === undefined) return segments
+      for (const current of orderedStarts.slice(1)) {
+        if (current === previous + 1) {
+          previous = current
+          continue
+        }
+        segments.push({ axis, line, start: runStart, span: previous - runStart + 1 })
+        runStart = current
+        previous = current
+      }
+      segments.push({ axis, line, start: runStart, span: previous - runStart + 1 })
+      return segments
+    })
+    .sort(
+      (first, second) =>
+        first.axis.localeCompare(second.axis) ||
+        first.line - second.line ||
+        first.start - second.start,
+    )
+}
 
 // Every blocked room cell receives visible furniture in LogicCubeBoard. All other
 // home and shop cells are genuine solver and interaction candidates.
