@@ -1,5 +1,5 @@
 import type { PartialAssignment, Puzzle } from '../domain/types'
-import { analyzeSolutions, isPartialAssignmentValid, solve } from '../solver/solver'
+import { analyzeSolutions, isCompleteAssignmentSatisfyingPuzzle, solve } from '../solver/solver'
 import type { GameFeedback } from './feedback'
 
 export interface ValidationResult {
@@ -8,20 +8,55 @@ export interface ValidationResult {
   readonly feedback: GameFeedback
 }
 
+const maximumExtendablePlacementCount = (puzzle: Puzzle, assignment: PartialAssignment) => {
+  const placements = puzzle.characters.flatMap((character) => {
+    const positionId = assignment[character.id]
+    return positionId === undefined ? [] : [[character.id, positionId] as const]
+  })
+
+  const hasExtendableSubset = (
+    targetSize: number,
+    startIndex = 0,
+    partial: PartialAssignment = {},
+  ): boolean => {
+    const selectedCount = Object.keys(partial).length
+    if (selectedCount === targetSize) {
+      return analyzeSolutions(puzzle, { limit: 1, partial }).count === 1
+    }
+    const remainingNeeded = targetSize - selectedCount
+    for (let index = startIndex; index <= placements.length - remainingNeeded; index += 1) {
+      const placement = placements[index]
+      if (
+        placement &&
+        hasExtendableSubset(targetSize, index + 1, {
+          ...partial,
+          [placement[0]]: placement[1],
+        })
+      ) {
+        return true
+      }
+    }
+    return false
+  }
+
+  for (let size = placements.length; size > 0; size -= 1) {
+    if (hasExtendableSubset(size)) return size
+  }
+  return 0
+}
+
 export const validateAssignment = (
   puzzle: Puzzle,
   assignment: PartialAssignment,
 ): ValidationResult => {
-  const analysis = analyzeSolutions(puzzle, { limit: 2 })
-  const solution =
-    analysis.count === 1 && !analysis.reachedNodeLimit ? analysis.firstSolution : null
   const totalCount = puzzle.characters.length
-  const correctCount = solution
-    ? puzzle.characters.filter(
-        (character) => assignment[character.id] === solution[character.id],
-      ).length
-    : 0
-  const complete = puzzle.characters.every((character) => assignment[character.id])
+  const complete = puzzle.characters.every(
+    (character) => assignment[character.id] !== undefined,
+  )
+  const correct = complete && isCompleteAssignmentSatisfyingPuzzle(puzzle, assignment)
+  const correctCount = correct
+    ? totalCount
+    : maximumExtendablePlacementCount(puzzle, assignment)
   if (!complete) {
     return {
       complete: false,
@@ -30,11 +65,7 @@ export const validateAssignment = (
     }
   }
 
-  if (
-    !solution ||
-    !isPartialAssignmentValid(puzzle, assignment) ||
-    correctCount !== totalCount
-  ) {
+  if (!correct) {
     return {
       complete: true,
       correct: false,

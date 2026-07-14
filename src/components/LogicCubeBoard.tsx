@@ -10,7 +10,7 @@ import {
   Layers3,
   Store,
 } from 'lucide-react'
-import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   BUILDING_COLUMNS,
   BUILDING_ROWS,
@@ -42,6 +42,15 @@ const isCrossedByCubeAxes = (candidate: Position, placements: readonly PlacedCub
   placements.some(
     ({ position }) => position.id !== candidate.id && shareCubeAxisLine(position, candidate),
   )
+
+const motionSafeScrollBehavior = (): ScrollBehavior => {
+  if (typeof window === 'undefined') return 'auto'
+  const reducedByPreference =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reducedInSettings = document.documentElement.dataset.reducedMotion === 'true'
+  return reducedByPreference || reducedInSettings ? 'auto' : 'smooth'
+}
 
 const BuildingCellIcon = ({ kind }: { readonly kind: Position['buildingKind'] }) => {
   const Icon =
@@ -214,6 +223,7 @@ export const LogicCubeBoard = ({
     ? positions.find((position) => position.id === assignments[requestedCharacterId])
     : undefined
   const buildingDepth = buildingDepthForPositions(positions)
+  const layerButtonRefs = useRef(new Map<number, HTMLButtonElement>())
   const [activeLayer, setActiveLayer] = useState(
     Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1),
   )
@@ -221,6 +231,14 @@ export const LogicCubeBoard = ({
   useEffect(() => {
     setActiveLayer(Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1))
   }, [buildingDepth, puzzleSeed, requestedPosition?.layer])
+
+  useEffect(() => {
+    layerButtonRefs.current.get(activeLayer)?.scrollIntoView({
+      behavior: motionSafeScrollBehavior(),
+      block: 'nearest',
+      inline: 'center',
+    })
+  }, [activeLayer, buildingDepth])
 
   const visiblePositions = positions.filter((position) => position.layer === activeLayer)
   const placedPositions = Object.entries(assignments)
@@ -345,18 +363,20 @@ export const LogicCubeBoard = ({
   }
 
   const setLayerFromKey = (layer: number, event: KeyboardEvent<HTMLButtonElement>) => {
+    const boundaryLayer =
+      event.key === 'Home' ? 0 : event.key === 'End' ? buildingDepth - 1 : undefined
     const offset =
       event.key === 'ArrowLeft' || event.key === 'ArrowDown'
         ? -1
         : event.key === 'ArrowRight' || event.key === 'ArrowUp'
           ? 1
           : 0
-    if (offset === 0) return
+    if (offset === 0 && boundaryLayer === undefined) return
     event.preventDefault()
-    const nextLayer = Math.min(buildingDepth - 1, Math.max(0, layer + offset))
+    const nextLayer = boundaryLayer ?? Math.min(buildingDepth - 1, Math.max(0, layer + offset))
     if (nextLayer === layer) return
     setActiveLayer(nextLayer)
-    requestAnimationFrame(() => document.getElementById(`building-floor-${nextLayer}`)?.focus())
+    requestAnimationFrame(() => layerButtonRefs.current.get(nextLayer)?.focus())
   }
 
   return (
@@ -391,7 +411,12 @@ export const LogicCubeBoard = ({
         >
           <ChevronDown aria-hidden="true" />
         </button>
-        <div className="logic-cube__layers" role="tablist" aria-label={boardLabel}>
+        <div
+          className="logic-cube__layers"
+          role="tablist"
+          aria-label={boardLabel}
+          aria-orientation="horizontal"
+        >
           {Array.from({ length: buildingDepth }, (_, layer) => layer).map((layer) => {
             const active = activeLayer === layer
             const placedCount = placedPositions.filter(
@@ -399,6 +424,10 @@ export const LogicCubeBoard = ({
             ).length
             return (
               <button
+                ref={(node) => {
+                  if (node) layerButtonRefs.current.set(layer, node)
+                  else layerButtonRefs.current.delete(layer)
+                }}
                 id={`building-floor-${layer}`}
                 key={layer}
                 type="button"
@@ -431,7 +460,12 @@ export const LogicCubeBoard = ({
           <ChevronUp aria-hidden="true" />
         </button>
       </div>
-      <div id="logic-cube-active-layer" className="logic-cube__matrix">
+      <div
+        id="logic-cube-active-layer"
+        className="logic-cube__matrix"
+        role="tabpanel"
+        aria-labelledby={`building-floor-${activeLayer}`}
+      >
         <div className="logic-cube__floor-title">
           <Layers3 aria-hidden="true" />
           {buildingFloorLabel(locale, activeLayer)}

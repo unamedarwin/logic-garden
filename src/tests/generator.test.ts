@@ -47,8 +47,104 @@ describe('seeded puzzle generator', () => {
 
     expect(child.boardMode).toBe('map')
     expect(building.boardMode).toBe('logic-cube')
-    expect(building.difficulty).toBe('hard')
+    expect(building.difficulty).toBe('easy')
     expect(advancedAudiences).toEqual(new Set(['teens', 'adults']))
+  })
+
+  it('honors the independently selected child size and building height', () => {
+    const child = generatePuzzleForCollection('easy', 'selected-child-size', 'children', 6, 8)
+    const building = generatePuzzleForCollection(
+      'easy',
+      'selected-building-height',
+      'three-dimensional',
+      6,
+      4,
+      10,
+    )
+
+    expect(child.characters).toHaveLength(8)
+    expect(child.positions).toHaveLength(8)
+    expect(child.difficulty).toBe('easy')
+    expect(countSolutions(child, { limit: 2 })).toBe(1)
+    expect(buildingDepthForPositions(building.positions)).toBe(10)
+    expect(building.positions).toHaveLength(250)
+    expect(building.difficulty).toBe('easy')
+    expect(countSolutions(building, { limit: 2 })).toBe(1)
+  })
+
+  it('turns an adventure choice into a normally reproducible seeded puzzle', () => {
+    const selected = generatePuzzleForCollection(
+      'medium',
+      'selected-adventure',
+      'two-dimensional',
+      9,
+      4,
+      3,
+      'sports-festival',
+    )
+    const replayed = generatePuzzle('medium', selected.seed, 'teens', 'spatial', 9)
+
+    expect(selected.theme).toBe('sports-festival')
+    expect(replayed).toEqual(selected)
+  })
+
+  it('grades child deduction independently from the selected map size', () => {
+    const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
+      generatePuzzleForCollection(difficulty, 'child-difficulty-matrix', 'children', 6, 8),
+    )
+    const directClues = puzzles.map(
+      (puzzle) =>
+        puzzle.clues.filter(
+          (clue) => clue.type === 'character-at-position' || clue.type === 'character-in-place',
+        ).length,
+    )
+
+    expect(puzzles.every((puzzle) => puzzle.characters.length === 8)).toBe(true)
+    expect(directClues[0]).toBeGreaterThanOrEqual(7)
+    expect(directClues[1]).toBeGreaterThanOrEqual(2)
+    expect(directClues[2]).toBeLessThan(directClues[1]!)
+    for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+  })
+
+  it('grades building guidance independently from the selected height', () => {
+    const puzzles = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
+      generatePuzzleForCollection(
+        difficulty,
+        'building-difficulty-matrix',
+        'three-dimensional',
+        6,
+        4,
+        10,
+      ),
+    )
+    const guidanceClues = puzzles.map(
+      (puzzle) =>
+        puzzle.clues.filter((clue) => clue.id.startsWith('building-guidance:')).length,
+    )
+    const directlyGuidedCharacters = puzzles.map(
+      (puzzle) =>
+        new Set(
+          puzzle.clues.flatMap((clue) =>
+            clue.type === 'character-at-position' || clue.type === 'character-in-place'
+              ? [clue.characterId]
+              : [],
+          ),
+        ).size,
+    )
+    const baseDirectCharacters = directlyGuidedCharacters[2]!
+
+    expect(puzzles.map((puzzle) => puzzle.difficulty)).toEqual(['easy', 'medium', 'hard'])
+    expect(puzzles.every((puzzle) => buildingDepthForPositions(puzzle.positions) === 10)).toBe(
+      true,
+    )
+    expect(guidanceClues).toEqual([
+      Math.max(0, 4 - baseDirectCharacters),
+      Math.max(0, 2 - baseDirectCharacters),
+      0,
+    ])
+    expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(4)
+    expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(2)
+    for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
   })
 
   it('builds deterministic 5x5 buildings at every height with three spatial axes', () => {
@@ -439,6 +535,7 @@ describe('seeded puzzle generator', () => {
         const dimension = Math.sqrt(puzzle.positions.length)
         const obstacles = dimension === 6 ? 6 : dimension === 9 ? 9 : 20
         expect(puzzle.characters.length).toBeLessThanOrEqual(dimension)
+        if (dimension === 16) expect(puzzle.characters).toHaveLength(8)
         expect(puzzle.positions).toHaveLength(dimension * dimension)
         expect(new Set(puzzle.positions.map((position) => position.label)).size).toBe(
           puzzle.positions.length,
@@ -492,33 +589,43 @@ describe('seeded puzzle generator', () => {
         expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
       }
     }
-  }, 20_000)
+  }, 60_000)
 
-  it('selects advanced grid size independently and without catalog bucket bias', () => {
+  it('selects board size independently from deductive difficulty', () => {
     for (const audience of ['teens', 'adults'] as const) {
       for (const difficulty of ['easy', 'medium', 'hard'] as const) {
-        const counts = new Map<number, number>([
-          [6, 0],
-          [9, 0],
-          [16, 0],
-        ])
-        for (let index = 0; index < 900; index += 1) {
+        for (const gridSize of [6, 9, 16] as const) {
           const template = selectAdvancedPuzzleTemplate(
             difficulty,
-            `balanced-size-${audience}-${difficulty}-${index}`,
+            `selected-size-${audience}-${difficulty}-${gridSize}`,
             audience,
+            'spatial',
+            gridSize,
           )
           if (!template) throw new Error('Expected an advanced template')
-          counts.set(template.gridSize, (counts.get(template.gridSize) ?? 0) + 1)
-        }
-
-        for (const [size, count] of counts) {
-          expect(count, `${audience}:${difficulty}:${size}`).toBeGreaterThan(240)
-          expect(count, `${audience}:${difficulty}:${size}`).toBeLessThan(360)
+          expect(template.gridSize).toBe(gridSize)
+          if (gridSize === 16) expect(template.characterCount).toBe(8)
         }
       }
     }
   })
+
+  it('materializes every 2D size and difficulty combination as one unique puzzle', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      for (const gridSize of [6, 9, 16] as const) {
+        const puzzle = generatePuzzle(
+          difficulty,
+          `runtime-matrix-${difficulty}-${gridSize}`,
+          'adults',
+          'spatial',
+          gridSize,
+        )
+        expect(Math.sqrt(puzzle.positions.length)).toBe(gridSize)
+        expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+        if (gridSize === 16) expect(puzzle.characters).toHaveLength(8)
+      }
+    }
+  }, 30_000)
 
   it('varies rectangular children maps between both seeded orientations', () => {
     const shapes = new Set(

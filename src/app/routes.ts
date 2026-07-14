@@ -4,7 +4,10 @@ import {
   isChallengeMetadata,
   isShareableSeed,
   seed,
+  type AdvancedGridSize,
   type Audience,
+  type BuildingSize,
+  type ChildMapSize,
   type ChallengeMetadata,
   type Difficulty,
   type PuzzleVariant,
@@ -27,23 +30,41 @@ const maximumDecodedPayloadLength = 2_048
 const isSharedPayload = (
   value: unknown,
 ): value is {
-  readonly v: 2 | 3 | 4
+  readonly v: 2 | 3 | 4 | 5
   readonly difficulty: Difficulty
   readonly seed: string
   readonly audience: Audience
   readonly generatorVersion: number
   readonly variant?: PuzzleVariant
+  readonly gridSize?: AdvancedGridSize
+  readonly childMapSize?: ChildMapSize
+  readonly buildingDepth?: BuildingSize
   readonly benchmarkSeconds?: number
 } => {
   if (!value || typeof value !== 'object') return false
   const payload = value as Record<string, unknown>
   return (
-    (payload.v === 2 || payload.v === 3 || payload.v === 4) &&
+    (payload.v === 2 || payload.v === 3 || payload.v === 4 || payload.v === 5) &&
     isChallengeMetadata(payload) &&
     payload.generatorVersion === GENERATOR_VERSION &&
-    (payload.v === 4
+    (payload.v === 4 || payload.v === 5
       ? payload.variant === 'spatial' || payload.variant === 'cube'
-      : payload.variant === undefined)
+      : payload.variant === undefined) &&
+    (payload.v !== 5 ||
+      (payload.variant === 'cube'
+        ? payload.buildingDepth === 3 ||
+          payload.buildingDepth === 4 ||
+          payload.buildingDepth === 5 ||
+          payload.buildingDepth === 6 ||
+          payload.buildingDepth === 7 ||
+          payload.buildingDepth === 8 ||
+          payload.buildingDepth === 9 ||
+          payload.buildingDepth === 10
+        : payload.audience === 'children'
+          ? payload.childMapSize === 4 ||
+            payload.childMapSize === 6 ||
+            payload.childMapSize === 8
+          : payload.gridSize === 6 || payload.gridSize === 9 || payload.gridSize === 16))
   )
 }
 
@@ -74,12 +95,15 @@ const declaredGzipSize = (bytes: Uint8Array) => {
 }
 
 const encodePayload = (payload: {
-  readonly v: 4
+  readonly v: 5
   readonly difficulty: Difficulty
   readonly seed: Seed
   readonly audience: Audience
   readonly generatorVersion: number
   readonly variant: PuzzleVariant
+  readonly gridSize?: AdvancedGridSize
+  readonly childMapSize?: ChildMapSize
+  readonly buildingDepth?: BuildingSize
   readonly benchmarkSeconds?: number
 }) =>
   `${compressedPayloadPrefix}${toUrlSafeBase64(
@@ -115,6 +139,9 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
       audience: decoded.audience,
       generatorVersion: decoded.generatorVersion,
       variant: decoded.variant === 'cube' ? 'cube' : 'spatial',
+      ...(decoded.gridSize ? { gridSize: decoded.gridSize } : {}),
+      ...(decoded.childMapSize ? { childMapSize: decoded.childMapSize } : {}),
+      ...(decoded.buildingDepth ? { buildingDepth: decoded.buildingDepth } : {}),
       benchmarkSeconds: decoded.benchmarkSeconds,
     }
   }
@@ -143,26 +170,72 @@ export const shareUrl = (
     readonly seed: Seed
     readonly generatorVersion: number
     readonly variant?: PuzzleVariant
+    readonly gridSize?: AdvancedGridSize
+    readonly childMapSize?: ChildMapSize
+    readonly buildingDepth?: BuildingSize
   },
   audience: Audience,
   benchmarkSeconds?: number,
 ) => {
+  if (puzzle.generatorVersion !== GENERATOR_VERSION) {
+    throw new Error('Cannot share a puzzle from an obsolete generator')
+  }
   if (!isShareableSeed(puzzle.seed)) {
     throw new Error('Cannot share a puzzle with an unsafe seed')
   }
-  if (puzzle.variant === 'cube' && (audience === 'children' || puzzle.difficulty !== 'hard')) {
+  if (puzzle.variant === 'cube' && audience === 'children') {
     throw new Error('Cannot share an invalid 3D challenge')
+  }
+  if (
+    puzzle.variant === 'cube' &&
+    puzzle.buildingDepth !== 3 &&
+    puzzle.buildingDepth !== 4 &&
+    puzzle.buildingDepth !== 5 &&
+    puzzle.buildingDepth !== 6 &&
+    puzzle.buildingDepth !== 7 &&
+    puzzle.buildingDepth !== 8 &&
+    puzzle.buildingDepth !== 9 &&
+    puzzle.buildingDepth !== 10
+  ) {
+    throw new Error('Cannot share a 3D challenge without its building height')
+  }
+  if (
+    puzzle.variant !== 'cube' &&
+    audience === 'children' &&
+    puzzle.childMapSize !== 4 &&
+    puzzle.childMapSize !== 6 &&
+    puzzle.childMapSize !== 8
+  ) {
+    throw new Error('Cannot share a child puzzle without its map size')
+  }
+  if (
+    puzzle.variant !== 'cube' &&
+    audience !== 'children' &&
+    puzzle.gridSize !== 6 &&
+    puzzle.gridSize !== 9 &&
+    puzzle.gridSize !== 16
+  ) {
+    throw new Error('Cannot share an advanced puzzle without its board size')
   }
   const url = new URL(import.meta.env.BASE_URL, window.location.origin)
   url.searchParams.set(
     'p',
     encodePayload({
-      v: 4,
+      v: 5,
       difficulty: puzzle.difficulty,
       seed: puzzle.seed,
       audience,
       generatorVersion: puzzle.generatorVersion,
       variant: puzzle.variant === 'cube' ? 'cube' : 'spatial',
+      ...(puzzle.variant !== 'cube' && audience !== 'children' && puzzle.gridSize
+        ? { gridSize: puzzle.gridSize }
+        : {}),
+      ...(puzzle.variant !== 'cube' && audience === 'children' && puzzle.childMapSize
+        ? { childMapSize: puzzle.childMapSize }
+        : {}),
+      ...(puzzle.variant === 'cube' && puzzle.buildingDepth
+        ? { buildingDepth: puzzle.buildingDepth }
+        : {}),
       ...(isBenchmarkSeconds(benchmarkSeconds) ? { benchmarkSeconds } : {}),
     }),
   )

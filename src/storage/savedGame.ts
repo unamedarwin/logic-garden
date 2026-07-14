@@ -59,6 +59,18 @@ const isCompatibleState = (value: unknown): value is GameState => {
 const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
+  const state = candidate.state as GameState
+  const challenge = candidate.challenge as ChallengeMetadata | undefined
+  const boardSize = Math.sqrt(state.puzzle.positions.length)
+  const challengeSizeMatches =
+    challenge === undefined ||
+    (state.puzzle.boardMode === 'logic-cube'
+      ? challenge.buildingDepth === undefined ||
+        challenge.buildingDepth === buildingDepthForPositions(state.puzzle.positions)
+      : state.puzzle.boardMode === 'map'
+        ? challenge.childMapSize === undefined ||
+          challenge.childMapSize === state.puzzle.characters.length
+        : challenge.gridSize === undefined || challenge.gridSize === boardSize)
   return (
     candidate.schemaVersion === 4 &&
     candidate.generatorVersion === GENERATOR_VERSION &&
@@ -66,10 +78,11 @@ const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
     (candidate.challenge === undefined ||
       (isChallengeMetadata(candidate.challenge) &&
         candidate.challenge.generatorVersion === GENERATOR_VERSION &&
-        candidate.challenge.seed === (candidate.state as GameState).puzzle.seed &&
-        candidate.challenge.difficulty === (candidate.state as GameState).puzzle.difficulty &&
+        candidate.challenge.seed === state.puzzle.seed &&
+        candidate.challenge.difficulty === state.puzzle.difficulty &&
         (candidate.challenge.variant === 'cube') ===
-          ((candidate.state as GameState).puzzle.boardMode === 'logic-cube')))
+          (state.puzzle.boardMode === 'logic-cube') &&
+        challengeSizeMatches))
   )
 }
 

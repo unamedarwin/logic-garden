@@ -1,5 +1,5 @@
 import type { Assignment, CharacterId, PartialAssignment, Puzzle } from '../domain/types'
-import { isPartialAssignmentValid } from './constraintEvaluator'
+import { isPartialAssignmentValid, isPuzzleDefinitionValid } from './constraintEvaluator'
 
 export interface SolverOptions {
   readonly limit?: number
@@ -55,7 +55,10 @@ export const analyzeSolutions = (puzzle: Puzzle, options: SolverOptions = {}): S
   let exploredNodes = 0
   let reachedNodeLimit = false
 
-  if (!isPartialAssignmentValid(puzzle, initialAssignment)) {
+  if (
+    !isPuzzleDefinitionValid(puzzle) ||
+    !isPartialAssignmentValid(puzzle, initialAssignment)
+  ) {
     return { count, firstSolution, foundSolutions, exploredNodes, reachedNodeLimit }
   }
 
@@ -97,4 +100,7 @@ export const countSolutions = (
 export const completePartialAssignment = (puzzle: Puzzle, partial: PartialAssignment) =>
   analyzeSolutions(puzzle, { limit: 1, partial }).firstSolution
 
-export { isPartialAssignmentValid }
+export {
+  isCompleteAssignmentSatisfyingPuzzle,
+  isPartialAssignmentValid,
+} from './constraintEvaluator'

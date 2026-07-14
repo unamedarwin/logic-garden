@@ -17,27 +17,43 @@ separated. The solver and generator must remain framework-independent.
 
 Never expose or trust a stored answer as proof of puzzle uniqueness. Always verify
 uniqueness by running the solver with a limit of two solutions.
+Checking a completed board must evaluate the submitted assignment against the structured
+constraints, not compare it with the first solution returned by the solver. If a progress count is
+shown, compute the largest subset of current placements that can jointly extend to a solution; an
+incompatible complete assignment must never report `total/total`.
 
 ## Random generation
 
 All game randomness must use the seeded PRNG. The same generator version, difficulty,
-and seed must produce the same puzzle. Never publish or display a generated puzzle unless
+collection-specific selected size, and seed must produce the same puzzle. Never publish or display a generated puzzle unless
 the solver confirms that it has exactly one solution.
+Convert an explicit adventure/theme choice into a final seed that reproduces the chosen theme
+through the ordinary generator. Do not require a separate theme field in a shared URL and never
+store an answer to preserve that choice.
 Advanced games are selected from the generated structural template catalog. Templates may store
 only audience, difficulty, grid size, plan id, generic clue tuples, and difficulty metrics; they
 must never store an answer, personal data, names, localized phrases, or concrete theme objects.
 Keep all 1,000 catalog entries structurally distinct, cover both advanced audiences and every
 difficulty/size combination, and rerun the solver with a limit of two after every runtime theme application.
 Canonical structural identity must ignore clue-list ordering, and catalog checks must reject
-order-only duplicates. Choose advanced grid size uniformly before choosing a template from that
-size so uneven bucket counts cannot couple board size back to difficulty.
-Board size and difficulty are independent. Grade advanced difficulty through the number of
-candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
-to each difficulty.
+order-only duplicates. The player chooses advanced board size independently from deductive
+difficulty, so every `6 x 6`, `9 x 9`, and `16 x 16` size must remain available at every
+difficulty. Grade difficulty through the number of candidate cells around visible landmarks and
+the deduction chain, not by assigning one grid size to each difficulty. Every `16 x 16` template
+uses eight people so row and column crossing remains meaningful across the full board.
+Keep child size independent from child difficulty too. At every 4/6/8 size, easy protects direct
+friendly placement clues, medium protects fewer, and hard prioritizes relational deductions before
+using direct placement clues.
 Keep the structural catalog split at 950 spatial entries and 50 hard building entries covering
 every height from `5 x 5 x 3` through `5 x 5 x 10`, with 25 building entries for teens and 25 for
 adults. Choose height uniformly before choosing a template so uneven per-height quotas cannot bias
 selection. The building subset must remain answer-free under the same canonical-identity rules.
+Expose easy, medium, and hard play on every building height without duplicating structural
+templates. Easy deterministically ensures that at least four people have direct home or landmark
+guidance, medium ensures at least two, and hard uses the base clue set. Count existing direct facts
+toward those targets instead of repeating them. Derive guidance only after solving the unique
+materialized structure, persist clues rather than an answer, and rerun the solver with a limit of
+two on the guided puzzle.
 
 ## TypeScript
 
@@ -68,6 +84,13 @@ Prevent accidental interface-text selection during board interaction, while pres
 selection and editing in input, textarea, and editable controls.
 Keep a visible, keyboard-accessible path from a game and its completion dialog back to the
 difficulty picker before a player starts another adventure.
+The collection, size, difficulty, and adventure journey path must show one setup decision at a
+time and move backward and forward without
+discarding the current puzzle, timer, challenge, or placements. Starting a new game is the only
+path action that replaces a suspended game. Keep every journey, clue-navigation, and elevator
+control at least `44 x 44` CSS pixels.
+Adventure must remain a real fourth selection screen. Do not start a game merely by navigating to
+the adventure step, and do not show the primary play action on the difficulty step.
 Show check feedback in an accessible dialog. The solver-derived `N/total` correct-placement score
 must be a local preference; when hidden, use encouraging guidance without revealing a count.
 
@@ -172,7 +195,8 @@ unbounded full-height exclusion.
 Render each floor as semantic DOM controls and use a keyboard-accessible, non-wrapping elevator to
 switch among all floors without changing placements or timer state. Keep the elevator outside the
 active-floor frame, order its floor buttons from ground floor to the selected height's top floor,
-and let the fitted `5 x 5` plan use the available mobile width.
+and let the fitted `5 x 5` plan use the available mobile width. Keep all floor targets at least
+44 pixels and use one horizontally scrollable, non-wrapping tab strip when ten targets do not fit.
 Corner clues are secondary variety and must retain the same positive social wording rule as other
 advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
@@ -190,7 +214,7 @@ checking, or producing a hint; persist structurally valid wrong guesses so reloa
 player by silently discarding an error.
 
 The app must not ask for or store a player name or avatar. Shared URLs may contain a version, audience,
-difficulty, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
+difficulty, selected board size, seeded puzzle identifier, and a bounded completion-time benchmark, but never a
 solution or any personal data. A received challenge must explain the benchmark before play and
 offer a return challenge after completion. Start its timer only after the player accepts the
 challenge, and persist the benchmark with an in-progress game. Store theme identifiers rather
@@ -202,11 +226,16 @@ GitHub Pages serves this app below `/logic-garden/`. Keep Vite's base path, the 
 scope, internal navigation, and shared URLs aligned with that path. New share payloads are JSON
 compressed with GZIP and encoded as URL-safe Base64 under the `p` query parameter. Validate the
 encoded and declared decompressed sizes before use, while retaining safe legacy Base64 parsing.
+New payloads must include the collection-specific size: child friend count, advanced 2D grid size,
+or 3D building height. A shared challenge must reproduce that exact dimension.
 Deploy only the compiled
 `dist` directory with `.github/workflows/deploy-pages.yml`; never publish source files as the
 site artifact.
 Use automatic service-worker activation and client claiming. Check for an update when the app
 returns to the foreground so installed mobile PWAs do not retain an obsolete JS/CSS pair.
+Enforce checked-in budgets for the entry module, initial JavaScript graph, largest lazy chunk,
+total JavaScript and CSS, chunk count, and complete `dist` size. PWA verification must reject
+duplicate precache URLs and missing offline resources rather than relaxing the manifest.
 
 ## Verification
 

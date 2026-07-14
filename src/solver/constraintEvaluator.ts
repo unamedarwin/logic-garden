@@ -19,9 +19,10 @@ const positionFor = (
     : undefined
 }
 
-const characterHasItem = (puzzle: Puzzle, characterId: CharacterId, itemId: string) => {
-  return puzzle.characters.find((character) => character.id === characterId)?.itemId === itemId
-}
+const characterHasItem = (puzzle: Puzzle, characterId: CharacterId, itemId: string) =>
+  puzzle.characters.some(
+    (character) => character.id === characterId && character.itemId === itemId,
+  )
 
 const itemPlaceMatches = (
   puzzle: Puzzle,
@@ -29,10 +30,109 @@ const itemPlaceMatches = (
   itemId: string,
   placeId: string,
 ) => {
-  const assignedPosition = Object.values(assignment)
-    .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
-    .find((position) => position?.itemId === itemId)
+  const carrier = puzzle.characters.find((character) => character.itemId === itemId)
+  if (!carrier) return false
+  const assignedPosition = positionFor(puzzle, assignment, carrier.id)
   return !assignedPosition || assignedPosition.placeId === placeId
+}
+
+const clueReferencesKnownEntities = (puzzle: Puzzle, clue: Clue) => {
+  const characters = new Set(puzzle.characters.map((character) => character.id))
+  const positions = new Map(puzzle.positions.map((position) => [position.id, position]))
+  const places = new Set(puzzle.positions.map((position) => position.placeId))
+  const items = new Set(puzzle.items.map((item) => item.id))
+
+  switch (clue.type) {
+    case 'character-at-position':
+    case 'character-not-at-position':
+      return characters.has(clue.characterId) && positions.has(clue.positionId)
+    case 'character-in-place':
+    case 'character-not-in-place':
+      return characters.has(clue.characterId) && places.has(clue.placeId)
+    case 'in-corner':
+    case 'not-in-corner':
+      return characters.has(clue.characterId)
+    case 'character-next-to-obstacle':
+      return (
+        characters.has(clue.characterId) &&
+        positions.get(clue.obstaclePositionId)?.blocked === true
+      )
+    case 'has-item':
+    case 'does-not-have-item':
+      return characters.has(clue.characterId) && items.has(clue.itemId)
+    case 'item-in-place':
+    case 'item-not-in-place':
+      return (
+        items.has(clue.itemId) &&
+        places.has(clue.placeId) &&
+        puzzle.characters.some((character) => character.itemId === clue.itemId)
+      )
+    case 'adjacent':
+    case 'not-adjacent':
+    case 'same-row':
+    case 'different-row':
+    case 'same-column':
+    case 'different-column':
+    case 'left-of':
+    case 'right-of':
+    case 'above':
+    case 'below':
+    case 'distance':
+    case 'same-floor':
+    case 'different-floor':
+      return (
+        characters.has(clue.firstCharacterId) &&
+        characters.has(clue.secondCharacterId) &&
+        clue.firstCharacterId !== clue.secondCharacterId
+      )
+    case 'between':
+      return (
+        characters.has(clue.characterId) &&
+        characters.has(clue.firstCharacterId) &&
+        characters.has(clue.secondCharacterId) &&
+        new Set([clue.characterId, clue.firstCharacterId, clue.secondCharacterId]).size === 3
+      )
+  }
+}
+
+export const isPuzzleDefinitionValid = (puzzle: Puzzle) => {
+  if (puzzle.characters.length === 0 || puzzle.positions.length === 0) return false
+  if (
+    new Set(puzzle.characters.map((character) => character.id)).size !==
+    puzzle.characters.length
+  )
+    return false
+  if (new Set(puzzle.positions.map((position) => position.id)).size !== puzzle.positions.length)
+    return false
+  if (new Set(puzzle.items.map((item) => item.id)).size !== puzzle.items.length) return false
+  if (new Set(puzzle.clues.map((clue) => clue.id)).size !== puzzle.clues.length) return false
+
+  const itemIds = new Set(puzzle.items.map((item) => item.id))
+  if (
+    puzzle.characters.some(
+      (character) => character.itemId !== undefined && !itemIds.has(character.itemId),
+    )
+  )
+    return false
+
+  const coordinates = new Set<string>()
+  for (const position of puzzle.positions) {
+    if (
+      !Number.isInteger(position.row) ||
+      !Number.isInteger(position.column) ||
+      position.row < 0 ||
+      position.column < 0 ||
+      (position.layer !== undefined &&
+        (!Number.isInteger(position.layer) || position.layer < 0)) ||
+      (puzzle.boardMode === 'logic-cube' && position.layer === undefined)
+    )
+      return false
+    const coordinate = `${position.layer ?? 0}:${position.row}:${position.column}`
+    if (coordinates.has(coordinate)) return false
+    coordinates.add(coordinate)
+  }
+
+  return puzzle.clues.every((clue) => clueReferencesKnownEntities(puzzle, clue))
 }
 
 export const isClueSatisfiedByPartialAssignment = (
@@ -83,9 +183,9 @@ export const isClueSatisfiedByPartialAssignment = (
     case 'item-in-place':
       return itemPlaceMatches(puzzle, assignment, clue.itemId, clue.placeId)
     case 'item-not-in-place': {
-      const assignedPosition = Object.values(assignment)
-        .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
-        .find((position) => position?.itemId === clue.itemId)
+      const carrier = puzzle.characters.find((character) => character.itemId === clue.itemId)
+      if (!carrier) return false
+      const assignedPosition = positionFor(puzzle, assignment, carrier.id)
       return !assignedPosition || assignedPosition.placeId !== clue.placeId
     }
     case 'adjacent':
@@ -204,4 +304,16 @@ export const isPartialAssignmentValid = (puzzle: Puzzle, assignment: PartialAssi
   return puzzle.clues.every((clue) =>
     isClueSatisfiedByPartialAssignment(puzzle, clue, assignment),
   )
+}
+
+export const isCompleteAssignmentSatisfyingPuzzle = (
+  puzzle: Puzzle,
+  assignment: PartialAssignment,
+) => {
+  if (!isPuzzleDefinitionValid(puzzle)) return false
+  const assignedCharacterIds = Object.keys(assignment)
+  if (assignedCharacterIds.length !== puzzle.characters.length) return false
+  if (puzzle.characters.some((character) => assignment[character.id] === undefined))
+    return false
+  return isPartialAssignmentValid(puzzle, assignment)
 }

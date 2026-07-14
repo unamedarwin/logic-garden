@@ -46,6 +46,7 @@ describe('local completion statistics', () => {
       audience: 'teens',
       difficulty: 'hard',
       puzzleVariant: 'spatial',
+      gridSize: 6,
       generatorVersion: GENERATOR_VERSION,
       elapsedSeconds: 90,
       moves: 12,
@@ -54,6 +55,7 @@ describe('local completion statistics', () => {
 
     expect(statistics.history[0]?.generatorVersion).toBe(GENERATOR_VERSION)
     expect(statistics.history[0]?.theme).toBe('music-studio')
+    expect(statistics.history[0]?.gridSize).toBe(6)
     expect(JSON.stringify(statistics.history[0])).not.toContain('solution')
     expect(set).toHaveBeenCalledOnce()
   })

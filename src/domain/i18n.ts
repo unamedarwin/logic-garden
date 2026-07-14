@@ -38,6 +38,11 @@ type UiKey =
   | 'updateReady'
   | 'update'
   | 'difficulty'
+  | 'boardSize'
+  | 'childMapSize'
+  | 'buildingSize'
+  | 'automaticChildSize'
+  | 'automaticBuildingSize'
   | 'language'
   | 'close'
   | 'reducedMotion'
@@ -86,6 +91,15 @@ type UiKey =
   | 'floorDown'
   | 'showCheckProgress'
   | 'continuePlaying'
+  | 'journeyPath'
+  | 'previousStep'
+  | 'nextStep'
+  | 'resumeGame'
+  | 'collectionStep'
+  | 'sizeStep'
+  | 'difficultyStep'
+  | 'adventureStep'
+  | 'chooseAdventure'
 
 const ui: Record<Locale, Record<UiKey, string>> = {
   ca: {
@@ -111,6 +125,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Hi ha una nova versió preparada.',
     update: 'Actualitzar',
     difficulty: 'Dificultat',
+    boardSize: 'Mida del tauler',
+    childMapSize: 'Mida del mapa',
+    buildingSize: "Alçada de l'edifici",
+    automaticChildSize: 'El mapa infantil adapta la mida al nivell triat.',
+    automaticBuildingSize: 'Cada edifici pot tenir entre 3 i 10 plantes.',
     language: 'Idioma',
     close: 'Tancar',
     reducedMotion: 'Redueix les animacions',
@@ -160,6 +179,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Baixa un pis',
     showCheckProgress: 'Mostra quantes persones estan ben ubicades',
     continuePlaying: 'Continua jugant',
+    journeyPath: "Ruta de l'aventura",
+    previousStep: 'Pas anterior',
+    nextStep: 'Pas següent',
+    resumeGame: 'Reprèn la partida',
+    collectionStep: 'Tipus',
+    sizeStep: 'Mida',
+    difficultyStep: 'Nivell',
+    adventureStep: 'Aventura',
+    chooseAdventure: 'Tria una aventura',
   },
   es: {
     play: 'Jugar',
@@ -184,6 +212,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Hay una nueva versión preparada.',
     update: 'Actualizar',
     difficulty: 'Dificultad',
+    boardSize: 'Tamaño del tablero',
+    childMapSize: 'Tamaño del mapa',
+    buildingSize: 'Altura del edificio',
+    automaticChildSize: 'El mapa infantil adapta el tamaño al nivel elegido.',
+    automaticBuildingSize: 'Cada edificio puede tener entre 3 y 10 plantas.',
     language: 'Idioma',
     close: 'Cerrar',
     reducedMotion: 'Reduce las animaciones',
@@ -233,6 +266,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Baja una planta',
     showCheckProgress: 'Muestra cuántas personas están bien colocadas',
     continuePlaying: 'Seguir jugando',
+    journeyPath: 'Ruta de la aventura',
+    previousStep: 'Paso anterior',
+    nextStep: 'Paso siguiente',
+    resumeGame: 'Reanudar la partida',
+    collectionStep: 'Tipo',
+    sizeStep: 'Tamaño',
+    difficultyStep: 'Nivel',
+    adventureStep: 'Aventura',
+    chooseAdventure: 'Elige una aventura',
   },
   en: {
     play: 'Play',
@@ -257,6 +299,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'A new version is ready.',
     update: 'Update',
     difficulty: 'Difficulty',
+    boardSize: 'Board size',
+    childMapSize: 'Map size',
+    buildingSize: 'Building height',
+    automaticChildSize: 'The children’s map adapts its size to the chosen level.',
+    automaticBuildingSize: 'Each building can have between 3 and 10 floors.',
     language: 'Language',
     close: 'Close',
     reducedMotion: 'Reduce motion',
@@ -306,6 +353,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Go down one floor',
     showCheckProgress: 'Show how many people are in the right place',
     continuePlaying: 'Keep playing',
+    journeyPath: 'Adventure path',
+    previousStep: 'Previous step',
+    nextStep: 'Next step',
+    resumeGame: 'Resume game',
+    collectionStep: 'Type',
+    sizeStep: 'Size',
+    difficultyStep: 'Level',
+    adventureStep: 'Adventure',
+    chooseAdventure: 'Choose an adventure',
   },
   eu: {
     play: 'Jokatu',
@@ -330,6 +386,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Bertsio berria prest dago.',
     update: 'Eguneratu',
     difficulty: 'Zailtasuna',
+    boardSize: 'Taularen tamaina',
+    childMapSize: 'Maparen tamaina',
+    buildingSize: 'Eraikinaren altuera',
+    automaticChildSize: 'Haurrentzako mapak aukeratutako mailara egokitzen du tamaina.',
+    automaticBuildingSize: 'Eraikin bakoitzak 3 eta 10 solairu artean izan ditzake.',
     language: 'Hizkuntza',
     close: 'Itxi',
     reducedMotion: 'Animazioak murriztu',
@@ -379,6 +440,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Jaitsi solairu bat',
     showCheckProgress: 'Erakutsi zenbat pertsona dauden leku egokian',
     continuePlaying: 'Jarraitu jokatzen',
+    journeyPath: 'Abenturaren ibilbidea',
+    previousStep: 'Aurreko urratsa',
+    nextStep: 'Hurrengo urratsa',
+    resumeGame: 'Jarraitu partida',
+    collectionStep: 'Mota',
+    sizeStep: 'Tamaina',
+    difficultyStep: 'Maila',
+    adventureStep: 'Abentura',
+    chooseAdventure: 'Aukeratu abentura bat',
   },
   gl: {
     play: 'Xogar',
@@ -403,6 +473,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Hai unha nova versión preparada.',
     update: 'Actualizar',
     difficulty: 'Dificultade',
+    boardSize: 'Tamaño do taboleiro',
+    childMapSize: 'Tamaño do mapa',
+    buildingSize: 'Altura do edificio',
+    automaticChildSize: 'O mapa infantil adapta o tamaño ao nivel elixido.',
+    automaticBuildingSize: 'Cada edificio pode ter entre 3 e 10 plantas.',
     language: 'Idioma',
     close: 'Pechar',
     reducedMotion: 'Reducir as animacións',
@@ -452,6 +527,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Baixar un andar',
     showCheckProgress: 'Mostrar cantas persoas están ben colocadas',
     continuePlaying: 'Seguir xogando',
+    journeyPath: 'Ruta da aventura',
+    previousStep: 'Paso anterior',
+    nextStep: 'Paso seguinte',
+    resumeGame: 'Continuar a partida',
+    collectionStep: 'Tipo',
+    sizeStep: 'Tamaño',
+    difficultyStep: 'Nivel',
+    adventureStep: 'Aventura',
+    chooseAdventure: 'Escolle unha aventura',
   },
   fr: {
     play: 'Jouer',
@@ -476,6 +560,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Une nouvelle version est prête.',
     update: 'Mettre à jour',
     difficulty: 'Difficulté',
+    boardSize: 'Taille du plateau',
+    childMapSize: 'Taille de la carte',
+    buildingSize: "Hauteur de l'immeuble",
+    automaticChildSize: 'La carte enfant adapte sa taille au niveau choisi.',
+    automaticBuildingSize: 'Chaque immeuble peut avoir de 3 à 10 étages.',
     language: 'Langue',
     close: 'Fermer',
     reducedMotion: 'Réduire les animations',
@@ -528,6 +617,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Descendre d’un étage',
     showCheckProgress: 'Afficher combien de personnes sont bien placées',
     continuePlaying: 'Continuer à jouer',
+    journeyPath: "Parcours de l'aventure",
+    previousStep: 'Étape précédente',
+    nextStep: 'Étape suivante',
+    resumeGame: 'Reprendre la partie',
+    collectionStep: 'Type',
+    sizeStep: 'Taille',
+    difficultyStep: 'Niveau',
+    adventureStep: 'Aventure',
+    chooseAdventure: 'Choisissez une aventure',
   },
   de: {
     play: 'Spielen',
@@ -552,6 +650,11 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     updateReady: 'Eine neue Version ist bereit.',
     update: 'Aktualisieren',
     difficulty: 'Schwierigkeit',
+    boardSize: 'Spielfeldgröße',
+    childMapSize: 'Kartengröße',
+    buildingSize: 'Gebäudehöhe',
+    automaticChildSize: 'Die Kinderkarte passt ihre Größe an die gewählte Stufe an.',
+    automaticBuildingSize: 'Jedes Gebäude kann 3 bis 10 Etagen haben.',
     language: 'Sprache',
     close: 'Schließen',
     reducedMotion: 'Animationen reduzieren',
@@ -603,6 +706,15 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     floorDown: 'Ein Stockwerk nach unten',
     showCheckProgress: 'Anzeigen, wie viele Personen richtig platziert sind',
     continuePlaying: 'Weiterspielen',
+    journeyPath: 'Abenteuerpfad',
+    previousStep: 'Vorheriger Schritt',
+    nextStep: 'Nächster Schritt',
+    resumeGame: 'Spiel fortsetzen',
+    collectionStep: 'Typ',
+    sizeStep: 'Größe',
+    difficultyStep: 'Stufe',
+    adventureStep: 'Abenteuer',
+    chooseAdventure: 'Wähle ein Abenteuer',
   },
 }
 

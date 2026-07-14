@@ -15,6 +15,9 @@ export const itemId = (value: string) => value as ItemId
 export const seed = (value: string) => value as Seed
 
 export type Difficulty = 'easy' | 'medium' | 'hard'
+export type AdvancedGridSize = 6 | 9 | 16
+export type ChildMapSize = 4 | 6 | 8
+export type BuildingSize = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
 export type BoardMode = 'map' | 'logic-grid' | 'logic-cube'
 export type PuzzleVariant = 'spatial' | 'cube'
 export type PuzzleCollection = 'children' | 'two-dimensional' | 'three-dimensional'
@@ -47,6 +50,9 @@ export interface ChallengeMetadata {
   readonly audience: Audience
   readonly generatorVersion: number
   readonly variant?: PuzzleVariant
+  readonly gridSize?: AdvancedGridSize
+  readonly childMapSize?: ChildMapSize
+  readonly buildingDepth?: BuildingSize
   readonly benchmarkSeconds?: number
 }
 
@@ -69,8 +75,28 @@ export const isChallengeMetadata = (value: unknown): value is ChallengeMetadata 
     (candidate.variant === undefined ||
       candidate.variant === 'spatial' ||
       candidate.variant === 'cube') &&
-    (candidate.variant !== 'cube' ||
-      (candidate.difficulty === 'hard' && candidate.audience !== 'children')) &&
+    (candidate.gridSize === undefined ||
+      candidate.gridSize === 6 ||
+      candidate.gridSize === 9 ||
+      candidate.gridSize === 16) &&
+    (candidate.childMapSize === undefined ||
+      candidate.childMapSize === 4 ||
+      candidate.childMapSize === 6 ||
+      candidate.childMapSize === 8) &&
+    (candidate.buildingDepth === undefined ||
+      candidate.buildingDepth === 3 ||
+      candidate.buildingDepth === 4 ||
+      candidate.buildingDepth === 5 ||
+      candidate.buildingDepth === 6 ||
+      candidate.buildingDepth === 7 ||
+      candidate.buildingDepth === 8 ||
+      candidate.buildingDepth === 9 ||
+      candidate.buildingDepth === 10) &&
+    (candidate.gridSize === undefined ||
+      (candidate.variant !== 'cube' && candidate.audience !== 'children')) &&
+    (candidate.childMapSize === undefined || candidate.audience === 'children') &&
+    (candidate.buildingDepth === undefined || candidate.variant === 'cube') &&
+    (candidate.variant !== 'cube' || candidate.audience !== 'children') &&
     (candidate.benchmarkSeconds === undefined ||
       (Number.isSafeInteger(candidate.benchmarkSeconds) &&
         Number(candidate.benchmarkSeconds) >= 0 &&

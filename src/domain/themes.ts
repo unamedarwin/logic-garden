@@ -1,4 +1,4 @@
-import type { Audience, ThemeId } from './types'
+import type { Audience, PuzzleCollection, ThemeId } from './types'
 import { clusteredObstacleRoomIndex } from './spatialPlan'
 
 export interface ThemeCharacter {
@@ -952,6 +952,11 @@ export const themes: readonly Theme[] = [
 
 export const themesForAudience = (audience: Audience) =>
   themes.filter((theme) => (theme.audience ?? 'children') === audience)
+
+export const themesForPuzzleCollection = (collection: PuzzleCollection) =>
+  collection === 'children'
+    ? themesForAudience('children')
+    : themes.filter((theme) => (theme.audience ?? 'children') !== 'children')
 
 export const getTheme = (id: ThemeId) => {
   const theme = themes.find((candidate) => candidate.id === id)

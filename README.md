@@ -24,23 +24,25 @@ only `dist` through GitHub Pages.
 
 ## Scripts
 
-| Command                        | Purpose                                        |
-| ------------------------------ | ---------------------------------------------- |
-| `pnpm dev`                     | Start Vite.                                    |
-| `pnpm build`                   | Type-check and build for production.           |
-| `pnpm preview`                 | Serve the production build.                    |
-| `pnpm format` / `format:check` | Format or validate formatting.                 |
-| `pnpm spellcheck`              | Check Catalan, Spanish, and English text.      |
-| `pnpm lint`                    | Run ESLint.                                    |
-| `pnpm typecheck`               | Run strict TypeScript checking.                |
-| `pnpm test`                    | Run unit, property, and interface tests.       |
-| `pnpm test:coverage`           | Run tests with V8 coverage.                    |
-| `pnpm pwa:check`               | Validate generated PWA files.                  |
-| `pnpm templates:build`         | Regenerate 1,000 structural puzzle templates.  |
-| `pnpm templates:check`         | Check the generated catalog version and size.  |
-| `pnpm icons:build`             | Refresh the local Fluent SVG subset.           |
-| `pnpm terrain:samples`         | Rebuild the 14 fixed terrain PNG references.   |
-| `pnpm verify`                  | Run every required check and production build. |
+| Command                        | Purpose                                          |
+| ------------------------------ | ------------------------------------------------ |
+| `pnpm dev`                     | Start Vite.                                      |
+| `pnpm build`                   | Type-check and build for production.             |
+| `pnpm preview`                 | Serve the production build.                      |
+| `pnpm format` / `format:check` | Format or validate formatting.                   |
+| `pnpm spellcheck`              | Check Catalan, Spanish, and English text.        |
+| `pnpm lint`                    | Run ESLint.                                      |
+| `pnpm typecheck`               | Run strict TypeScript checking.                  |
+| `pnpm test`                    | Run unit, property, and interface tests.         |
+| `pnpm test:coverage`           | Run tests with V8 coverage.                      |
+| `pnpm pwa:check`               | Validate generated PWA files.                    |
+| `pnpm build:budget`            | Enforce JavaScript, CSS, chunk, and dist limits. |
+| `pnpm release:metrics`         | Print reproducible build metrics as JSON.        |
+| `pnpm templates:build`         | Regenerate 1,000 structural puzzle templates.    |
+| `pnpm templates:check`         | Check the generated catalog version and size.    |
+| `pnpm icons:build`             | Refresh the local Fluent SVG subset.             |
+| `pnpm terrain:samples`         | Rebuild the 14 fixed terrain PNG references.     |
+| `pnpm verify`                  | Run every required check and production build.   |
 
 ## Architecture
 
@@ -66,7 +68,7 @@ code.
 
 `src/generator/seededRandom.ts` implements a deterministic PRNG. Theme, characters,
 positions, solution, clue variants, and clue ordering all come from seeded streams. The same
-generator version, variant, audience, difficulty, and seed therefore create the same puzzle.
+generator version, variant, audience, difficulty, selected size, and seed therefore create the same puzzle.
 
 The 2D and 3D collections select one of 1,000 pre-generated structural templates. The catalog
 contains 950 spatial templates across the internal teen and adult content catalogs, all three
@@ -113,14 +115,14 @@ language and safe local themes:
 | Puzzles 2D | Spatial deduction plan | Music, sports, creative spaces, books, gardens, and markets |
 | Puzzles 3D | 3-to-10-floor building | Friendly neighbors, shared landings, homes, and local shops |
 
-Children keep the compact map difficulties below. Seeded rectangular boards alternate their
-orientation, so a `2 x 3` board can also appear as `3 x 2`.
-
-| Difficulty | Map   | Friends |
-| ---------- | ----- | ------- |
-| Easy       | 2 x 2 | 4       |
-| Medium     | 2 x 3 | 6       |
-| Hard       | 2 x 4 | 8       |
+Children choose 4, 6, or 8 friends independently from easy, medium, or hard deduction. Easy maps
+protect direct friendly clues for most friends, medium maps protect fewer direct clues, and hard
+maps prioritize relational deduction before direct placement clues. Seeded
+rectangular boards alternate their orientation, so a `2 x 3` board can also appear as `3 x 2`.
+Puzzles 3D similarly choose an exact height from 3 through 10 floors independently from their
+difficulty. Easy deterministically ensures direct home or landmark guidance for at least four
+people, medium ensures it for at least two, and hard keeps the complete structural deduction
+without extra guidance. Existing direct facts count toward those targets and are not repeated.
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
 focus and activate a character button, then activate a location button. Touching a placed
@@ -130,11 +132,14 @@ target under the pointer, and dropping on the current cell does not count as a m
 top-layer guide draws the complete drag grid, so room textures and scene art cannot interrupt or
 change individual grid lines. The 2D collection uses the same deduction rules across its internal
 teen and adult content catalogs.
-Every advanced difficulty can use `6 x 6`, `9 x 9`, or `16 x 16`; grid size does not define
-difficulty and never dictates the number of people. The seeded selector chooses one of the three
-sizes first, with equal probability, and only then chooses a template from that size. Easy
-templates keep landmark choices narrow, while harder templates allow broader candidate domains.
-Groups target 4, 6, and 8 people and are capped by the selected grid dimension. Visible scenery
+Setup follows one compact decision per journey step: collection, size, difficulty, and adventure.
+The fourth step is a real horizontally scrollable theme picker; starting or resuming a game is
+available only after that choice.
+The size step offers 4/6/8 friends for Children, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and
+3-10 floors for Puzzles 3D. In the 2D and 3D collections the player chooses size independently from
+easy, medium, or hard deduction. Easy templates keep landmark choices narrow, while harder
+templates allow broader candidate domains. Every `16 x 16` template uses eight people so the
+row/column crossing mechanic covers the large board meaningfully. Visible scenery
 blocks selected cells, while occupied rows and columns are crossed. Choosing a crossed destination
 returns incompatible occupants to the waiting rail in one reversible move, so drag interactions
 preserve the deduction rule without trapping the next person. The game provides visible focus,
@@ -156,13 +161,20 @@ whole experiment without the interface revealing the answer early.
 
 Every check opens an accessible result dialog instead of placing feedback below the game. By default,
 it reports the solver-verified number of correctly placed people as `N/total`. A local setting can hide
-that exact score and retain only encouraging guidance. Before accepting a completed board, validation
-reruns the solver with a limit of two, rejects non-unique puzzles, and requires every placement to match
-the single derived solution. No answer or rendered result text is persisted.
+that exact score and retain only encouraging guidance. The score is the largest subset of the current
+placements that can jointly extend to a valid solution, so individually plausible but mutually
+contradictory guesses can never be reported as `total/total`. A completed board is accepted when its
+full assignment satisfies the puzzle constraints; it is never compared with a stored or arbitrarily
+selected answer. Generation still rejects every puzzle unless a solver run limited to two confirms
+exactly one solution. No answer or rendered result text is persisted.
 
-During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
-game. The same action is available from the header and the completion dialog, so a player can
-always choose another difficulty before starting a new adventure.
+The upper journey path links collection, board size, difficulty, and adventure. Moving backward returns to the
+picker without deleting the current puzzle, placements, timer, or challenge; returning to the same
+adventure resumes that game. Selecting a different adventure and pressing play starts a new seeded
+puzzle. The selected theme is folded into the final shareable seed, so the ordinary share payload
+replays the exact adventure without storing a solution or adding a separate theme field. Starting a
+new game is the only navigation action that replaces the suspended game.
+Every step and direction control is keyboard accessible and at least 44 pixels high.
 
 ## Visual direction
 
@@ -180,7 +192,7 @@ walls and room-specific materials locally; semantic DOM cells paint crossed-out 
 without rebuilding the Pixi canvas after every move. Seed-generated item
 icons render visible furniture and obstacles, while human avatars always come from a separate
 visual category. Scene art uses a generated, locally bundled subset of Microsoft Fluent Emoji
-Flat SVGs through Iconify, with no CDN or runtime request. Each advanced theme has a curated room
+Flat SVG bodies, with no Iconify runtime, CDN, or network request. Each advanced theme has a curated room
 catalog split into six place-specific subsets, so fixed objects remain plausible for the room that
 contains them. Clue items, room objects, and character avatars cannot reuse an icon. Icon,
 token, label, and cross sizes derive from the actual grid cell so 6x6,
@@ -265,9 +277,14 @@ an offline status only when connectivity is lost. On a first mobile
 visit, Android receives the native install action when available; iPhone and iPad receive the
 short Share > Add to Home Screen instruction.
 
+Production builds enforce budgets for the entry module, initial graph, largest lazy chunk, total
+JavaScript and CSS, chunk count, and complete `dist` size. `pnpm pwa:check` additionally rejects
+duplicate precache entries, missing offline assets, source maps, source files, broken base paths,
+and credential-like strings.
+
 Share links are available during play and after completion, and never contain the answer or
-personal data. Payload schema 4 stores a generator version,
-variant, difficulty, seed, audience, and an optional bounded completion-time benchmark
+personal data. Payload schema 5 stores a generator version,
+variant, difficulty, the collection-specific selected size, seed, audience, and an optional bounded completion-time benchmark
 as JSON compressed with GZIP and then encoded as URL-safe Base64. New payloads use the `gz_`
 prefix, while the reader remains compatible with validated legacy uncompressed Base64 links:
 
@@ -275,7 +292,7 @@ prefix, while the reader remains compatible with validated legacy uncompressed B
 /logic-garden/?p=gz_<url-safe-base64-gzip-payload>
 ```
 
-After a solve, the local history stores the theme identifier, audience, difficulty, generator version,
+After a solve, the local history stores the theme identifier, audience, difficulty, the selected map, grid, or building size, generator version,
 elapsed time, moves, hint count, and seed. It never stores the answer or personal data. Each saved result exposes the
 same share action, using the platform share sheet on supported Android and Apple devices and
 copying the link as a fallback. Opening a timed link shows an accessible challenge dialog; after
@@ -287,7 +304,7 @@ copy, creating a safe back-and-forth challenge without transmitting a player nam
 
 Preferences, first-visit state, statistics, and the in-progress game are stored in IndexedDB
 through small safe wrappers. The preferences migration deletes the retired local profile record.
-The schemas are versioned; in-progress games currently use schema 4. An in-progress game is restored only
+The schemas are versioned; preferences use schema 5 and in-progress games use schema 4. An in-progress game is restored only
 when its persistence schema and generator version are current, preventing old clues or geometry
 from leaking into a new release. If browser storage is unavailable, play still works without
 persistence.
@@ -304,7 +321,8 @@ When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:b
 difference is clue order. The catalog
 builder may generate extra candidates and discard impossible geometry or duplicates, but it must
 stop at exactly 1,000 valid structures and retain all 18 spatial audience/difficulty/size buckets
-plus the two hard building audience buckets.
+plus the two hard structural building audience buckets. Runtime 3D guidance derives easy and medium
+variants from those unique structures without storing an answer.
 
 Planned product work is tracked in [`docs/product-backlog.md`](docs/product-backlog.md).
 
@@ -318,4 +336,5 @@ Tests cover solver edge cases, every constraint family, deterministic generation
 answer-free templates, runtime uniqueness across all 18 advanced buckets, clue truth,
 minimality, safe-content scanning, hundreds of seeds, reducer history, click and
 keyboard play, localization, and manifest settings. `pnpm pwa:check` verifies the output
-manifest, service worker, and precache after a production build.
+manifest, service worker, unique precache, and offline asset coverage after a production build;
+`pnpm build` also fails when a release exceeds the checked-in bundle budgets.

@@ -12,13 +12,41 @@ interface DifficultySelectorProps {
 }
 
 const labels: Record<Locale, Record<Difficulty, string>> = {
-  ca: { easy: 'Fàcil · 4 amics', medium: 'Mitjà · 6 amics', hard: 'Difícil · 8 amics' },
-  es: { easy: 'Fácil · 4 amigos', medium: 'Medio · 6 amigos', hard: 'Difícil · 8 amigos' },
-  en: { easy: 'Easy · 4 friends', medium: 'Medium · 6 friends', hard: 'Hard · 8 friends' },
-  eu: { easy: 'Erraza · 4 lagun', medium: 'Ertaina · 6 lagun', hard: 'Zaila · 8 lagun' },
-  gl: { easy: 'Fácil · 4 amigos', medium: 'Media · 6 amigos', hard: 'Difícil · 8 amigos' },
-  fr: { easy: 'Facile · 4 amis', medium: 'Moyen · 6 amis', hard: 'Difficile · 8 amis' },
-  de: { easy: 'Leicht · 4 Freunde', medium: 'Mittel · 6 Freunde', hard: 'Schwer · 8 Freunde' },
+  ca: {
+    easy: 'Fàcil · pistes molt clares',
+    medium: 'Mitjà · més opcions',
+    hard: 'Difícil · més deducció',
+  },
+  es: {
+    easy: 'Fácil · pistas muy claras',
+    medium: 'Medio · más opciones',
+    hard: 'Difícil · más deducción',
+  },
+  en: {
+    easy: 'Easy · very clear clues',
+    medium: 'Medium · more choices',
+    hard: 'Hard · deeper deduction',
+  },
+  eu: {
+    easy: 'Erraza · pista oso argiak',
+    medium: 'Ertaina · aukera gehiago',
+    hard: 'Zaila · dedukzio gehiago',
+  },
+  gl: {
+    easy: 'Fácil · pistas moi claras',
+    medium: 'Media · máis opcións',
+    hard: 'Difícil · máis dedución',
+  },
+  fr: {
+    easy: 'Facile · indices très clairs',
+    medium: 'Moyen · plus de choix',
+    hard: 'Difficile · plus de déduction',
+  },
+  de: {
+    easy: 'Leicht · sehr klare Hinweise',
+    medium: 'Mittel · mehr Möglichkeiten',
+    hard: 'Schwer · mehr Logik',
+  },
 }
 
 const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
@@ -59,6 +87,44 @@ const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
   },
 }
 
+const buildingLabels: Record<Locale, Record<Difficulty, string>> = {
+  ca: {
+    easy: 'Fàcil · 4 veïns guiats',
+    medium: 'Mitjà · 2 veïns guiats',
+    hard: 'Difícil · deducció completa',
+  },
+  es: {
+    easy: 'Fácil · 4 vecinos guiados',
+    medium: 'Medio · 2 vecinos guiados',
+    hard: 'Difícil · deducción completa',
+  },
+  en: {
+    easy: 'Easy · 4 guided neighbours',
+    medium: 'Medium · 2 guided neighbours',
+    hard: 'Hard · full deduction',
+  },
+  eu: {
+    easy: 'Erraza · 4 bizilagun gidatuta',
+    medium: 'Ertaina · 2 bizilagun gidatuta',
+    hard: 'Zaila · dedukzio osoa',
+  },
+  gl: {
+    easy: 'Fácil · 4 veciños guiados',
+    medium: 'Media · 2 veciños guiados',
+    hard: 'Difícil · dedución completa',
+  },
+  fr: {
+    easy: 'Facile · 4 voisins guidés',
+    medium: 'Moyen · 2 voisins guidés',
+    hard: 'Difficile · déduction complète',
+  },
+  de: {
+    easy: 'Leicht · 4 geführte Nachbarn',
+    medium: 'Mittel · 2 geführte Nachbarn',
+    hard: 'Schwer · vollständige Logik',
+  },
+}
+
 export const DifficultySelector = ({
   value,
   locale,
@@ -66,29 +132,12 @@ export const DifficultySelector = ({
   label,
   onChange,
 }: DifficultySelectorProps) => {
-  const copy = collection === 'children' ? labels[locale] : logicGridLabels[locale]
-
-  if (collection === 'three-dimensional') {
-    return (
-      <fieldset className="difficulty-selector difficulty-selector--building">
-        <legend>{label}</legend>
-        <label className="difficulty-selector__selected">
-          <input type="radio" name="difficulty" value="hard" checked readOnly />
-          {
-            {
-              ca: 'Avançat · edifici de 3 a 10 plantes',
-              es: 'Avanzado · edificio de 3 a 10 plantas',
-              en: 'Advanced · 3–10-floor building',
-              eu: 'Aurreratua · 3-10 solairuko eraikina',
-              gl: 'Avanzado · edificio de 3 a 10 plantas',
-              fr: 'Avancé · immeuble de 3 à 10 niveaux',
-              de: 'Fortgeschritten · Gebäude mit 3 bis 10 Etagen',
-            }[locale]
-          }
-        </label>
-      </fieldset>
-    )
-  }
+  const copy =
+    collection === 'children'
+      ? labels[locale]
+      : collection === 'three-dimensional'
+        ? buildingLabels[locale]
+        : logicGridLabels[locale]
 
   return (
     <fieldset className="difficulty-selector">

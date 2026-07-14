@@ -43,6 +43,11 @@ describe('validated advanced puzzle templates', () => {
     }
     expect(buildingTemplates.every((template) => template.characterCount === 8)).toBe(true)
     expect(
+      advancedPuzzleTemplates
+        .filter((template) => template.boardMode === 'logic-grid' && template.gridSize === 16)
+        .every((template) => template.characterCount === 8),
+    ).toBe(true)
+    expect(
       advancedPuzzleTemplates.every(
         (template) => template.generatorVersion === GENERATOR_VERSION,
       ),

@@ -10,9 +10,6 @@ importers:
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@iconify/react':
-        specifier: ^6.0.2
-        version: 6.0.2(react@19.2.7)
       fflate:
         specifier: 0.8.3
         version: 0.8.3
@@ -1862,14 +1859,6 @@ packages:
       {
         integrity: sha512-5ShoOHJ0ezYEIMfp2zvbRiZpL1Af8Prg5v9pElaIQhfqwbyD57pzrp70g/rK2EjigajBq9/cPrJXh224HaP3TQ==,
       }
-
-  '@iconify/react@6.0.2':
-    resolution:
-      {
-        integrity: sha512-SMmC2sactfpJD427WJEDN6PMyznTFMhByK9yLW0gOTtnjzzbsi/Ke/XqsumsavFPwNiXs8jSiYeZTmLCLwO+Fg==,
-      }
-    peerDependencies:
-      react: '>=16'
 
   '@iconify/types@2.0.0':
     resolution:
@@ -7300,11 +7289,6 @@ snapshots:
   '@iconify-json/fluent-emoji-flat@1.2.5':
     dependencies:
       '@iconify/types': 2.0.0
-
-  '@iconify/react@6.0.2(react@19.2.7)':
-    dependencies:
-      '@iconify/types': 2.0.0
-      react: 19.2.7
 
   '@iconify/types@2.0.0': {}
 

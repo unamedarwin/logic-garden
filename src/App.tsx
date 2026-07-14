@@ -24,8 +24,12 @@ import {
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { parseSharedGameRoute, shareUrl, type SharedGameRoute } from './app/routes'
 import { ChallengeIntroDialog } from './components/ChallengeIntroDialog'
+import { AdventureSelector } from './components/AdventureSelector'
+import { BoardSizeSelector } from './components/BoardSizeSelector'
+import { BuildingSizeSelector } from './components/BuildingSizeSelector'
 import { CheckResultDialog } from './components/CheckResultDialog'
 import { CharacterTray } from './components/CharacterTray'
+import { ChildMapSizeSelector } from './components/ChildMapSizeSelector'
 import { CharacterClueRail } from './components/CharacterClueRail'
 import { CharacterTokenPreview } from './components/CharacterToken'
 import { CluePanel } from './components/CluePanel'
@@ -37,6 +41,7 @@ import { GameHeader } from './components/GameHeader'
 import { GameTimer } from './components/GameTimer'
 import { HintCharacterDialog } from './components/HintCharacterDialog'
 import { InstallPrompt } from './components/InstallPrompt'
+import { JourneyPath, type JourneyStep } from './components/JourneyPath'
 import { PuzzleCollectionSelector } from './components/PuzzleCollectionSelector'
 import { ResultDialog } from './components/ResultDialog'
 import { SceneIcon } from './components/SceneIcon'
@@ -53,13 +58,14 @@ import {
   themeCopy,
 } from './domain/i18n'
 import { buildingDepthForPositions } from './domain/buildingPlan'
-import { getTheme } from './domain/themes'
+import { getTheme, themesForPuzzleCollection } from './domain/themes'
 import {
   seed,
   type Audience,
   type CharacterId,
   type Difficulty,
   type PuzzleCollection,
+  type ThemeId,
 } from './domain/types'
 import {
   gameReducer,
@@ -89,6 +95,9 @@ import {
 } from './storage/statistics'
 
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+
+type AppView = 'home' | 'game'
+type HomeJourneyStep = JourneyStep
 
 const emptyStatistics: Statistics = {
   schemaVersion: 4,
@@ -152,10 +161,44 @@ const HomeScene = ({ collection }: { readonly collection: PuzzleCollection }) =>
 
 const createSeed = () => globalThis.crypto?.randomUUID?.() ?? `adventure-${Date.now()}`
 
+const gameMatchesSetup = (
+  game: GameState,
+  preferences: Preferences,
+  selectedThemeId: ThemeId,
+) => {
+  const collection: PuzzleCollection =
+    game.puzzle.boardMode === 'logic-cube'
+      ? 'three-dimensional'
+      : game.puzzle.boardMode === 'logic-grid'
+        ? 'two-dimensional'
+        : 'children'
+  if (collection !== preferences.collection) return false
+  if (game.puzzle.theme !== selectedThemeId) return false
+  if (collection === 'three-dimensional') {
+    return (
+      game.puzzle.difficulty === preferences.difficulty &&
+      buildingDepthForPositions(game.puzzle.positions) === preferences.buildingDepth
+    )
+  }
+  if (game.puzzle.difficulty !== preferences.difficulty) return false
+  if (collection === 'children') {
+    return game.puzzle.characters.length === preferences.childMapSize
+  }
+  return (
+    collection !== 'two-dimensional' ||
+    Math.sqrt(game.puzzle.positions.length) === preferences.advancedGridSize
+  )
+}
+
 export default function App() {
   const [preferences, setPreferences] = useState<Preferences>(defaultPreferences)
   const [statistics, setStatistics] = useState<Statistics>(emptyStatistics)
   const [game, setGame] = useState<GameState | null>(null)
+  const [view, setView] = useState<AppView>('home')
+  const [homeJourneyStep, setHomeJourneyStep] = useState<HomeJourneyStep>('collection')
+  const [selectedThemeId, setSelectedThemeId] = useState<ThemeId>(
+    () => themesForPuzzleCollection('children')[0]!.id,
+  )
   const [ready, setReady] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -170,6 +213,7 @@ export default function App() {
   const [activeDragCharacterId, setActiveDragCharacterId] = useState<CharacterId | null>(null)
   const [boardZoom, setBoardZoom] = useState(1)
   const boardScrollRef = useRef<HTMLDivElement>(null)
+  const setupStepRef = useRef<HTMLDivElement>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   )
@@ -199,7 +243,11 @@ export default function App() {
         setShowChallengeIntro(true)
       } else if (savedGame?.state.status === 'playing') {
         setGame(savedGame.state)
+        setSelectedThemeId(savedGame.state.puzzle.theme)
+        setView('game')
         setSharedChallenge(savedGame.challenge ?? null)
+      } else {
+        setSelectedThemeId(themesForPuzzleCollection(storedPreferences.collection)[0]!.id)
       }
       setReady(true)
     })
@@ -244,6 +292,12 @@ export default function App() {
   }, [boardZoom])
 
   useEffect(() => {
+    if (!ready || view !== 'home') return
+    const frame = window.requestAnimationFrame(() => setupStepRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [homeJourneyStep, ready, view])
+
+  useEffect(() => {
     const setOnlineState = () => setOnline(navigator.onLine)
     window.addEventListener('online', setOnlineState)
     window.addEventListener('offline', setOnlineState)
@@ -262,13 +316,23 @@ export default function App() {
     difficulty: Difficulty = preferences.difficulty,
     source = createSeed(),
     collection: PuzzleCollection = preferences.collection,
+    themeId: ThemeId = selectedThemeId,
   ) => {
     setGenerating(true)
     try {
       const nextGame = createGameState(
-        generatePuzzleForCollection(difficulty, source, collection),
+        generatePuzzleForCollection(
+          difficulty,
+          source,
+          collection,
+          preferences.advancedGridSize,
+          preferences.childMapSize,
+          preferences.buildingDepth,
+          themeId,
+        ),
       )
       setGame(nextGame)
+      setView('game')
       setSharedChallenge(null)
       setShowChallengeIntro(false)
       setShowHintPicker(false)
@@ -283,32 +347,68 @@ export default function App() {
     }
   }
 
-  const returnToHome = () => {
-    setGame(null)
-    setSharedChallenge(null)
+  const openHomeJourneyStep = (step: HomeJourneyStep) => {
+    setView('home')
+    setHomeJourneyStep(step)
     setShowChallengeIntro(false)
     setShowHintPicker(false)
     setShowCheckResult(false)
-    void clearSavedGame()
     window.history.replaceState({}, '', import.meta.env.BASE_URL)
     resetPageScroll()
     setNotice('')
+  }
+
+  const returnToHome = () => {
+    if (game) setSelectedThemeId(game.puzzle.theme)
+    openHomeJourneyStep('difficulty')
+  }
+
+  const resumeGame = () => {
+    if (!game) return
+    setView('game')
+    setShowHintPicker(false)
+    setShowCheckResult(false)
+    resetPageScroll()
+    setNotice('')
+  }
+
+  const openJourneyStep = (step: JourneyStep) => {
+    openHomeJourneyStep(step)
   }
 
   const acceptSharedChallenge = () => {
     if (!sharedChallenge) return
     setGenerating(true)
     try {
-      setGame(
-        createGameState(
-          generatePuzzle(
-            sharedChallenge.difficulty,
-            sharedChallenge.seed,
-            sharedChallenge.audience,
-            sharedChallenge.variant ?? 'spatial',
-          ),
+      setPreferences((current) => ({
+        ...current,
+        difficulty: sharedChallenge.difficulty,
+        collection:
+          sharedChallenge.variant === 'cube'
+            ? 'three-dimensional'
+            : sharedChallenge.audience === 'children'
+              ? 'children'
+              : 'two-dimensional',
+        ...(sharedChallenge.gridSize ? { advancedGridSize: sharedChallenge.gridSize } : {}),
+        ...(sharedChallenge.childMapSize ? { childMapSize: sharedChallenge.childMapSize } : {}),
+        ...(sharedChallenge.buildingDepth
+          ? { buildingDepth: sharedChallenge.buildingDepth }
+          : {}),
+      }))
+      const acceptedGame = createGameState(
+        generatePuzzle(
+          sharedChallenge.difficulty,
+          sharedChallenge.seed,
+          sharedChallenge.audience,
+          sharedChallenge.variant ?? 'spatial',
+          sharedChallenge.gridSize,
+          sharedChallenge.childMapSize,
+          sharedChallenge.buildingDepth,
         ),
       )
+      setGame(acceptedGame)
+      setSelectedThemeId(acceptedGame.puzzle.theme)
+      setView('game')
       setShowChallengeIntro(false)
       setShowCheckResult(false)
       setChallengeFirstVisit(false)
@@ -345,7 +445,6 @@ export default function App() {
       const completion = {
         seed: nextGame.puzzle.seed,
         theme: nextGame.puzzle.theme,
-        audience: activeAudience,
         difficulty: nextGame.puzzle.difficulty,
         generatorVersion: nextGame.puzzle.metadata.generatorVersion,
         elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
@@ -357,9 +456,22 @@ export default function App() {
           ? {
               ...completion,
               puzzleVariant: 'cube',
+              audience: activeAudience === 'children' ? 'adults' : activeAudience,
               buildingDepth: buildingDepthForPositions(nextGame.puzzle.positions),
             }
-          : { ...completion, puzzleVariant: 'spatial' },
+          : nextGame.puzzle.boardMode === 'logic-grid'
+            ? {
+                ...completion,
+                puzzleVariant: 'spatial',
+                audience: activeAudience === 'children' ? 'adults' : activeAudience,
+                gridSize: Math.sqrt(nextGame.puzzle.positions.length) as 6 | 9 | 16,
+              }
+            : {
+                ...completion,
+                puzzleVariant: 'spatial',
+                audience: 'children',
+                childMapSize: nextGame.puzzle.characters.length as 4 | 6 | 8,
+              },
       ).then(setStatistics)
     }
   }
@@ -422,6 +534,11 @@ export default function App() {
           seed: game.puzzle.seed,
           generatorVersion: game.puzzle.metadata.generatorVersion,
           variant: game.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial',
+          ...(game.puzzle.boardMode === 'logic-grid'
+            ? { gridSize: Math.sqrt(game.puzzle.positions.length) as 6 | 9 | 16 }
+            : game.puzzle.boardMode === 'map'
+              ? { childMapSize: game.puzzle.characters.length as 4 | 6 | 8 }
+              : { buildingDepth: buildingDepthForPositions(game.puzzle.positions) }),
         },
         activeAudience,
         completedSeconds,
@@ -450,6 +567,9 @@ export default function App() {
           seed: seed(completedGame.seed),
           generatorVersion: completedGame.generatorVersion,
           variant: completedGame.puzzleVariant ?? 'spatial',
+          gridSize: completedGame.gridSize,
+          childMapSize: completedGame.childMapSize,
+          buildingDepth: completedGame.buildingDepth,
         },
         completedGame.audience,
         completedGame.elapsedSeconds,
@@ -486,7 +606,14 @@ export default function App() {
     return <main className="loading-screen">{t(preferences.locale, 'preparing')}</main>
   }
 
-  if (!game) {
+  const journeySteps: Readonly<Record<JourneyStep, string>> = {
+    collection: t(preferences.locale, 'collectionStep'),
+    size: t(preferences.locale, 'sizeStep'),
+    difficulty: t(preferences.locale, 'difficultyStep'),
+    adventure: t(preferences.locale, 'adventureStep'),
+  }
+
+  if (!game || view === 'home') {
     const heroCopy = puzzleCollectionCopy(preferences.locale, preferences.collection)
     const homeAudience =
       preferences.collection === 'children'
@@ -494,6 +621,9 @@ export default function App() {
         : preferences.collection === 'two-dimensional'
           ? 'teens'
           : 'adults'
+    const canResumeCurrentSetup = game
+      ? gameMatchesSetup(game, preferences, selectedThemeId)
+      : false
     return (
       <main
         className={`app-shell home-screen audience--${homeAudience} collection--${preferences.collection}`}
@@ -504,44 +634,130 @@ export default function App() {
           homeLabel={t(preferences.locale, 'goHome')}
           settingsLabel={t(preferences.locale, 'settings')}
           onOpenSettings={() => setShowSettings(true)}
+          onGoHome={() => openHomeJourneyStep('collection')}
         />
-        <section className="home-hero">
+        <JourneyPath
+          label={t(preferences.locale, 'journeyPath')}
+          currentStep={homeJourneyStep}
+          furthestStep={
+            canResumeCurrentSetup
+              ? 'adventure'
+              : homeJourneyStep === 'collection'
+                ? 'size'
+                : homeJourneyStep === 'size'
+                  ? 'difficulty'
+                  : 'adventure'
+          }
+          steps={journeySteps}
+          previousLabel={t(preferences.locale, 'previousStep')}
+          nextLabel={t(preferences.locale, 'nextStep')}
+          canGoPrevious={homeJourneyStep !== 'collection'}
+          canGoNext={homeJourneyStep !== 'adventure'}
+          onPrevious={() => {
+            if (homeJourneyStep === 'adventure') openHomeJourneyStep('difficulty')
+            else if (homeJourneyStep === 'difficulty') openHomeJourneyStep('size')
+            else openHomeJourneyStep('collection')
+          }}
+          onNext={() => {
+            if (homeJourneyStep === 'collection') openHomeJourneyStep('size')
+            else if (homeJourneyStep === 'size') openHomeJourneyStep('difficulty')
+            else if (homeJourneyStep === 'difficulty') openHomeJourneyStep('adventure')
+            else if (canResumeCurrentSetup) resumeGame()
+            else startGame()
+          }}
+          onStepChange={openJourneyStep}
+        />
+        <section
+          className={`home-hero ${homeJourneyStep === 'collection' ? '' : 'home-hero--setup'}`}
+        >
           <div className="home-hero__copy">
             <p className="eyebrow">{heroCopy.eyebrow}</p>
             <h1>{heroCopy.title}</h1>
             <p className="home-hero__description">{heroCopy.description}</p>
-            <PuzzleCollectionSelector
-              value={preferences.collection}
-              locale={preferences.locale}
-              label={t(preferences.locale, 'puzzleCollection')}
-              onChange={(collection) =>
-                setPreferences({
-                  ...preferences,
-                  collection,
-                })
-              }
-            />
-            <DifficultySelector
-              value={preferences.difficulty}
-              locale={preferences.locale}
-              collection={preferences.collection}
-              label={t(preferences.locale, 'difficulty')}
-              onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
-            />
-            <div className="home-hero__actions">
-              <button
-                type="button"
-                className="button button--large"
-                disabled={generating}
-                onClick={() => startGame()}
-              >
-                <span aria-hidden="true">✦</span>{' '}
-                {generating ? '…' : t(preferences.locale, 'play')}
-              </button>
-              <p className="home-stat">
-                <strong>{statistics.completed}</strong>{' '}
-                {t(preferences.locale, 'adventuresCompleted')}
-              </p>
+            <div
+              ref={setupStepRef}
+              className="setup-step"
+              tabIndex={-1}
+              role="group"
+              aria-label={journeySteps[homeJourneyStep]}
+            >
+              {homeJourneyStep === 'collection' && (
+                <PuzzleCollectionSelector
+                  value={preferences.collection}
+                  locale={preferences.locale}
+                  label={t(preferences.locale, 'puzzleCollection')}
+                  onChange={(collection) => {
+                    setPreferences({ ...preferences, collection })
+                    setSelectedThemeId(themesForPuzzleCollection(collection)[0]!.id)
+                  }}
+                />
+              )}
+              {homeJourneyStep === 'size' &&
+                (preferences.collection === 'children' ? (
+                  <ChildMapSizeSelector
+                    value={preferences.childMapSize}
+                    locale={preferences.locale}
+                    label={t(preferences.locale, 'childMapSize')}
+                    onChange={(childMapSize) =>
+                      setPreferences({ ...preferences, childMapSize })
+                    }
+                  />
+                ) : preferences.collection === 'two-dimensional' ? (
+                  <BoardSizeSelector
+                    value={preferences.advancedGridSize}
+                    locale={preferences.locale}
+                    label={t(preferences.locale, 'boardSize')}
+                    onChange={(advancedGridSize) =>
+                      setPreferences({ ...preferences, advancedGridSize })
+                    }
+                  />
+                ) : (
+                  <BuildingSizeSelector
+                    value={preferences.buildingDepth}
+                    locale={preferences.locale}
+                    label={t(preferences.locale, 'buildingSize')}
+                    onChange={(buildingDepth) =>
+                      setPreferences({ ...preferences, buildingDepth })
+                    }
+                  />
+                ))}
+              {homeJourneyStep === 'difficulty' && (
+                <DifficultySelector
+                  value={preferences.difficulty}
+                  locale={preferences.locale}
+                  collection={preferences.collection}
+                  label={t(preferences.locale, 'difficulty')}
+                  onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
+                />
+              )}
+              {homeJourneyStep === 'adventure' && (
+                <>
+                  <AdventureSelector
+                    value={selectedThemeId}
+                    collection={preferences.collection}
+                    locale={preferences.locale}
+                    label={t(preferences.locale, 'chooseAdventure')}
+                    onChange={setSelectedThemeId}
+                  />
+                  <div className="home-hero__actions">
+                    <button
+                      type="button"
+                      className="button button--large"
+                      disabled={generating}
+                      onClick={() => (canResumeCurrentSetup ? resumeGame() : startGame())}
+                    >
+                      <span aria-hidden="true">✦</span>{' '}
+                      {generating
+                        ? '…'
+                        : t(preferences.locale, canResumeCurrentSetup ? 'resumeGame' : 'play')}
+                    </button>
+                    <p className="home-stat">
+                      <strong>{statistics.completed}</strong>{' '}
+                      {t(preferences.locale, 'adventuresCompleted')}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
             <details className="how-it-works">
               <summary>{t(preferences.locale, 'howItWorks')}</summary>
@@ -646,6 +862,19 @@ export default function App() {
         settingsLabel={t(preferences.locale, 'settings')}
         onOpenSettings={() => setShowSettings(true)}
         onGoHome={returnToHome}
+      />
+      <JourneyPath
+        label={t(preferences.locale, 'journeyPath')}
+        currentStep="adventure"
+        furthestStep="adventure"
+        steps={journeySteps}
+        previousLabel={t(preferences.locale, 'previousStep')}
+        nextLabel={t(preferences.locale, 'nextStep')}
+        canGoPrevious
+        canGoNext={false}
+        onPrevious={returnToHome}
+        onNext={() => undefined}
+        onStepChange={openJourneyStep}
       />
       <section className="adventure-banner">
         <div className="adventure-banner__title">
@@ -916,7 +1145,12 @@ export default function App() {
             type="button"
             className="game-action game-action--new"
             onClick={() =>
-              startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
+              startGame(
+                game.puzzle.difficulty,
+                createSeed(),
+                currentPuzzleCollection,
+                game.puzzle.theme,
+              )
             }
           >
             <Shuffle aria-hidden="true" />
@@ -990,7 +1224,12 @@ export default function App() {
           challengeShareHint={challengeResult?.share}
           progressLabel={checkResult?.score}
           onNewGame={() =>
-            startGame(game.puzzle.difficulty, createSeed(), currentPuzzleCollection)
+            startGame(
+              game.puzzle.difficulty,
+              createSeed(),
+              currentPuzzleCollection,
+              game.puzzle.theme,
+            )
           }
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}

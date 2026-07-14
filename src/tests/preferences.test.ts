@@ -28,9 +28,10 @@ describe('preference migration without profiles', () => {
     })
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       difficulty: 'medium',
       collection: 'two-dimensional',
+      advancedGridSize: 6,
       showCheckProgress: true,
     })
     expect(del).toHaveBeenCalledWith('logic-garden:profile:v1')
@@ -56,9 +57,10 @@ describe('preference migration without profiles', () => {
     )
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 4,
+      schemaVersion: 5,
       collection: 'three-dimensional',
       showCheckProgress: true,
+      advancedGridSize: 6,
     })
   })
 
@@ -109,9 +111,12 @@ describe('preference migration without profiles', () => {
       Promise.resolve(
         storageKey === 'logic-garden:preferences:v1'
           ? {
-              schemaVersion: 4,
+              schemaVersion: 5,
               difficulty: 'easy',
               collection: 'children',
+              advancedGridSize: 9,
+              childMapSize: 6,
+              buildingDepth: 5,
               locale: 'de',
               soundEnabled: false,
               reducedMotion: false,
@@ -122,6 +127,35 @@ describe('preference migration without profiles', () => {
     )
 
     await expect(loadPreferences(['fr-FR'])).resolves.toMatchObject({ locale: 'de' })
+  })
+
+  it('sanitizes invalid fields from a current-looking stored record', async () => {
+    vi.mocked(get).mockImplementation((storageKey) =>
+      Promise.resolve(
+        storageKey === 'logic-garden:preferences:v1'
+          ? {
+              schemaVersion: 5,
+              difficulty: 'impossible',
+              collection: 'two-dimensional',
+              advancedGridSize: 16,
+              childMapSize: 12,
+              buildingDepth: 20,
+              locale: 'ca',
+              soundEnabled: 'yes',
+              reducedMotion: false,
+              showCheckProgress: true,
+            }
+          : undefined,
+      ),
+    )
+
+    await expect(loadPreferences()).resolves.toMatchObject({
+      difficulty: 'easy',
+      advancedGridSize: 16,
+      childMapSize: 4,
+      buildingDepth: 3,
+      soundEnabled: false,
+    })
   })
 })
 

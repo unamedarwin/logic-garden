@@ -54,6 +54,10 @@ describe('variable-height 5x5 building board', () => {
     expect(container.querySelector('[data-grid-depth="10"]')).toBeInTheDocument()
     expect(screen.getByText('36 llars + 2 botigues')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Ascensor' })).toBeInTheDocument()
+    expect(screen.getByRole('tablist', { name: 'Cub de deducció' })).toHaveAttribute(
+      'aria-orientation',
+      'horizontal',
+    )
     expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
     expect(container.querySelector('[class*="logic-cube__door--"]')).not.toBeInTheDocument()
@@ -84,6 +88,12 @@ describe('variable-height 5x5 building board', () => {
       'aria-selected',
       'true',
     )
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Primer pis/u }), { key: 'End' })
+    expect(screen.getByRole('tab', { name: /Novè pis/u })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'building-floor-9')
   }, 15_000)
 
   it('crosses the horizontal, vertical, and depth lines after a placement', () => {

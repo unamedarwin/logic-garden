@@ -32,10 +32,12 @@ the waiting rail, announces the change, and records the whole operation as one r
 
 The elevator is visually independent from the active-floor frame, leaving the full mobile width for
 the `5 x 5` plan. It exposes floor buttons in ascending order from `PB` to the selected top floor,
-with lower-floor and upper-floor controls at the corresponding ends on wider screens. The active
-floor, placed-person count, and
-disabled limits are available without color, and arrow-key floor switching follows the same
-non-wrapping order. Switching floors never changes placements or timer state.
+with lower-floor and upper-floor controls at the corresponding ends. Every direction and floor
+target is at least 44 pixels. The floor tabs stay on one non-wrapping horizontal strip; when ten
+floors exceed the available width, selecting or focusing a floor scrolls that target into view.
+The active floor, placed-person count, and disabled limits are available without color. Arrow keys,
+`Home`, and `End` follow the same ordered tab model and respect reduced-motion preferences.
+Switching floors never changes placements or timer state.
 
 Blocked cells use deterministic furniture, storage, plants, and shop fixtures from the same local
 Fluent SVG subset as the rest of the scene. The selection is seeded by the puzzle, respects each
@@ -82,21 +84,26 @@ structured clue data.
 
 ## Generation and persistence
 
-Generator version 18 selects the height, plan, structural template, people, objects, furniture, and
-wording from seeded streams. The answer-free template catalog contains 950 spatial structures and
+Generator version 19 combines the player-selected height with a seeded plan, structural template,
+people, objects, furniture, and wording. The answer-free template catalog contains 950 spatial structures and
 50 building structures. The building subset contains 25 teen-themed and 25 adult-themed internal
 content structures while the player sees one unified 3D collection. Runtime materialization always
 reruns the solver with a two-solution limit before a puzzle is shown.
+Every 3-10-floor height supports three independent play levels over those same hard structural
+templates. Easy deterministically ensures direct home or landmark guidance for at least four
+people, medium ensures it for at least two, and hard adds none. Existing direct facts count toward
+the target and are not repeated. These are ordinary structured clues rather than a stored answer,
+and the guided puzzle is rerun with a two-solution limit before display or sharing.
 
-Share payload schema 4 records the `cube` variant; the seed and generator version reproduce its
-height without duplicating it in the URL. New JSON payloads are GZIP-compressed before URL-safe
+Share payload schema 5 records the `cube` variant and selected height so a challenge reproduces
+the exact building. New JSON payloads are GZIP-compressed before URL-safe
 Base64 encoding and retain legacy uncompressed read compatibility. Saved-game schema 4 validates
 all `25d` canonical coordinates, room kinds, blocked fixtures, playable counts, eight people,
 generator version, partial placements, and uniqueness before restoration. Neither format stores a
 solution or personal data.
 
 The in-game action rail exposes a native share action before completion. Its URL reproduces the
-current seed, audience, difficulty, variant, and generator version for testing or challenging
+current seed, audience, difficulty, variant, height, and generator version for testing or challenging
 someone, but deliberately omits placements and the answer.
 
 ## Quality gates

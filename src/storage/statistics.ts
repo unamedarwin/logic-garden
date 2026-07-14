@@ -1,6 +1,13 @@
 import { get, set } from 'idb-keyval'
 import type { BuildingDepth } from '../domain/buildingPlan'
-import type { Audience, Difficulty, PuzzleVariant, ThemeId } from '../domain/types'
+import type {
+  AdvancedGridSize,
+  Audience,
+  ChildMapSize,
+  Difficulty,
+  PuzzleVariant,
+  ThemeId,
+} from '../domain/types'
 
 const key = 'logic-garden:statistics:v1'
 const historyLimit = 12
@@ -14,6 +21,8 @@ export interface CompletedGame {
   readonly difficulty: Difficulty
   readonly puzzleVariant?: PuzzleVariant
   readonly buildingDepth?: BuildingDepth
+  readonly gridSize?: AdvancedGridSize
+  readonly childMapSize?: ChildMapSize
   readonly generatorVersion: number
   readonly completedAt: number
   readonly elapsedSeconds: number
@@ -24,7 +33,6 @@ export interface CompletedGame {
 interface CompletionBase {
   readonly seed: string
   readonly theme: ThemeId
-  readonly audience: Audience
   readonly difficulty: Difficulty
   readonly generatorVersion: number
   readonly elapsedSeconds: number
@@ -36,11 +44,23 @@ export type CompletionInput = CompletionBase &
   (
     | {
         readonly puzzleVariant: 'cube'
+        readonly audience: Exclude<Audience, 'children'>
         readonly buildingDepth: BuildingDepth
+        readonly gridSize?: never
       }
     | {
         readonly puzzleVariant: 'spatial'
+        readonly audience: 'children'
         readonly buildingDepth?: never
+        readonly gridSize?: never
+        readonly childMapSize: ChildMapSize
+      }
+    | {
+        readonly puzzleVariant: 'spatial'
+        readonly audience: Exclude<Audience, 'children'>
+        readonly buildingDepth?: never
+        readonly gridSize: AdvancedGridSize
+        readonly childMapSize?: never
       }
   )
 

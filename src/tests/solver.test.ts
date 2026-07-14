@@ -3,10 +3,11 @@ import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluato
 import {
   analyzeSolutions,
   countSolutions,
+  isCompleteAssignmentSatisfyingPuzzle,
   isPartialAssignmentValid,
   solve,
 } from '../solver/solver'
-import { itemId, placeId, positionId, type Clue } from '../domain/types'
+import { characterId, itemId, placeId, positionId, type Clue } from '../domain/types'
 import { characterIds, createPuzzle, fullAssignment, positionIds } from './fixtures'
 
 const base = <Type extends Clue['type']>(id: string, type: Type) => ({
@@ -111,6 +112,67 @@ describe('solver', () => {
       }),
     ).toBe(false)
     expect(isPartialAssignmentValid(puzzle, { [characterIds.a]: positionIds.p0 })).toBe(true)
+  })
+
+  it('requires a complete, exactly keyed assignment before accepting it', () => {
+    const puzzle = createPuzzle()
+
+    expect(isCompleteAssignmentSatisfyingPuzzle(puzzle, fullAssignment)).toBe(true)
+    expect(
+      isCompleteAssignmentSatisfyingPuzzle(puzzle, {
+        ...fullAssignment,
+        [characterId('unknown')]: positionIds.p0,
+      }),
+    ).toBe(false)
+    expect(
+      isCompleteAssignmentSatisfyingPuzzle(puzzle, {
+        [characterIds.a]: positionIds.p0,
+      }),
+    ).toBe(false)
+  })
+
+  it('rejects malformed clue references before searching', () => {
+    const puzzle = createPuzzle([
+      {
+        ...base('unknown-character', 'character-at-position'),
+        characterId: characterId('unknown'),
+        positionId: positionIds.p0,
+      },
+    ])
+
+    const analysis = analyzeSolutions(puzzle, { limit: 2 })
+    expect(analysis.count).toBe(0)
+    expect(analysis.exploredNodes).toBe(0)
+  })
+
+  it('follows a carried item to the assigned character place', () => {
+    const inFirstPlace: Clue = {
+      ...base('item-place', 'item-in-place'),
+      itemId: itemId('i0'),
+      placeId: placeId('place0'),
+    }
+    const awayFromFirstPlace: Clue = {
+      ...base('item-away', 'item-not-in-place'),
+      itemId: itemId('i0'),
+      placeId: placeId('place0'),
+    }
+    const puzzle = createPuzzle()
+
+    expect(
+      isClueSatisfiedByPartialAssignment(puzzle, inFirstPlace, {
+        [characterIds.a]: positionIds.p0,
+      }),
+    ).toBe(true)
+    expect(
+      isClueSatisfiedByPartialAssignment(puzzle, inFirstPlace, {
+        [characterIds.a]: positionIds.p1,
+      }),
+    ).toBe(false)
+    expect(
+      isClueSatisfiedByPartialAssignment(puzzle, awayFromFirstPlace, {
+        [characterIds.a]: positionIds.p1,
+      }),
+    ).toBe(true)
   })
 
   it('evaluates every supported constraint kind', () => {

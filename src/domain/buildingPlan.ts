@@ -1,11 +1,11 @@
-import type { Locale, Position } from './types'
+import type { BuildingSize, Locale, Position } from './types'
 
 export type BuildingCellKind = 'home' | 'shop' | 'landing' | 'stairs' | 'entrance'
 
 export const BUILDING_ROWS = 5
 export const BUILDING_COLUMNS = 5
 export const BUILDING_DEPTHS = [3, 4, 5, 6, 7, 8, 9, 10] as const
-export type BuildingDepth = (typeof BUILDING_DEPTHS)[number]
+export type BuildingDepth = BuildingSize
 export const MAX_BUILDING_DEPTH: BuildingDepth = 10
 export const BUILDING_CHARACTER_COUNT = 8
 

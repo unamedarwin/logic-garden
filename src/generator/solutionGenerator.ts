@@ -62,7 +62,13 @@ export interface CubeWorldStructure {
   readonly characterCount: 8
 }
 
-export type AdvancedWorldStructure = SpatialWorldStructure | CubeWorldStructure
+export interface MapWorldStructure {
+  readonly boardMode: 'map'
+  readonly characterCount: 4 | 6 | 8
+}
+
+export type AdvancedWorldStructure =
+  SpatialWorldStructure | CubeWorldStructure | MapWorldStructure
 
 const selectNonConflictingPositions = (
   candidates: readonly Position[],
@@ -309,13 +315,16 @@ export const generateWorld = (
         : 'logic-grid'
   const spatialAudience = audience === 'children' ? 'teens' : audience
   const buildingDepth = structure?.boardMode === 'logic-cube' ? structure.depth : undefined
+  const mapCharacterCount =
+    structure?.boardMode === 'map' ? structure.characterCount : undefined
   const characterCount =
     boardMode === 'map'
-      ? config.characterCount
+      ? (mapCharacterCount ?? config.characterCount)
       : (structure?.characterCount ?? logicGridCharacterCounts[difficulty])
-  const invertedMap =
-    boardMode === 'map' && config.rows !== config.columns && random.next() < 0.5
-  const mapColumns = invertedMap ? config.rows : config.columns
+  const mapRows = 2
+  const mapBaseColumns = characterCount / mapRows
+  const invertedMap = boardMode === 'map' && mapRows !== mapBaseColumns && random.next() < 0.5
+  const mapColumns = invertedMap ? mapRows : mapBaseColumns
   const theme = random.pick(themesForAudience(audience))
   const spatialPlanId =
     boardMode === 'logic-grid'
@@ -356,7 +365,10 @@ export const generateWorld = (
   const positions: readonly Position[] =
     boardMode === 'logic-grid'
       ? (() => {
-          const gridSize = structure?.gridSize ?? logicGridDimensions[difficulty]
+          const gridSize =
+            structure?.boardMode !== 'map' && structure?.boardMode !== 'logic-cube'
+              ? (structure?.gridSize ?? logicGridDimensions[difficulty])
+              : logicGridDimensions[difficulty]
           const spatialPlan = spatialPlanForId(spatialPlanId)
           if (!spatialPlan) throw new Error('No s’ha pogut carregar la planta espacial.')
           const fallbackObstacleObjects = theme.roomObjects ?? theme.items

@@ -99,6 +99,7 @@ summary:focus-visible {
 }
 .game-header__brand {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
   gap: 10px;
   border: 0;
@@ -161,6 +162,94 @@ summary:focus-visible {
   color: var(--ink);
   font-size: 1.2rem;
   box-shadow: 3px 3px 0 var(--ink);
+}
+
+.journey-path {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+  margin: -10px 0 16px;
+}
+.journey-path ol {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.journey-path ol::before {
+  position: absolute;
+  top: 50%;
+  right: 8%;
+  left: 8%;
+  height: 2px;
+  background: var(--line);
+  content: '';
+}
+.journey-path li {
+  position: relative;
+  min-width: 0;
+}
+.journey-path button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+.journey-path li button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 8px;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+.journey-path li button span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--ink);
+  font-size: 0.68rem;
+}
+.journey-path li .journey-path__step--current {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 2px 2px 0 var(--sun);
+}
+.journey-path li .journey-path__step--current span {
+  background: var(--sun);
+}
+.journey-path li button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+.journey-path__direction {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+}
+.journey-path__direction svg {
+  width: 20px;
+  height: 20px;
 }
 
 .home-hero {
@@ -231,6 +320,7 @@ summary:focus-visible {
 .home-hero__copy {
   position: relative;
   z-index: 2;
+  min-width: 0;
   align-self: center;
   padding: clamp(34px, 7vw, 82px);
 }
@@ -366,6 +456,9 @@ summary:focus-visible {
 .difficulty-selector--building {
   grid-template-columns: minmax(0, 1fr);
 }
+.building-size-selector {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 .difficulty-selector legend {
   grid-column: 1 / -1;
   margin-bottom: 1px;
@@ -392,6 +485,11 @@ summary:focus-visible {
   transform: translateY(-2px);
   border-color: var(--leaf);
 }
+.difficulty-selector label:has(input:focus-visible),
+.adventure-choice:has(input:focus-visible) {
+  outline: 4px solid var(--focus);
+  outline-offset: 3px;
+}
 .difficulty-selector input {
   position: absolute;
   top: 14px;
@@ -403,6 +501,90 @@ summary:focus-visible {
   background: #fdf0bf !important;
   color: var(--ink) !important;
   box-shadow: 3px 3px 0 var(--ink);
+}
+.adventure-selector {
+  width: 100%;
+  min-width: 0;
+  max-width: 700px;
+  margin: 24px 0 20px;
+  border: 0;
+  padding: 0;
+}
+.adventure-selector legend {
+  margin-bottom: 9px;
+  color: var(--ink);
+  font-weight: 900;
+}
+.adventure-selector__options {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-auto-columns: minmax(148px, 176px);
+  grid-auto-flow: column;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 3px 5px 12px 3px;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
+}
+.adventure-choice {
+  position: relative;
+  display: grid;
+  min-height: 104px;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  border: 2px solid var(--line);
+  border-radius: 17px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--paper) 84%, var(--sky));
+  color: var(--ink);
+  cursor: pointer;
+  scroll-snap-align: start;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.adventure-choice input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.adventure-choice__icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 2px solid var(--ink);
+  border-radius: 13px;
+  background: var(--paper);
+  font-size: 1.55rem;
+}
+.adventure-choice--selected {
+  border-color: var(--ink);
+  background: #fdf0bf;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.size-step-summary {
+  max-width: 640px;
+  margin: 30px 0 20px;
+  border: 2px solid var(--ink);
+  border-radius: 15px;
+  padding: 18px;
+  background: #fdf0bf;
+  color: var(--ink);
+  font-weight: 900;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.setup-step {
+  min-width: 0;
+  min-height: 118px;
+}
+.setup-step:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 5px;
 }
 .home-hero__actions {
   display: flex;
@@ -1329,14 +1511,48 @@ summary:focus-visible {
     width: min(100% - 20px, 1240px);
     padding-top: 14px;
   }
+  .game-header {
+    margin-bottom: 18px;
+  }
+  .journey-path {
+    gap: 5px;
+    margin-top: -8px;
+  }
+  .journey-path ol {
+    gap: 4px;
+  }
+  .journey-path li button {
+    padding-inline: 4px;
+    font-size: 0.66rem;
+  }
+  .journey-path li button span {
+    display: none;
+  }
   .home-hero__copy {
     padding: 30px 22px;
+  }
+  .home-hero--setup .home-hero__copy {
+    padding-block: 22px;
+  }
+  .home-hero--setup h1 {
+    margin-block: 8px 12px;
+    font-size: clamp(2.2rem, 12vw, 3.2rem);
+  }
+  .home-hero--setup .home-hero__description {
+    font-size: 0.9rem;
+    line-height: 1.35;
   }
   .home-hero h1 {
     font-size: clamp(2.8rem, 15vw, 4rem);
   }
+  .home-hero.home-hero--setup h1 {
+    font-size: clamp(2.1rem, 10vw, 2.7rem);
+  }
   .difficulty-selector {
     grid-template-columns: 1fr;
+  }
+  .building-size-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .collection-selector__options {
     grid-template-columns: 1fr;
@@ -2075,14 +2291,18 @@ summary:focus-visible {
   line-height: 1;
 }
 .character-clue-rail__context {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   border-top: 1px dashed var(--line);
   padding: 9px 2px 0;
 }
 .character-clue-rail__active {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 6px;
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 0.84rem;
 }
 .character-clue-rail__active-icon {
@@ -2091,11 +2311,11 @@ summary:focus-visible {
 }
 .character-clue-rail__navigation {
   display: flex;
-  min-height: 34px;
+  min-height: 44px;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  margin: -33px 0 4px auto;
+  margin: 0;
 }
 .character-clue-rail__navigation span {
   color: var(--ink-soft);
@@ -2104,8 +2324,8 @@ summary:focus-visible {
 }
 .character-clue-rail__navigation button {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 50%;
@@ -2121,6 +2341,7 @@ summary:focus-visible {
   height: 17px;
 }
 .character-clue-rail__clues {
+  grid-column: 1 / -1;
   padding-bottom: 2px;
 }
 .character-clue-rail__clue {
@@ -2138,6 +2359,7 @@ summary:focus-visible {
   scroll-snap-align: start;
 }
 .character-clue-rail__clue--empty {
+  grid-column: 1 / -1;
   min-width: 100%;
   background: #eef4ee;
   color: var(--ink-soft);
@@ -2554,7 +2776,8 @@ summary:focus-visible {
 
 @media (max-width: 540px) {
   .game-screen {
-    padding-bottom: calc(168px + env(safe-area-inset-bottom));
+    padding-bottom: calc(176px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
   }
   .game-screen .game-board-scroll--zoomed {
     max-height: min(62dvh, 530px);
@@ -2584,15 +2807,15 @@ summary:focus-visible {
     padding-top: 5px;
   }
   .game-screen .character-clue-rail__active {
-    margin-bottom: 3px;
+    margin-bottom: 0;
   }
   .game-screen .character-clue-rail__navigation {
-    min-height: 28px;
-    margin-top: -29px;
+    min-height: 44px;
+    margin: 0;
   }
   .game-screen .character-clue-rail__navigation button {
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
   }
   .game-screen .character-clue-rail__clue {
     padding: 7px 8px;
@@ -2640,6 +2863,9 @@ summary:focus-visible {
   .game-screen .game-actions__secondary,
   .game-screen .game-actions__primary {
     display: contents;
+  }
+  .game-screen .game-actions__primary .button {
+    grid-column: auto;
   }
   .game-screen .game-actions button {
     width: 100%;
@@ -2782,7 +3008,7 @@ summary:focus-visible {
 }
 .logic-cube__elevator {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   gap: 6px;
   margin-bottom: 9px;
   border: 1px solid rgba(255, 255, 255, 0.28);
@@ -2824,8 +3050,8 @@ summary:focus-visible {
 }
 .logic-cube__elevator-direction {
   display: grid;
-  min-width: 0;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   place-items: center;
   border: 1px solid #817b8d;
   border-radius: 50%;
@@ -2842,15 +3068,22 @@ summary:focus-visible {
   height: 19px;
 }
 .logic-cube__layers {
-  display: grid;
-  grid-template-columns: repeat(var(--building-depth), minmax(0, 1fr));
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
   gap: 5px;
+  overscroll-behavior-inline: contain;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: inline mandatory;
+  scrollbar-width: thin;
+  touch-action: pan-x;
 }
 .logic-cube__layer {
   position: relative;
   display: grid;
-  min-width: 0;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
   place-items: center;
   border: 1px solid #817b8d;
   border-radius: 50%;
@@ -2858,6 +3091,7 @@ summary:focus-visible {
   background: linear-gradient(#f7f4ec, #aaa5b1);
   color: #17152c;
   box-shadow: 0 2px 0 #111018;
+  scroll-snap-align: center;
 }
 .logic-cube__layer--active {
   border-color: #ffe06e;
@@ -3229,7 +3463,6 @@ summary:focus-visible {
     width: 17px;
   }
   .logic-cube__layers {
-    grid-column: 1 / -1;
     gap: 3px;
   }
   .logic-cube__layer {
@@ -3246,7 +3479,7 @@ summary:focus-visible {
     display: none;
   }
   .logic-cube__elevator-direction {
-    display: none;
+    display: grid;
   }
   .logic-cube__floor-title {
     margin-bottom: 3px;

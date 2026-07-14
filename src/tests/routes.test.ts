@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { parseSharedGameRoute, shareUrl } from '../app/routes'
 import { seed } from '../domain/types'
+import { generatePuzzle } from '../generator/puzzleGenerator'
 import { GENERATOR_VERSION } from '../generator/version'
+import { buildingDepthForPositions } from '../domain/buildingPlan'
 
 describe('shared routes', () => {
   const encodedLocation = (payload: Record<string, unknown>) => {
@@ -29,6 +31,7 @@ describe('shared routes', () => {
         difficulty: 'medium',
         seed: seed('ABCD-1234'),
         generatorVersion: GENERATOR_VERSION,
+        gridSize: 16,
       },
       'teens',
       95,
@@ -57,6 +60,7 @@ describe('shared routes', () => {
       generatorVersion: GENERATOR_VERSION,
       benchmarkSeconds: 95,
       variant: 'spatial',
+      gridSize: 16,
     })
   })
 
@@ -64,21 +68,168 @@ describe('shared routes', () => {
     const shared = new URL(
       shareUrl(
         {
-          difficulty: 'hard',
+          difficulty: 'medium',
           seed: seed('CUBE-125'),
           generatorVersion: GENERATOR_VERSION,
           variant: 'cube',
+          buildingDepth: 7,
         },
         'adults',
       ),
     )
 
     expect(parseSharedGameRoute(shared as unknown as Location)).toMatchObject({
-      difficulty: 'hard',
+      difficulty: 'medium',
       seed: 'CUBE-125',
       audience: 'adults',
       variant: 'cube',
+      buildingDepth: 7,
     })
+  })
+
+  it('keeps the selected child map size in a shared challenge', () => {
+    const shared = new URL(
+      shareUrl(
+        {
+          difficulty: 'medium',
+          seed: seed('CHILD-8'),
+          generatorVersion: GENERATOR_VERSION,
+          childMapSize: 8,
+        },
+        'children',
+      ),
+    )
+
+    expect(parseSharedGameRoute(shared as unknown as Location)).toMatchObject({
+      audience: 'children',
+      childMapSize: 8,
+    })
+  })
+
+  it('round-trips and regenerates every shareable size and difficulty', () => {
+    const difficulties = ['easy', 'medium', 'hard'] as const
+    for (const difficulty of difficulties) {
+      for (const childMapSize of [4, 6, 8] as const) {
+        const puzzle = generatePuzzle(
+          difficulty,
+          `share-child-${difficulty}-${childMapSize}`,
+          'children',
+          'spatial',
+          undefined,
+          childMapSize,
+        )
+        const parsed = parseSharedGameRoute(
+          new URL(
+            shareUrl(
+              {
+                difficulty,
+                seed: puzzle.seed,
+                generatorVersion: GENERATOR_VERSION,
+                childMapSize,
+              },
+              'children',
+            ),
+          ) as unknown as Location,
+        )
+        expect(parsed?.childMapSize).toBe(childMapSize)
+        expect(
+          generatePuzzle(
+            parsed!.difficulty,
+            parsed!.seed,
+            parsed!.audience,
+            parsed!.variant,
+            parsed!.gridSize,
+            parsed!.childMapSize,
+            parsed!.buildingDepth,
+          ),
+        ).toEqual(puzzle)
+      }
+
+      for (const gridSize of [6, 9, 16] as const) {
+        const puzzle = generatePuzzle(
+          difficulty,
+          `share-spatial-${difficulty}-${gridSize}`,
+          'adults',
+          'spatial',
+          gridSize,
+        )
+        const parsed = parseSharedGameRoute(
+          new URL(
+            shareUrl(
+              {
+                difficulty,
+                seed: puzzle.seed,
+                generatorVersion: GENERATOR_VERSION,
+                gridSize,
+              },
+              'adults',
+            ),
+          ) as unknown as Location,
+        )
+        expect(parsed?.gridSize).toBe(gridSize)
+        expect(
+          generatePuzzle(
+            parsed!.difficulty,
+            parsed!.seed,
+            parsed!.audience,
+            parsed!.variant,
+            parsed!.gridSize,
+          ),
+        ).toEqual(puzzle)
+      }
+
+      for (const buildingDepth of [3, 4, 5, 6, 7, 8, 9, 10] as const) {
+        const puzzle = generatePuzzle(
+          difficulty,
+          `share-building-${difficulty}-${buildingDepth}`,
+          'adults',
+          'cube',
+          undefined,
+          undefined,
+          buildingDepth,
+        )
+        const parsed = parseSharedGameRoute(
+          new URL(
+            shareUrl(
+              {
+                difficulty,
+                seed: puzzle.seed,
+                generatorVersion: GENERATOR_VERSION,
+                variant: 'cube',
+                buildingDepth,
+              },
+              'adults',
+            ),
+          ) as unknown as Location,
+        )
+        expect(parsed?.buildingDepth).toBe(buildingDepth)
+        const replayed = generatePuzzle(
+          parsed!.difficulty,
+          parsed!.seed,
+          parsed!.audience,
+          parsed!.variant,
+          parsed!.gridSize,
+          parsed!.childMapSize,
+          parsed!.buildingDepth,
+        )
+        expect(buildingDepthForPositions(replayed.positions)).toBe(buildingDepth)
+        expect(replayed).toEqual(puzzle)
+      }
+    }
+  }, 60_000)
+
+  it('refuses to create a share link from an obsolete generator version', () => {
+    expect(() =>
+      shareUrl(
+        {
+          difficulty: 'easy',
+          seed: seed('old-generator'),
+          generatorVersion: GENERATOR_VERSION - 1,
+          childMapSize: 4,
+        },
+        'children',
+      ),
+    ).toThrow(/obsolete generator/u)
   })
 
   it('reads a share link from the GitHub Pages base path', () => {
@@ -128,9 +279,61 @@ describe('shared routes', () => {
       parseSharedGameRoute(
         encodedLocation({ ...basePayload, variant: 'cube', difficulty: 'medium' }),
       ),
-    ).toBeNull()
+    ).toMatchObject({ variant: 'cube', difficulty: 'medium' })
     expect(
       parseSharedGameRoute(encodedLocation({ ...basePayload, v: 3, variant: 'cube' })),
+    ).toBeNull()
+  })
+
+  it('requires an explicit size in new advanced 2D challenges', () => {
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 5,
+          seed: 'ADVANCED-2D',
+          difficulty: 'easy',
+          audience: 'adults',
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'spatial',
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 5,
+          seed: 'CHILD-SIZE',
+          difficulty: 'easy',
+          audience: 'children',
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'spatial',
+          gridSize: 16,
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 5,
+          seed: 'CHILD-NO-SIZE',
+          difficulty: 'easy',
+          audience: 'children',
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'spatial',
+        }),
+      ),
+    ).toBeNull()
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 5,
+          seed: 'CUBE-NO-HEIGHT',
+          difficulty: 'hard',
+          audience: 'adults',
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'cube',
+        }),
+      ),
     ).toBeNull()
   })
 

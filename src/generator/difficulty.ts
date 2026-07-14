@@ -1,4 +1,4 @@
-import type { Difficulty } from '../domain/types'
+import type { AdvancedGridSize, Difficulty } from '../domain/types'
 
 export interface DifficultyConfig {
   readonly label: string
@@ -26,3 +26,6 @@ export const logicGridCharacterCounts: Record<Difficulty, number> = {
   medium: 6,
   hard: 8,
 }
+
+export const advancedCharacterCount = (difficulty: Difficulty, gridSize: AdvancedGridSize) =>
+  gridSize === 16 ? 8 : Math.min(gridSize, logicGridCharacterCounts[difficulty])

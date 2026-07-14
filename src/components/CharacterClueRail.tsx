@@ -66,6 +66,15 @@ const cluePrecision = (clue: Clue) => {
   }
 }
 
+const motionSafeScrollBehavior = (): ScrollBehavior => {
+  if (typeof window === 'undefined') return 'auto'
+  const reducedByPreference =
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const reducedInSettings = document.documentElement.dataset.reducedMotion === 'true'
+  return reducedByPreference || reducedInSettings ? 'auto' : 'smooth'
+}
+
 export const CharacterClueRail = ({
   puzzle,
   assignments,
@@ -100,7 +109,7 @@ export const CharacterClueRail = ({
     clueRailRef.current?.scrollTo({ left: 0, behavior: 'auto' })
     if (activeCharacterId) {
       peopleRefs.current.get(activeCharacterId)?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: motionSafeScrollBehavior(),
         block: 'nearest',
         inline: 'center',
       })
@@ -114,7 +123,7 @@ export const CharacterClueRail = ({
     const boundedIndex = Math.max(0, Math.min(clues.length - 1, nextIndex))
     setClueIndex(boundedIndex)
     clueRailRef.current?.children[boundedIndex]?.scrollIntoView({
-      behavior: 'smooth',
+      behavior: motionSafeScrollBehavior(),
       block: 'nearest',
       inline: 'start',
     })

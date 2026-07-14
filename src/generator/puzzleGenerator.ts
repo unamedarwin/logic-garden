@@ -2,20 +2,25 @@ import {
   puzzleId,
   seed,
   type Audience,
+  type AdvancedGridSize,
+  type BuildingSize,
+  type ChildMapSize,
   type Difficulty,
   type Puzzle,
   type PuzzleCollection,
   type PuzzleVariant,
   type Seed,
+  type ThemeId,
 } from '../domain/types'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
 import { BUILDING_DEPTHS } from '../domain/buildingPlan'
 import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
-import { analyzeSolutions } from '../solver/solver'
+import { getTheme, themesForAudience } from '../domain/themes'
+import { analyzeSolutions, solve } from '../solver/solver'
 import { selectMinimalUniqueClues } from './clueReducer'
 import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
-import { logicGridCharacterCounts } from './difficulty'
+import { advancedCharacterCount } from './difficulty'
 import { generateWorld, type AdvancedWorldStructure } from './solutionGenerator'
 import { materializeAdvancedPuzzleTemplate } from './puzzleTemplates'
 import { GENERATOR_VERSION } from './version'
@@ -81,6 +86,91 @@ const difficultyScore = (puzzle: Puzzle) => {
     relationalClues * 2 +
     landmarkClues
   )
+}
+
+const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle => {
+  if (puzzle.boardMode !== 'logic-cube' || difficulty === 'hard') return puzzle
+  const solution = solve(puzzle)
+  if (!solution) throw new Error('No s\u2019ha pogut preparar la guia de l\u2019edifici.')
+  const existingExactCharacters = new Set(
+    puzzle.clues
+      .filter((clue) => clue.type === 'character-at-position')
+      .map((clue) => clue.characterId),
+  )
+  const existingPlaceCharacters = new Set(
+    puzzle.clues
+      .filter((clue) => clue.type === 'character-in-place')
+      .map((clue) => clue.characterId),
+  )
+  const directlyGuidedCharacters = new Set([
+    ...existingExactCharacters,
+    ...existingPlaceCharacters,
+  ])
+  const random = new SeededRandom(deriveSeed(puzzle.seed, 313))
+  const directCharacterTarget = difficulty === 'easy' ? 4 : 2
+  const guidanceCount = Math.max(0, directCharacterTarget - directlyGuidedCharacters.size)
+  const candidates: Array<{
+    readonly character: Puzzle['characters'][number]
+    readonly position: Puzzle['positions'][number]
+    readonly clueType: 'exact' | 'place'
+  }> = []
+  for (const character of puzzle.characters) {
+    if (directlyGuidedCharacters.has(character.id)) continue
+    const positionId = solution[character.id]
+    const position = puzzle.positions.find((candidate) => candidate.id === positionId)
+    if (!position) continue
+    const hasLandmark = puzzle.positions.some(
+      (candidate) =>
+        candidate.blocked &&
+        candidate.obstacleEmoji !== undefined &&
+        candidate.obstacleLabel !== undefined &&
+        candidate.layer === position.layer &&
+        Math.abs(candidate.row - position.row) +
+          Math.abs(candidate.column - position.column) ===
+          1,
+    )
+    if (hasLandmark) candidates.push({ character, position, clueType: 'exact' })
+    else candidates.push({ character, position, clueType: 'place' })
+  }
+  const orderedCandidates = random.shuffle(candidates)
+  const guidedCandidates = orderedCandidates.slice(0, guidanceCount)
+  if (guidedCandidates.length !== guidanceCount) {
+    throw new Error('No s\u2019ha pogut preparar prou pistes directes per a l\u2019edifici.')
+  }
+  const guidanceClues: Puzzle['clues'] = guidedCandidates.map((guided) =>
+    guided.clueType === 'exact'
+      ? {
+          id: `building-guidance:${difficulty}:${guided.character.id}`,
+          type: 'character-at-position',
+          characterId: guided.character.id,
+          positionId: guided.position.id,
+          phraseVariant: random.integer(0, 2),
+        }
+      : {
+          id: `building-guidance:${difficulty}:${guided.character.id}`,
+          type: 'character-in-place',
+          characterId: guided.character.id,
+          placeId: guided.position.placeId,
+          phraseVariant: random.integer(0, 2),
+        },
+  )
+  const candidate: Puzzle = {
+    ...puzzle,
+    difficulty,
+    clues: [...puzzle.clues, ...guidanceClues],
+    metadata: {
+      ...puzzle.metadata,
+      difficultyScore: Math.max(0, puzzle.metadata.difficultyScore - guidanceCount * 5),
+    },
+  }
+  const validation = analyzeSolutions(candidate, { limit: 2 })
+  if (validation.count !== 1 || validation.reachedNodeLimit) {
+    throw new Error('La guia de l\u2019edifici no conserva una soluci\u00f3 \u00fanica.')
+  }
+  return {
+    ...candidate,
+    metadata: { ...candidate.metadata, exploredNodes: validation.exploredNodes },
+  }
 }
 
 export const generatePuzzleDirect = (
@@ -196,14 +286,41 @@ export const generatePuzzleDirect = (
               .filter((clue) => clue.type === 'in-corner' || clue.type === 'not-in-corner')
               .slice(0, 1)
           : []
+      const childDirectCandidates =
+        world.boardMode === 'map'
+          ? orderedCandidates.filter((clue) => clue.type === 'character-at-position')
+          : []
+      const childAnchors =
+        world.boardMode !== 'map' || difficulty === 'hard'
+          ? []
+          : childDirectCandidates.slice(
+              0,
+              difficulty === 'easy'
+                ? Math.max(1, world.characters.length - 1)
+                : Math.max(1, Math.floor(world.characters.length / 3)),
+            )
+      const childCandidateOrder =
+        world.boardMode === 'map' && difficulty === 'hard'
+          ? [
+              ...orderedCandidates.filter(
+                (clue) =>
+                  clue.type !== 'character-at-position' && clue.type !== 'character-in-place',
+              ),
+              ...orderedCandidates.filter(
+                (clue) =>
+                  clue.type === 'character-at-position' || clue.type === 'character-in-place',
+              ),
+            ]
+          : orderedCandidates
       const candidates =
         world.boardMode === 'logic-grid' || world.boardMode === 'logic-cube'
           ? [
               ...orderedCandidates.filter((clue) => clue.type !== 'character-at-position'),
               ...orderedCandidates.filter((clue) => spatialFallbackIds.has(clue.id)),
             ]
-          : orderedCandidates
+          : childCandidateOrder
       const clues = selectMinimalUniqueClues(basePuzzle, candidates, [
+        ...childAnchors,
         ...landmarkAnchors,
         ...narrativeAnchors,
         ...cubeAnchors,
@@ -238,31 +355,60 @@ export const generatePuzzle = (
   source: Seed | string,
   audience: Audience = 'children',
   variant: PuzzleVariant = 'spatial',
+  preferredGridSize?: AdvancedGridSize,
+  preferredChildMapSize?: ChildMapSize,
+  preferredBuildingDepth?: BuildingSize,
 ): Puzzle => {
-  if (audience === 'children') return generatePuzzleDirect(difficulty, source, audience)
+  if (audience === 'children') {
+    return generatePuzzleDirect(
+      difficulty,
+      source,
+      audience,
+      preferredChildMapSize
+        ? { boardMode: 'map', characterCount: preferredChildMapSize }
+        : undefined,
+    )
+  }
 
   const puzzleSeed = seed(source)
-  const templates = advancedTemplateCandidates(difficulty, puzzleSeed, audience, variant)
+  const templates = advancedTemplateCandidates(
+    variant === 'cube' ? 'hard' : difficulty,
+    puzzleSeed,
+    audience,
+    variant,
+    preferredGridSize,
+    preferredBuildingDepth,
+  )
   for (const template of templates) {
     try {
-      return materializeAdvancedPuzzleTemplate(template, puzzleSeed)
+      return withBuildingGuidance(
+        materializeAdvancedPuzzleTemplate(template, puzzleSeed),
+        difficulty,
+      )
     } catch {
       // Try another structure of the same independently selected size.
     }
   }
 
   if (variant === 'cube') {
-    const buildingDepth = new SeededRandom(deriveSeed(puzzleSeed, 97)).pick(BUILDING_DEPTHS)
-    return generatePuzzleDirect('hard', source, audience, {
-      boardMode: 'logic-cube',
-      gridSize: 5,
-      depth: buildingDepth,
-      characterCount: 8,
-    })
+    const buildingDepth =
+      preferredBuildingDepth ??
+      new SeededRandom(deriveSeed(puzzleSeed, 97)).pick(BUILDING_DEPTHS)
+    return withBuildingGuidance(
+      generatePuzzleDirect('hard', source, audience, {
+        boardMode: 'logic-cube',
+        gridSize: 5,
+        depth: buildingDepth,
+        characterCount: 8,
+      }),
+      difficulty,
+    )
   }
 
   const fallbackRandom = new SeededRandom(deriveSeed(puzzleSeed, 101))
-  const fallbackSizes = fallbackRandom.shuffle(advancedGridSizes)
+  const fallbackSizes = preferredGridSize
+    ? [preferredGridSize]
+    : fallbackRandom.shuffle(advancedGridSizes)
   const plans = fallbackRandom.shuffle(spatialPlanIdsForAudience(audience))
   for (const gridSize of fallbackSizes) {
     const spatialPlanId = plans[gridSize % plans.length]
@@ -270,7 +416,7 @@ export const generatePuzzle = (
     try {
       return generatePuzzleDirect(difficulty, source, audience, {
         gridSize,
-        characterCount: Math.min(gridSize, logicGridCharacterCounts[difficulty]),
+        characterCount: advancedCharacterCount(difficulty, gridSize),
         spatialPlanId,
       })
     } catch {
@@ -289,17 +435,62 @@ export const audienceForPuzzleCollection = (
   return selector.pick(['teens', 'adults'] as const)
 }
 
+const seedForTheme = (
+  source: Seed | string,
+  audience: Audience,
+  themeId: ThemeId,
+  childMapSize: ChildMapSize,
+) => {
+  const candidates = themesForAudience(audience)
+  if (!candidates.some((theme) => theme.id === themeId)) {
+    throw new Error('El tema no pertany a aquest tipus de puzzle.')
+  }
+  for (let attempt = 0; attempt < 256; attempt += 1) {
+    const candidateRandom = new SeededRandom(`${source}|theme|${attempt}`)
+    const candidate = seed(
+      `adventure-${candidateRandom.integer(0, 0x7fffffff).toString(36)}-${candidateRandom
+        .integer(0, 0x7fffffff)
+        .toString(36)}`,
+    )
+    const selector = new SeededRandom(deriveSeed(candidate, audience === 'children' ? 0 : 41))
+    if (audience === 'children' && childMapSize !== 4) selector.next()
+    if (selector.pick(candidates).id === themeId) return candidate
+  }
+  throw new Error('No s\u2019ha pogut preparar el tema escollit.')
+}
+
 export const generatePuzzleForCollection = (
   difficulty: Difficulty,
   source: Seed | string,
   collection: PuzzleCollection,
+  preferredGridSize: AdvancedGridSize = 6,
+  preferredChildMapSize: ChildMapSize = 4,
+  preferredBuildingDepth: BuildingSize = 3,
+  preferredThemeId?: ThemeId,
 ) => {
-  const audience = audienceForPuzzleCollection(collection, source)
+  const selectedTheme = preferredThemeId ? getTheme(preferredThemeId) : undefined
+  const selectedAudience = selectedTheme?.audience ?? 'children'
+  if (
+    selectedTheme &&
+    ((collection === 'children' && selectedAudience !== 'children') ||
+      (collection !== 'children' && selectedAudience === 'children'))
+  ) {
+    throw new Error('El tema no pertany a aquest tipus de puzzle.')
+  }
+  const audience = selectedTheme
+    ? selectedAudience
+    : audienceForPuzzleCollection(collection, source)
+  const puzzleSeed = preferredThemeId
+    ? seedForTheme(source, audience, preferredThemeId, preferredChildMapSize)
+    : source
   return generatePuzzle(
-    collection === 'three-dimensional' ? 'hard' : difficulty,
-    source,
+    difficulty,
+    puzzleSeed,
     audience,
     collection === 'three-dimensional' ? 'cube' : 'spatial',
+    collection === 'two-dimensional' ? preferredGridSize : undefined,
+    collection === 'children' ? preferredChildMapSize : undefined,
+    collection === 'three-dimensional' ? preferredBuildingDepth : undefined,
   )
 }
 
@@ -310,6 +501,8 @@ const advancedTemplateCandidates = (
   puzzleSeed: Seed,
   audience: Exclude<Audience, 'children'>,
   variant: PuzzleVariant,
+  preferredGridSize?: AdvancedGridSize,
+  preferredBuildingDepth?: BuildingSize,
 ) => {
   const templates = advancedPuzzleTemplates.filter(
     (template) =>
@@ -327,7 +520,8 @@ const advancedTemplateCandidates = (
       ),
     )
     if (availableDepths.length === 0) return []
-    const selectedDepth = selector.pick(availableDepths)
+    const selectedDepth = preferredBuildingDepth ?? selector.pick(availableDepths)
+    if (!availableDepths.includes(selectedDepth)) return []
     return selector.shuffle(
       templates.filter(
         (template) => template.boardMode === 'logic-cube' && template.depth === selectedDepth,
@@ -338,7 +532,8 @@ const advancedTemplateCandidates = (
     templates.some((template) => template.gridSize === gridSize),
   )
   if (availableSizes.length === 0) return []
-  const selectedSize = selector.pick(availableSizes)
+  const selectedSize = preferredGridSize ?? selector.pick(availableSizes)
+  if (!availableSizes.includes(selectedSize)) return []
   return selector.shuffle(templates.filter((template) => template.gridSize === selectedSize))
 }
 
@@ -347,4 +542,14 @@ export const selectAdvancedPuzzleTemplate = (
   source: Seed | string,
   audience: Exclude<Audience, 'children'>,
   variant: PuzzleVariant = 'spatial',
-) => advancedTemplateCandidates(difficulty, seed(source), audience, variant)[0] ?? null
+  preferredGridSize?: AdvancedGridSize,
+  preferredBuildingDepth?: BuildingSize,
+) =>
+  advancedTemplateCandidates(
+    difficulty,
+    seed(source),
+    audience,
+    variant,
+    preferredGridSize,
+    preferredBuildingDepth,
+  )[0] ?? null

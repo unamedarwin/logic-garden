@@ -3,7 +3,10 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spatialPlanIdsForAudience } from '../src/domain/spatialPlan'
 import { BUILDING_DEPTHS, type BuildingDepth } from '../src/domain/buildingPlan'
-import type { Difficulty } from '../src/domain/types'
+import type { Difficulty, Puzzle } from '../src/domain/types'
+import { advancedCharacterCount } from '../src/generator/difficulty'
+import { landmarkCandidateCount } from '../src/generator/landmarkDomains'
+import { solve } from '../src/solver/solver'
 import { generatePuzzleDirect, GENERATOR_VERSION } from '../src/generator/puzzleGenerator'
 import {
   canonicalTemplateSignature,
@@ -24,6 +27,7 @@ const expectedBucketCount = 34
 const isCheck = process.argv.includes('--check')
 const isRepair = process.argv.includes('--repair')
 const isCubeMigration = process.argv.includes('--migrate-cubes')
+const isLargeGridMigration = process.argv.includes('--migrate-large-grids')
 
 const argumentValue = (name: string) =>
   process.argv.find((argument) => argument.startsWith(`--${name}=`))?.slice(name.length + 3)
@@ -32,8 +36,6 @@ const requestedCount = Number(argumentValue('count') ?? catalogSize)
 const seedOffset = Number(argumentValue('offset') ?? 0)
 const jsonOutput = argumentValue('json-output')
 const mergeInputs = argumentValue('merge')?.split(',').filter(Boolean)
-
-const characterCounts: Record<Difficulty, number> = { easy: 4, medium: 6, hard: 8 }
 
 // Four templates at the smallest height plus three at every other height keep
 // exactly 25 answer-free structures per advanced audience.
@@ -146,6 +148,9 @@ const assertCatalogDistribution = (templates: readonly AdvancedPuzzleTemplate[])
   ) {
     throw new Error('El catàleg 3D conté una geometria que no és 5×5×3-10 amb vuit persones.')
   }
+  if (spatial.some((template) => template.gridSize === 16 && template.characterCount !== 8)) {
+    throw new Error('Totes les plantilles 16×16 han de tenir vuit persones.')
+  }
 }
 
 const checkCatalog = async () => {
@@ -196,7 +201,7 @@ const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: s
             {
               boardMode: 'logic-grid',
               gridSize: bucket.gridSize,
-              characterCount: Math.min(bucket.gridSize, characterCounts[bucket.difficulty]),
+              characterCount: advancedCharacterCount(bucket.difficulty, bucket.gridSize),
               spatialPlanId,
             },
           )
@@ -385,8 +390,190 @@ const migrateCatalogWithCubes = async () => {
   await writeCatalog([...migratedSpatial, ...cubeTemplates])
 }
 
+const expandLargeGridTemplate = (template: AdvancedPuzzleTemplate) => {
+  if (
+    template.boardMode !== 'logic-grid' ||
+    template.gridSize !== 16 ||
+    template.characterCount === 8
+  ) {
+    return { ...template, generatorVersion: GENERATOR_VERSION }
+  }
+
+  const source = `large-grid-migration-${template.id}`
+  let puzzle: Puzzle
+  try {
+    puzzle = materializeAdvancedPuzzleTemplate(template, source)
+  } catch {
+    return null
+  }
+  const solution = solve(puzzle)
+  if (!solution) throw new Error(`La plantilla ${template.id} no conserva la seva solució.`)
+
+  const occupied = puzzle.characters.map((character) => {
+    const position = puzzle.positions.find(
+      (candidate) => candidate.id === solution[character.id],
+    )
+    if (!position) throw new Error(`La plantilla ${template.id} té una solució incompleta.`)
+    return position
+  })
+  const usedRows = new Set(occupied.map((position) => position.row))
+  const usedColumns = new Set(occupied.map((position) => position.column))
+  const needed = 8 - template.characterCount
+  const candidates = puzzle.positions
+    .filter(
+      (position) =>
+        !position.blocked && !usedRows.has(position.row) && !usedColumns.has(position.column),
+    )
+    .flatMap((position) =>
+      puzzle.positions
+        .filter(
+          (obstacle) =>
+            obstacle.blocked &&
+            obstacle.placeId === position.placeId &&
+            Math.abs(obstacle.row - position.row) +
+              Math.abs(obstacle.column - position.column) ===
+              1,
+        )
+        .map((obstacle) => ({
+          position,
+          obstacle,
+          candidateCount: landmarkCandidateCount(puzzle.positions, obstacle),
+        })),
+    )
+    .sort((first, second) => {
+      const target = template.difficulty === 'easy' ? 1 : 2.5
+      return (
+        Math.abs(first.candidateCount - target) - Math.abs(second.candidateCount - target) ||
+        first.position.row - second.position.row ||
+        first.position.column - second.position.column
+      )
+    })
+
+  type Candidate = (typeof candidates)[number]
+  let verificationAttempts = 0
+  const select = (
+    startIndex: number,
+    selected: readonly Candidate[],
+    rows: ReadonlySet<number>,
+    columns: ReadonlySet<number>,
+  ): AdvancedPuzzleTemplate | null => {
+    if (verificationAttempts >= 24) return null
+    if (selected.length === needed) {
+      verificationAttempts += 1
+      const addedClues = selected.flatMap((candidate, offset) => {
+        const character = template.characterCount + offset
+        return [
+          ['o', character, candidate.obstacle.row, candidate.obstacle.column] as const,
+          ['p', character, candidate.position.row, candidate.position.column] as const,
+        ]
+      })
+      const expanded: AdvancedPuzzleTemplate = {
+        ...template,
+        generatorVersion: GENERATOR_VERSION,
+        characterCount: 8,
+        clues: [...template.clues, ...addedClues],
+        landmarkCandidateCounts: [
+          ...template.landmarkCandidateCounts,
+          ...selected.map((candidate) => candidate.candidateCount),
+        ],
+        exactClueCount: template.exactClueCount + needed,
+      }
+      if (!difficultyMetricsMatch(expanded) || expanded.exactClueCount > 7) return null
+      try {
+        materializeAdvancedPuzzleTemplate(expanded, `${source}-verify`)
+        return expanded
+      } catch {
+        return null
+      }
+    }
+
+    for (let index = startIndex; index < candidates.length; index += 1) {
+      const candidate = candidates[index]
+      if (
+        !candidate ||
+        rows.has(candidate.position.row) ||
+        columns.has(candidate.position.column)
+      ) {
+        continue
+      }
+      const result = select(
+        index + 1,
+        [...selected, candidate],
+        new Set([...rows, candidate.position.row]),
+        new Set([...columns, candidate.position.column]),
+      )
+      if (result) return result
+    }
+    return null
+  }
+
+  const expanded = select(0, [], usedRows, usedColumns)
+  return expanded
+}
+
+const migrateLargeGridCatalog = async () => {
+  const migrated: AdvancedPuzzleTemplate[] = []
+  const failed: AdvancedPuzzleTemplate[] = []
+  for (const template of advancedPuzzleTemplates as readonly AdvancedPuzzleTemplate[]) {
+    const expanded = expandLargeGridTemplate(template)
+    if (expanded) migrated.push(expanded)
+    else failed.push(template)
+    if ((migrated.length + failed.length) % 50 === 0) {
+      process.stdout.write(
+        `Plantilles revisades: ${migrated.length + failed.length}/${catalogSize}\n`,
+      )
+    }
+  }
+  const signatures = new Set(migrated.map(canonicalTemplateSignature))
+  const requiredByBucket = new Map<string, number>()
+  for (const template of failed) {
+    const key = templateBucketKey(template)
+    requiredByBucket.set(key, (requiredByBucket.get(key) ?? 0) + 1)
+  }
+  const generatedByBucket = new Map<string, number>()
+  const replacementBuckets = templateBuckets().filter((bucket) =>
+    requiredByBucket.has(
+      `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}:`,
+    ),
+  )
+  const replacementTarget = failed.length
+  for (
+    let attempt = 0;
+    attempt < replacementTarget * 200 && migrated.length < catalogSize;
+    attempt += 1
+  ) {
+    const bucket = replacementBuckets[attempt % replacementBuckets.length]
+    if (!bucket || bucket.boardMode !== 'logic-grid') continue
+    const key = `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}:`
+    if ((generatedByBucket.get(key) ?? 0) >= (requiredByBucket.get(key) ?? 0)) continue
+    try {
+      const candidate = generateCandidate(
+        bucket,
+        500_000 + attempt,
+        `large-grid-replacement-${attempt}`,
+      )
+      const signature = canonicalTemplateSignature(candidate)
+      if (!difficultyMetricsMatch(candidate) || signatures.has(signature)) continue
+      signatures.add(signature)
+      migrated.push(candidate)
+      generatedByBucket.set(key, (generatedByBucket.get(key) ?? 0) + 1)
+      process.stdout.write(`Substitucions: ${migrated.length}/${catalogSize}\n`)
+    } catch {
+      // Keep searching for a unique replacement in the same structural bucket.
+    }
+  }
+  if (migrated.length !== catalogSize) {
+    throw new Error(
+      `Falten ${catalogSize - migrated.length} substitucions després de la migració 16×16.`,
+    )
+  }
+  await writeCatalog(migrated)
+}
+
 if (isCheck) {
   await checkCatalog()
+} else if (isLargeGridMigration) {
+  await migrateLargeGridCatalog()
 } else if (isCubeMigration) {
   await migrateCatalogWithCubes()
 } else if (isRepair) {

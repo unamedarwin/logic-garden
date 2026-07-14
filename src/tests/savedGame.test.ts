@@ -48,6 +48,7 @@ describe('saved game compatibility', () => {
       seed: state.puzzle.seed,
       audience: 'children' as const,
       generatorVersion: GENERATOR_VERSION,
+      childMapSize: 4 as const,
       benchmarkSeconds: 95,
     }
     await saveGame(state, challenge)
@@ -67,6 +68,7 @@ describe('saved game compatibility', () => {
       seed: state.puzzle.seed,
       audience: 'children' as const,
       generatorVersion: GENERATOR_VERSION,
+      childMapSize: 4 as const,
       benchmarkSeconds: 42,
     }
     vi.mocked(get).mockResolvedValue({
@@ -77,6 +79,23 @@ describe('saved game compatibility', () => {
     })
 
     await expect(loadSavedGame()).resolves.toEqual({ state, challenge })
+  })
+
+  it('rejects a challenge whose declared map size does not match its puzzle', async () => {
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state,
+      challenge: {
+        difficulty: 'easy',
+        seed: state.puzzle.seed,
+        audience: 'children',
+        generatorVersion: GENERATOR_VERSION,
+        childMapSize: 8,
+      },
+    })
+
+    await expect(loadSavedGame()).resolves.toBeNull()
   })
 
   it('restores a structurally valid wrong deduction', async () => {

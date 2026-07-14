@@ -14,6 +14,14 @@ const dndMock = vi.hoisted(() => ({
     ((event: { active: { id: string }; over: { id: string } | null }) => void) | undefined,
 }))
 const clipboardWriteText = vi.fn<(url: string) => Promise<void>>(() => Promise.resolve())
+const systemShare = vi.fn<(data: ShareData) => Promise<void>>(() => Promise.resolve())
+
+const startDefaultGame = async (user: ReturnType<typeof userEvent.setup>) => {
+  await user.click(await screen.findByRole('button', { name: 'Pas següent' }))
+  await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+  await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+  await user.click(screen.getByRole('button', { name: 'Juga' }))
+}
 
 vi.mock('@dnd-kit/core', () => ({
   DndContext: ({
@@ -57,9 +65,12 @@ vi.mock('../pwa/registerServiceWorker', () => ({
 
 vi.mock('../storage/preferences', () => ({
   defaultPreferences: {
-    schemaVersion: 4,
+    schemaVersion: 5,
     difficulty: 'easy',
     collection: 'children',
+    advancedGridSize: 6,
+    childMapSize: 4,
+    buildingDepth: 3,
     locale: 'ca',
     soundEnabled: false,
     reducedMotion: false,
@@ -67,9 +78,12 @@ vi.mock('../storage/preferences', () => ({
   },
   loadPreferences: () =>
     Promise.resolve({
-      schemaVersion: 4,
+      schemaVersion: 5,
       difficulty: 'easy',
       collection: 'children',
+      advancedGridSize: 6,
+      childMapSize: 4,
+      buildingDepth: 3,
       locale: 'ca',
       soundEnabled: false,
       reducedMotion: false,
@@ -107,6 +121,7 @@ describe('game interface', () => {
     dndMock.onDragStart = undefined
     dndMock.onDragEnd = undefined
     clipboardWriteText.mockClear()
+    systemShare.mockClear()
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: clipboardWriteText },
@@ -128,6 +143,7 @@ describe('game interface', () => {
           difficulty: 'easy',
           seed: seed('shared-app-test'),
           generatorVersion: GENERATOR_VERSION,
+          childMapSize: 4,
         },
         'children',
         95,
@@ -149,10 +165,78 @@ describe('game interface', () => {
     now.mockRestore()
   })
 
+  it('shows one setup decision per journey step', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeInTheDocument()
+    expect(screen.queryByRole('radio', { name: /^Fàcil/u })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Aventura/u })).toBeDisabled()
+    await user.click(screen.getByRole('radio', { name: /^Puzzles 2D/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+
+    await waitFor(() => expect(screen.getByRole('group', { name: 'Mida' })).toHaveFocus())
+    expect(screen.getByRole('radio', { name: /^Petit · 6×6/u })).toBeChecked()
+    expect(screen.queryByRole('radio', { name: /^Puzzles 2D/u })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+
+    expect(screen.getByRole('radio', { name: /^Fàcil/u })).toBeChecked()
+    expect(screen.getByRole('button', { name: /Aventura/u })).toBeEnabled()
+    expect(screen.queryByRole('radio', { name: /^Petit · 6×6/u })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Juga' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+
+    expect(screen.getByRole('group', { name: 'Aventura' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
+  })
+
+  it('starts an explicitly selected easy 16×16 board with eight people', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: systemShare,
+    })
+    const { container } = render(<App />)
+
+    await user.click(await screen.findByRole('radio', { name: /^Puzzles 2D/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('radio', { name: /^Gran · 16×16/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Juga' }))
+
+    await waitFor(() =>
+      expect(container.querySelector('.game-board')).toHaveAttribute('data-grid-size', '16'),
+    )
+    expect(container.querySelectorAll('.character-clue-rail__person')).toHaveLength(8)
+    await user.click(screen.getByRole('button', { name: 'Compartir' }))
+    await waitFor(() => expect(systemShare).toHaveBeenCalledOnce())
+    const sharedUrl = systemShare.mock.calls[0]?.[0].url
+    if (!sharedUrl) throw new Error('Expected the selected size in a share URL')
+    expect(parseSharedGameRoute(new URL(sharedUrl) as unknown as Location)).toMatchObject({
+      difficulty: 'easy',
+      gridSize: 16,
+    })
+  }, 15_000)
+
+  it('starts the adventure selected in the fourth setup step', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole('radio', { name: /^Puzzles 2D/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('radio', { name: 'El festival d’esports' }))
+    await user.click(screen.getByRole('button', { name: 'Juga' }))
+
+    expect(await screen.findByRole('heading', { name: 'El festival d’esports' })).toBeVisible()
+  })
+
   it('plays by keyboard and click, supports undo and provides a solver hint', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' })
     expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
@@ -178,7 +262,7 @@ describe('game interface', () => {
   it('switches the visible interface language without changing the puzzle logic', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
     await screen.findByRole('grid', { name: 'Mapa del puzzle' })
     await user.click(screen.getByRole('button', { name: 'Comprovar' }))
     expect(await screen.findByRole('dialog', { name: 'Gairebé!' })).toHaveTextContent(
@@ -199,7 +283,7 @@ describe('game interface', () => {
   it('can hide the exact check score without hiding the check dialog', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
     await user.click(screen.getByRole('button', { name: 'Configuració' }))
     await user.click(
       screen.getByRole('checkbox', {
@@ -217,19 +301,66 @@ describe('game interface', () => {
   it('returns to the difficulty selector from an active game', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
     await screen.findByRole('grid', { name: 'Mapa del puzzle' })
 
     await user.click(screen.getByRole('button', { name: 'Canvia el nivell' }))
 
-    expect(await screen.findByRole('radio', { name: 'Fàcil · 4 amics' })).toBeChecked()
+    expect(
+      await screen.findByRole('radio', { name: /^Fàcil · pistes molt clares/u }),
+    ).toBeChecked()
+    expect(screen.queryByRole('button', { name: 'Juga' })).not.toBeInTheDocument()
+  })
+
+  it('moves backward and forward through the journey without losing placements', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await startDefaultGame(user)
+
+    const trayToken = await waitFor(() => {
+      const token = container.querySelector('[data-character-id]') as HTMLButtonElement | null
+      expect(token).not.toBeNull()
+      return token!
+    })
+    await user.click(trayToken)
+    await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
+    const placedCharacterId = screen.getByRole('button', {
+      name: /^Torna a la safata: /u,
+    }).dataset.characterId
+
+    await user.click(screen.getByRole('button', { name: 'Pas anterior' }))
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: /^Fàcil/u })).toBeChecked()
+
+    await user.click(screen.getByRole('button', { name: /Aventura/u }))
+    await user.click(screen.getByRole('button', { name: 'Reprèn la partida' }))
+    expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /^Torna a la safata: /u }).dataset.characterId,
+    ).toBe(placedCharacterId)
+  })
+
+  it('does not resume a suspended game after changing its setup', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await startDefaultGame(user)
+    await screen.findByRole('grid', { name: 'Mapa del puzzle' })
+
+    await user.click(screen.getByRole('button', { name: 'Canvia el nivell' }))
+    await user.click(screen.getByRole('button', { name: /Tipus/u }))
+    await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
+
+    expect(screen.getByRole('button', { name: /Aventura/u })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
   })
 
   it('returns a placed token to the tray by clicking the token itself', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     await waitFor(() =>
       expect(container.querySelector('[data-character-id]')).toBeInTheDocument(),
@@ -250,7 +381,7 @@ describe('game interface', () => {
   it('fits the board by default and only scrolls after explicit zoom', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     const viewport = container.querySelector('.game-board-scroll')
     const board = await screen.findByRole('grid', { name: 'Mapa del puzzle' })
@@ -269,7 +400,7 @@ describe('game interface', () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
     await user.click(await screen.findByRole('radio', { name: /^Puzzles 2D/u }))
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     await waitFor(() =>
       expect(container.querySelector('.character-clue-rail__person')).toBeInTheDocument(),
@@ -320,17 +451,19 @@ describe('game interface', () => {
     expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeChecked()
     expect(screen.getByRole('radio', { name: /^Puzzles 2D/u })).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
-    expect(
-      screen.getByRole('radio', { name: 'Avançat · edifici de 3 a 10 plantes' }),
-    ).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('radio', { name: '10 plantes' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    expect(screen.getByRole('radio', { name: 'Fàcil · 4 veïns guiats' })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: 'Mitjà · 2 veïns guiats' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     await user.click(screen.getByRole('button', { name: 'Juga' }))
 
     expect(
       await screen.findByRole('grid', { name: /Edifici de deducció en 3D:/u }),
     ).toBeInTheDocument()
     expect(screen.getByRole('group', { name: "Ascensor de l'edifici" })).toBeInTheDocument()
-    expect(screen.getAllByRole('tab').length).toBeGreaterThanOrEqual(3)
-    expect(screen.getAllByRole('tab').length).toBeLessThanOrEqual(10)
+    expect(screen.getAllByRole('tab')).toHaveLength(10)
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     expect(
       screen.getByRole('heading', {
@@ -343,9 +476,18 @@ describe('game interface', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    await user.click(await screen.findByRole('radio', { name: /^Mitjà/u }))
+    await user.click(await screen.findByRole('radio', { name: /^Puzzles 2D/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('radio', { name: /^Gran · 16×16/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('radio', { name: /^Mitjà/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas anterior' }))
+    expect(screen.getByRole('radio', { name: /^Gran · 16×16/u })).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Pas anterior' }))
     await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
     await user.click(screen.getByRole('radio', { name: /^Puzzles 2D/u }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
 
     expect(screen.getByRole('radio', { name: /^Mitjà/u })).toBeChecked()
   })
@@ -353,7 +495,7 @@ describe('game interface', () => {
   it('asks which person needs a hint when no person is selected', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     await user.click(screen.getByRole('button', { name: 'Pista' }))
     const dialog = screen.getByRole('dialog', { name: 'De qui necessites una pista?' })
@@ -372,7 +514,7 @@ describe('game interface', () => {
       value: { writeText: clipboardWriteText },
     })
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
 
     const hintButton = screen.getByRole('button', { name: 'Pista' })
     const shareButton = screen.getByRole('button', { name: 'Compartir' })
@@ -392,7 +534,7 @@ describe('game interface', () => {
   it('keeps keyboard focus inside dialogs and restores it after Escape', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(await screen.findByRole('button', { name: 'Juga' }))
+    await startDefaultGame(user)
     const settingsButton = screen.getByRole('button', { name: 'Configuració' })
     await user.click(settingsButton)
 
