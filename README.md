@@ -177,6 +177,13 @@ that hypothesis incorrect. `Comprovar` evaluates clue truth, while local persist
 wrong guesses instead of silently correcting them on reload. The same rule applies to the child map:
 a child can test a free place, replace its occupant, return a person to the waiting area, and undo the
 whole experiment without the interface revealing the answer early.
+The child map uses the same horizontally scrollable people rail as the advanced collections.
+Selecting a child shows only clues related to that child immediately below the rail; the collapsed
+complete clue list remains available as secondary support instead of forcing repeated page travel.
+When a tall child map reaches the fixed mobile action rail, changing the selected child reveals the
+whole contextual clue automatically with a reserved visual gap instead of leaving copy underneath.
+The child clue reducer protects contextual coverage, so every playable child retains at least one
+related clue without requiring every clue to reveal an exact place.
 Checking a wrong proposal never moves or removes a piece and never rewrites undo/redo history. It
 reports only overall progress; the game changes a hypothesis automatically only when the player
 explicitly asks for a solver hint.
@@ -203,7 +210,10 @@ Every step and direction control is keyboard accessible and at least 44 pixels h
 Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
 a playful title scene, and a map that stays visually dominant during play. Their playable friends
 use a curated, non-repeating set of child avatars; animals and objects remain scenery rather than
-character identities. The 2D collection
+character identities. Each child place is an independent illustrated room card with a
+theme-specific local material such as grass, sand, water, parquet, stone, carpet, or metal. These
+textures enrich the named place without introducing advanced room polygons, crossed rows or
+columns, or a visible placement grid. The 2D collection
 alternates between poster-like creative scenes and calm editorial scenes from the internal teen
 and adult content catalogs. Its boards use twelve local floor-plan variants per content catalog. A seeded game selects a
 plan, transform, people, item emojis, obstacle locations, and phrase variants deterministically.

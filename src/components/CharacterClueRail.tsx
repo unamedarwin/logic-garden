@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { clueReferencesCharacter } from '../domain/clueRelations'
 import type { Character, CharacterId, Clue, Locale, PositionId, Puzzle } from '../domain/types'
 import { ClueSentence } from './ClueSentence'
 import { SceneIcon } from './SceneIcon'
@@ -14,44 +15,6 @@ interface CharacterClueRailProps {
   readonly previousClueLabel: string
   readonly nextClueLabel: string
   readonly onSelect: (character: Character) => void
-}
-
-const clueReferencesCharacter = (clue: Clue, characterId: CharacterId) => {
-  switch (clue.type) {
-    case 'character-at-position':
-    case 'character-not-at-position':
-    case 'character-in-place':
-    case 'character-not-in-place':
-    case 'character-next-to-obstacle':
-    case 'in-corner':
-    case 'not-in-corner':
-    case 'has-item':
-    case 'does-not-have-item':
-      return clue.characterId === characterId
-    case 'item-in-place':
-    case 'item-not-in-place':
-      return false
-    case 'between':
-      return (
-        clue.characterId === characterId ||
-        clue.firstCharacterId === characterId ||
-        clue.secondCharacterId === characterId
-      )
-    case 'adjacent':
-    case 'not-adjacent':
-    case 'same-row':
-    case 'different-row':
-    case 'same-column':
-    case 'different-column':
-    case 'left-of':
-    case 'right-of':
-    case 'above':
-    case 'below':
-    case 'distance':
-    case 'same-floor':
-    case 'different-floor':
-      return clue.firstCharacterId === characterId || clue.secondCharacterId === characterId
-  }
 }
 
 const cluePrecision = (clue: Clue) => {
@@ -87,10 +50,11 @@ export const CharacterClueRail = ({
   onSelect,
 }: CharacterClueRailProps) => {
   const clueRailRef = useRef<HTMLDivElement>(null)
+  const contextRef = useRef<HTMLDivElement>(null)
   const peopleRefs = useRef(new Map<CharacterId, HTMLButtonElement>())
   const [clueIndex, setClueIndex] = useState(0)
   const firstCharacterWithClue = puzzle.characters.find((character) =>
-    puzzle.clues.some((clue) => clueReferencesCharacter(clue, character.id)),
+    puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
   )
   const activeCharacter =
     puzzle.characters.find((character) => character.id === selectedCharacterId) ??
@@ -99,7 +63,7 @@ export const CharacterClueRail = ({
   const activeCharacterId = activeCharacter?.id
   const clues = activeCharacter
     ? puzzle.clues
-        .filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
+        .filter((clue) => clueReferencesCharacter(puzzle, clue, activeCharacter.id))
         .toSorted((first, second) => cluePrecision(first) - cluePrecision(second))
     : []
 
@@ -113,6 +77,21 @@ export const CharacterClueRail = ({
         block: 'nearest',
         inline: 'center',
       })
+    }
+    const context = contextRef.current
+    const actions = document.querySelector<HTMLElement>('.game-actions')
+    if (context && actions) {
+      const contextBounds = context.getBoundingClientRect()
+      const actionsBounds = actions.getBoundingClientRect()
+      const overlap = contextBounds.bottom - actionsBounds.top + 12
+      if (
+        contextBounds.height > 0 &&
+        actionsBounds.height > 0 &&
+        overlap > 0 &&
+        contextBounds.top < window.innerHeight
+      ) {
+        window.scrollBy({ top: overlap, behavior: motionSafeScrollBehavior() })
+      }
     }
   }, [activeCharacterId])
 
@@ -143,6 +122,7 @@ export const CharacterClueRail = ({
                   else peopleRefs.current.delete(character.id)
                 }}
                 type="button"
+                data-character-id={character.id}
                 className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
                 aria-pressed={selected}
                 aria-controls={clueRegionId}
@@ -157,7 +137,12 @@ export const CharacterClueRail = ({
           )
         })}
       </div>
-      <div id={clueRegionId} className="character-clue-rail__context" aria-live="polite">
+      <div
+        ref={contextRef}
+        id={clueRegionId}
+        className="character-clue-rail__context"
+        aria-live="polite"
+      >
         <p className="character-clue-rail__active">
           <SceneIcon
             emoji={activeCharacter.emoji}

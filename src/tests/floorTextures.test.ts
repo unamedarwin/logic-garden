@@ -32,6 +32,19 @@ const advancedThemes: readonly ThemeId[] = [
   'weekend-market',
 ]
 
+const childThemes: readonly ThemeId[] = [
+  'forest-party',
+  'treasure-island',
+  'kind-magic-school',
+  'space-trip',
+  'fun-farm',
+  'sea-garden',
+  'dino-park',
+  'friendly-monster-town',
+  'color-fair',
+  'mountain-trip',
+]
+
 const positionsFor = (
   plan: SpatialPlan,
   size: number,
@@ -160,6 +173,23 @@ describe('floor textures', () => {
     }
     expect(floorMaterialDetails('stone').motifs).not.toContain('diamond')
     expect(floorMaterialDetails('stone').motifs).not.toContain('gem')
+  })
+
+  it('gives every child adventure a varied local material for each room', () => {
+    for (const themeId of childThemes) {
+      const placeCount = getTheme(themeId).places.length
+      const textures = Array.from({ length: placeCount }, (_, roomIndex) =>
+        floorTextureForRoom(themeId, roomIndex),
+      )
+      expect(textures).toHaveLength(8)
+      expect(new Set(textures.map(({ material }) => material)).size).toBeGreaterThanOrEqual(3)
+      expect(textures.every(({ layers }) => layers.length === 3)).toBe(true)
+    }
+
+    expect(floorTextureForRoom('forest-party', 0).material).toBe('grass')
+    expect(floorTextureForRoom('treasure-island', 0).material).toBe('sand')
+    expect(floorTextureForRoom('space-trip', 0).material).toBe('metal')
+    expect(floorTextureForRoom('sea-garden', 0).material).toBe('water')
   })
 
   it('keeps semantic motifs on distinct color palettes', () => {

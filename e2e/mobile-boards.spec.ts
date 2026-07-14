@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 
-type Collection = 'Puzzles 2D' | 'Puzzles 3D'
+type Collection = 'Infantil' | 'Puzzles 2D' | 'Puzzles 3D'
 
 const chooseRadio = async (radio: Locator) => {
   await radio.focus()
@@ -48,6 +48,19 @@ const expectFitBoard = async (page: Page) => {
   }))
   expect(dimensions.horizontal, JSON.stringify(dimensions.sources)).toBeLessThanOrEqual(1)
   expect(dimensions.vertical).toBeLessThanOrEqual(1)
+}
+
+const expectContextAboveActions = async (page: Page) => {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const context = document.querySelector<HTMLElement>('.character-clue-rail__context')
+        const actions = document.querySelector<HTMLElement>('.game-actions')
+        if (!context || !actions) return Number.POSITIVE_INFINITY
+        return context.getBoundingClientRect().bottom - actions.getBoundingClientRect().top
+      }),
+    )
+    .toBeLessThanOrEqual(-8)
 }
 
 const expectCentered = async (token: Locator, cell: Locator) => {
@@ -104,6 +117,53 @@ test.beforeEach(async ({ page }) => {
     window.localStorage.setItem('logic-garden:install-prompt:v1', 'dismissed')
   })
 })
+
+for (const size of [4, 6, 8] as const) {
+  test(`Children ${size} rooms exposes contextual clues and textured places`, async ({
+    page,
+  }, testInfo) => {
+    await startGame(page, 'Infantil', new RegExp(`${size} amics`, 'u'))
+    const board = page.locator('.game-board--child-map')
+    const rooms = board.locator('.location-cell')
+    await expect(rooms).toHaveCount(size)
+    await expect(page.locator('.character-clue-rail__person')).toHaveCount(size)
+    await expect(page.locator('.tray-wrap')).toHaveCount(0)
+
+    const roomArtwork = await rooms.evaluateAll((elements) =>
+      elements.map((element) => ({
+        material: element.getAttribute('data-room-material'),
+        backgroundImage: getComputedStyle(element).backgroundImage,
+      })),
+    )
+    expect(roomArtwork.every(({ material }) => Boolean(material))).toBe(true)
+    expect(roomArtwork.every(({ backgroundImage }) => backgroundImage !== 'none')).toBe(true)
+    expect(new Set(roomArtwork.map(({ material }) => material)).size).toBeGreaterThanOrEqual(3)
+
+    await page.locator('.character-clue-rail__person').first().click()
+    const railBounds = await page.locator('.character-clue-rail').evaluate((element) => {
+      const people = element.querySelector<HTMLElement>('.character-clue-rail__people')
+      const context = element.querySelector<HTMLElement>('.character-clue-rail__context')
+      return {
+        peopleBottom: people?.getBoundingClientRect().bottom ?? 0,
+        contextTop: context?.getBoundingClientRect().top ?? 0,
+      }
+    })
+    expect(railBounds.contextTop).toBeGreaterThanOrEqual(railBounds.peopleBottom - 1)
+    await expect(page.locator('.character-clue-rail__clue').first()).toBeVisible()
+    await expectContextAboveActions(page)
+    await expect(page.locator('.clue-panel')).not.toHaveAttribute('open', '')
+    await expectNoDocumentOverflow(page)
+    await expectFitBoard(page)
+    await saveEvidence(page, testInfo, `children-${size}-empty`)
+
+    const destination = rooms.first()
+    await destination.locator('.location-cell__target').click()
+    await expect(destination.locator('.character-token')).toBeVisible()
+    await expectContextAboveActions(page)
+    await expect(destination).toHaveAttribute('data-room-material', /.+/u)
+    await saveEvidence(page, testInfo, `children-${size}-placed`)
+  })
+}
 
 for (const size of [6, 9, 16] as const) {
   test(`2D ${size}x${size} fits and centers a placed person`, async ({ page }, testInfo) => {

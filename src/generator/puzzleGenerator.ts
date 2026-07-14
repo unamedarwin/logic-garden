@@ -14,6 +14,7 @@ import {
 } from '../domain/types'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
 import { BUILDING_DEPTHS } from '../domain/buildingPlan'
+import { clueReferencesCharacter } from '../domain/clueRelations'
 import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
 import { getTheme, themesForAudience } from '../domain/themes'
 import { analyzeSolutions, solve } from '../solver/solver'
@@ -315,6 +316,34 @@ export const generatePuzzleDirect = (
               ),
             ]
           : orderedCandidates
+      const childContextAnchors = (() => {
+        if (world.boardMode !== 'map') return []
+        const protectedClues: Puzzle['clues'][number][] = [...childAnchors]
+        for (const character of world.characters) {
+          if (
+            protectedClues.some((clue) =>
+              clueReferencesCharacter(basePuzzle, clue, character.id),
+            )
+          ) {
+            continue
+          }
+          const relatedCandidates = childCandidateOrder.filter((clue) =>
+            clueReferencesCharacter(basePuzzle, clue, character.id),
+          )
+          const relatedClue =
+            relatedCandidates.find(
+              (clue) =>
+                clue.type !== 'character-at-position' && clue.type !== 'character-in-place',
+            ) ?? relatedCandidates[0]
+          if (!relatedClue) {
+            throw new Error('No s’ha pogut preparar una pista per a cada infant.')
+          }
+          if (!protectedClues.some((clue) => clue.id === relatedClue.id)) {
+            protectedClues.push(relatedClue)
+          }
+        }
+        return protectedClues
+      })()
       const candidates =
         world.boardMode === 'logic-grid' || world.boardMode === 'logic-cube'
           ? [
@@ -322,13 +351,37 @@ export const generatePuzzleDirect = (
               ...orderedCandidates.filter((clue) => spatialFallbackIds.has(clue.id)),
             ]
           : childCandidateOrder
-      const clues = selectMinimalUniqueClues(basePuzzle, candidates, [
-        ...childAnchors,
+      let clues = selectMinimalUniqueClues(basePuzzle, candidates, [
+        ...childContextAnchors,
         ...landmarkAnchors,
         ...narrativeAnchors,
         ...cubeAnchors,
         ...cornerAnchors,
       ])
+      if (world.boardMode === 'map') {
+        const difficultyAnchorIds = new Set(childAnchors.map((clue) => clue.id))
+        const contextualAnchorIds = new Set(
+          childContextAnchors
+            .filter((clue) => !difficultyAnchorIds.has(clue.id))
+            .map((clue) => clue.id),
+        )
+
+        for (const clue of [...clues].reverse()) {
+          if (!contextualAnchorIds.has(clue.id)) continue
+          const reducedClues = clues.filter((candidate) => candidate.id !== clue.id)
+          const retainsContext = world.characters.every((character) =>
+            reducedClues.some((candidate) =>
+              clueReferencesCharacter(basePuzzle, candidate, character.id),
+            ),
+          )
+          if (
+            retainsContext &&
+            analyzeSolutions({ ...basePuzzle, clues: reducedClues }, { limit: 2 }).count === 1
+          ) {
+            clues = reducedClues
+          }
+        }
+      }
       const candidate: Puzzle = {
         ...basePuzzle,
         clues,

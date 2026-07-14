@@ -259,6 +259,36 @@ describe('game interface', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows child clues below the people rail and textures every child room', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await startDefaultGame(user)
+
+    const board = await screen.findByRole('grid', { name: 'Mapa del puzzle' })
+    expect(board).toHaveClass('game-board--child-map')
+    const rooms = container.querySelectorAll<HTMLElement>(
+      '.game-board--child-map .location-cell',
+    )
+    expect(rooms).toHaveLength(4)
+    expect(
+      Array.from(rooms).every(
+        (room) =>
+          Boolean(room.dataset.roomMaterial) && room.style.backgroundImage.includes('svg+xml'),
+      ),
+    ).toBe(true)
+    expect(container.querySelector('.tray-wrap')).not.toBeInTheDocument()
+
+    const people = container.querySelectorAll<HTMLButtonElement>('.character-clue-rail__person')
+    expect(people).toHaveLength(4)
+    await user.click(people[1]!)
+    expect(container.querySelector('.character-clue-rail__active strong')).toHaveTextContent(
+      people[1]!.textContent ?? '',
+    )
+    expect(container.querySelector('.character-clue-rail__clue--empty')).not.toBeInTheDocument()
+    expect(container.querySelector('.character-clue-rail__clue')).toHaveTextContent(/\S/u)
+    expect(container.querySelector('.clue-panel')).not.toHaveAttribute('open')
+  })
+
   it('switches the visible interface language without changing the puzzle logic', async () => {
     const user = userEvent.setup()
     render(<App />)

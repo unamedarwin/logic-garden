@@ -10,6 +10,8 @@ export default tseslint.config(
       'dist',
       'coverage',
       'node_modules',
+      'playwright-report',
+      'test-results',
       'src/assets/generated/fluentIconData.ts',
       'src/assets/generated/puzzleTemplateData.ts',
     ],

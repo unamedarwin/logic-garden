@@ -1,6 +1,7 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { getTheme, themes } from '../domain/themes'
+import { clueReferencesCharacter } from '../domain/clueRelations'
 import { fluentIconData } from '../assets/generated/fluentIconData'
 import type { Audience, Difficulty, Puzzle } from '../domain/types'
 import { renderClue, renderClueParts } from '../domain/vocabulary'
@@ -116,7 +117,14 @@ describe('seeded puzzle generator', () => {
       expect(directClues[0]).toBeGreaterThanOrEqual(childMapSize - 1)
       expect(directClues[1]).toBeGreaterThanOrEqual(Math.floor(childMapSize / 3))
       expect(directClues[2]).toBeLessThan(directClues[1]!)
-      for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+      for (const puzzle of puzzles) {
+        expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+        expect(
+          puzzle.characters.every((character) =>
+            puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
+          ),
+        ).toBe(true)
+      }
     }
   })
 
@@ -421,14 +429,21 @@ describe('seeded puzzle generator', () => {
     )
   }, 30_000)
 
-  it('keeps every selected clue necessary after clue reduction', () => {
+  it('keeps every selected clue necessary for deduction or child context', () => {
     const puzzle = generatePuzzle('hard', 'minimal-clues')
     for (const clue of puzzle.clues) {
       const withoutClue = {
         ...puzzle,
         clues: puzzle.clues.filter((candidate) => candidate.id !== clue.id),
       }
-      expect(countSolutions(withoutClue, { limit: 2 })).not.toBe(1)
+      const remainsUnique = countSolutions(withoutClue, { limit: 2 }) === 1
+      const retainsChildContext = puzzle.characters.every((character) =>
+        withoutClue.clues.some((candidate) =>
+          clueReferencesCharacter(withoutClue, candidate, character.id),
+        ),
+      )
+
+      expect(remainsUnique && retainsChildContext).toBe(false)
     }
   })
 

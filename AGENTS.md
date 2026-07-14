@@ -70,6 +70,8 @@ Reducer, validation, and solver feedback must remain structured data and be loca
 interface; never persist a rendered feedback sentence in game state.
 Child clue copy must pair each precise fact with a short friendly action, object, or motivation in
 all supported languages. Do not reduce child clues to bare placement commands.
+After child clue reduction, every playable child must retain at least one contextual clue card that
+references that child directly, through a relationship, or through their structured carried item.
 Catalan clues must name a visible landmark directly; do not insert a repeated generic label such as
 `referència` before every object token when the icon and object name already identify it.
 Position and relationship clues in every locale must not mention a character's carried item merely
@@ -108,6 +110,12 @@ same safe, local, accessible game mechanics. Use PixiJS only as a decorative gri
 interaction and accessibility layer.
 Child playable characters must use the curated, non-repeating human child-avatar catalog. Animals
 and objects may decorate a theme but must not become child character identities.
+Children must use the same horizontally scrollable people and contextual-clue rail as 2D and 3D.
+Selecting a child shows that child's related clue cards directly below the people row; the complete
+clue list remains a collapsed support panel and must never be the only practical clue path.
+Texture each child place as an individual illustrated room card using its theme-specific local
+material. Do not project an advanced spatial polygon, crossed-axis grid, or room geometry onto the
+child map merely to provide those textures.
 Scale room labels, textures, objects, placed avatars, and crossed cells from the actual grid
 dimension rather than viewport units. Character/avatar emoji catalogs and object/obstacle emoji
 catalogs must remain disjoint, with an automated invariant test covering every theme.

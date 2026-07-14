@@ -90,7 +90,7 @@ structured clue data.
 
 ## Generation and persistence
 
-Generator version 20 combines the player-selected height with a seeded plan, structural template,
+Generator version 21 combines the player-selected height with a seeded plan, structural template,
 people, objects, furniture, and wording. The answer-free template catalog contains 84 spatial structures and
 16 building structures. The building subset contains one structure for every internal teen/adult
 content catalog and height combination while the player sees one unified 3D collection. Runtime materialization always

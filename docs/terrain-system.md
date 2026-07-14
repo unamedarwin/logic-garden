@@ -6,6 +6,12 @@ geometry only, while the seeded puzzle selects the theme, material treatment, ob
 Each advanced theme also defines six place-specific object subsets. A fixed scene object must be
 valid for the room that contains it; global random object assignment is not allowed.
 
+Child maps reuse the reviewed local material catalog at room-card scale. Every child theme declares
+one material per named place, and each card paints its own three-layer square SVG texture with a
+deterministic phase. Child cards do not use spatial-plan polygons, terrain obstacles, crossed axes,
+or the advanced placement grid; the texture describes the place without changing its one-place
+interaction model.
+
 ## Material catalog
 
 Every material uses three square, repeatable SVG layers bundled into the application. The catalog

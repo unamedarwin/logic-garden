@@ -19,6 +19,7 @@ import {
   type SpatialPlanId,
 } from '../domain/spatialPlan'
 import { CharacterToken, CharacterTokenPreview } from './CharacterToken'
+import { floorTextureForRoom, type FloorTexture } from './floorTextures'
 import { GridObjectIcons } from './GridObjectIcons'
 import { LogicGridArtwork } from './LogicGridArtwork'
 
@@ -41,6 +42,7 @@ interface LocationCellProps {
   readonly onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void
   readonly locale: Locale
   readonly themeId: ThemeId
+  readonly roomTexture?: FloorTexture
 }
 
 const LocationCell = ({
@@ -62,6 +64,7 @@ const LocationCell = ({
   onKeyDown,
   locale,
   themeId,
+  roomTexture,
 }: LocationCellProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: `position:${position.id}` })
   const positionLabel = localizeThemePositionLabel(locale, themeId, position.label)
@@ -70,6 +73,16 @@ const LocationCell = ({
     : selectPositionLabel(positionLabel)
   const unavailable = disabled || position.blocked
   const showDropPreview = Boolean(isOver && !unavailable && draggedCharacter)
+  const texturePhaseX = position.column * 17 + position.row * 7
+  const texturePhaseY = position.row * 19 + position.column * 5
+  const roomStyle = roomTexture
+    ? ({
+        backgroundColor: roomTexture.baseColor,
+        backgroundImage: roomTexture.layers.join(','),
+        backgroundPosition: `${texturePhaseX}px ${texturePhaseY}px, ${-texturePhaseX}px ${texturePhaseY / 2}px, ${texturePhaseY}px ${-texturePhaseX}px`,
+        backgroundSize: '120px 120px, 76px 76px, 44px 44px',
+      } satisfies CSSProperties)
+    : undefined
 
   return (
     <article
@@ -78,6 +91,8 @@ const LocationCell = ({
       aria-rowindex={position.row + 1}
       aria-colindex={position.column + 1}
       data-grid-position={position.id}
+      data-room-material={roomTexture?.material}
+      style={roomStyle}
       className={`location-cell ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${position.blocked ? 'location-cell--blocked' : ''} ${selectedCharacterId && !unavailable ? 'location-cell--placeable' : ''} location-cell--row-${position.row} ${isOver && !unavailable ? 'location-cell--over' : ''}`}
     >
       <button
@@ -227,7 +242,7 @@ export const GameBoard = ({
 
   return (
     <section
-      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''} ${selectedCharacterId ? 'game-board--placing' : ''} ${draggedCharacter ? 'game-board--dragging' : ''}`}
+      className={`game-board ${boardMode === 'logic-grid' ? 'game-board--logic-grid' : ''} ${boardMode === 'map' ? 'game-board--child-map' : ''} ${selectedCharacterId ? 'game-board--placing' : ''} ${draggedCharacter ? 'game-board--dragging' : ''}`}
       style={boardStyle}
       role="grid"
       aria-rowcount={rows}
@@ -263,6 +278,9 @@ export const GameBoard = ({
               {positions
                 .filter((position) => position.row === row)
                 .map((position) => {
+                  const roomIndex = positions.findIndex(
+                    (candidate) => candidate.id === position.id,
+                  )
                   const character = characters.find(
                     (candidate) => assignments[candidate.id] === position.id,
                   )
@@ -291,6 +309,9 @@ export const GameBoard = ({
                       onKeyDown={(event) => moveGridFocus(position, event)}
                       locale={locale}
                       themeId={themeId}
+                      {...(boardMode === 'map'
+                        ? { roomTexture: floorTextureForRoom(themeId, roomIndex) }
+                        : {})}
                     />
                   )
                 })}

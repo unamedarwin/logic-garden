@@ -28,7 +28,6 @@ import { AdventureSelector } from './components/AdventureSelector'
 import { BoardSizeSelector } from './components/BoardSizeSelector'
 import { BuildingSizeSelector } from './components/BuildingSizeSelector'
 import { CheckResultDialog } from './components/CheckResultDialog'
-import { CharacterTray } from './components/CharacterTray'
 import { ChildMapSizeSelector } from './components/ChildMapSizeSelector'
 import { CharacterClueRail } from './components/CharacterClueRail'
 import { CharacterTokenPreview } from './components/CharacterToken'
@@ -74,7 +73,7 @@ import {
   type GameState,
 } from './game/gameReducer'
 import { isCheckFeedback } from './game/feedback'
-import { progress, unplacedCharacters } from './game/selectors'
+import { progress } from './game/selectors'
 import { elapsedSeconds, formatCounter } from './game/time'
 import { generatePuzzle, generatePuzzleForCollection } from './generator/puzzleGenerator'
 import { GENERATOR_VERSION } from './generator/version'
@@ -830,7 +829,6 @@ export default function App() {
     (character) => character.id === activeDragCharacterId,
   )
   const gameProgress = progress(game)
-  const availableCharacters = unplacedCharacters(game)
   const currentElapsedSeconds = elapsedSeconds(game.startedAt, game.finishedAt)
   const checkFeedback =
     game.feedback && isCheckFeedback(game.feedback) ? game.feedback : undefined
@@ -1048,33 +1046,19 @@ export default function App() {
                 />
               )}
             </div>
-            {game.puzzle.boardMode !== 'map' ? (
-              <CharacterClueRail
-                puzzle={game.puzzle}
-                assignments={game.assignments}
-                locale={preferences.locale}
-                selectedCharacterId={game.selectedCharacterId}
-                label={t(preferences.locale, 'characters')}
-                emptyLabel={t(preferences.locale, 'noCharacterClue')}
-                previousClueLabel={t(preferences.locale, 'previousClue')}
-                nextClueLabel={t(preferences.locale, 'nextClue')}
-                onSelect={(character) =>
-                  runGameAction({ type: 'select-character', characterId: character.id })
-                }
-              />
-            ) : (
-              <div className="tray-wrap">
-                <h2>{t(preferences.locale, 'characters')}</h2>
-                <CharacterTray
-                  characters={availableCharacters}
-                  selectedCharacterId={game.selectedCharacterId}
-                  label={t(preferences.locale, 'characters')}
-                  onSelect={(character) =>
-                    runGameAction({ type: 'select-character', characterId: character.id })
-                  }
-                />
-              </div>
-            )}
+            <CharacterClueRail
+              puzzle={game.puzzle}
+              assignments={game.assignments}
+              locale={preferences.locale}
+              selectedCharacterId={game.selectedCharacterId}
+              label={t(preferences.locale, 'characters')}
+              emptyLabel={t(preferences.locale, 'noCharacterClue')}
+              previousClueLabel={t(preferences.locale, 'previousClue')}
+              nextClueLabel={t(preferences.locale, 'nextClue')}
+              onSelect={(character) =>
+                runGameAction({ type: 'select-character', characterId: character.id })
+              }
+            />
           </section>
           <section className="clue-area">
             <CluePanel

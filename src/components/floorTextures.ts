@@ -16,16 +16,6 @@ export type FloorMaterial =
   | 'stone'
   | 'water'
 
-type AdvancedThemeId = Extract<
-  ThemeId,
-  | 'music-studio'
-  | 'sports-festival'
-  | 'creative-lab'
-  | 'book-club'
-  | 'city-garden'
-  | 'weekend-market'
->
-
 export interface FloorTexture {
   readonly baseColor: string
   readonly material: FloorMaterial
@@ -470,7 +460,35 @@ const textureCatalog: Readonly<Record<FloorMaterial, Omit<FloorTexture, 'materia
   },
 }
 
-const themeMaterials: Readonly<Record<AdvancedThemeId, readonly FloorMaterial[]>> = {
+const themeMaterials: Readonly<Record<ThemeId, readonly FloorMaterial[]>> = {
+  'forest-party': ['grass', 'soil', 'parquet', 'grass', 'parquet', 'water', 'stone', 'grass'],
+  'treasure-island': ['sand', 'grass', 'stone', 'stone', 'parquet', 'sand', 'water', 'stone'],
+  'kind-magic-school': [
+    'parquet',
+    'carpet',
+    'stone',
+    'stone',
+    'cork',
+    'grass',
+    'stage',
+    'mosaic',
+  ],
+  'space-trip': ['metal', 'stage', 'stone', 'grass', 'metal', 'concrete', 'carpet', 'metal'],
+  'fun-farm': ['soil', 'cork', 'parquet', 'grass', 'water', 'stone', 'grass', 'parquet'],
+  'sea-garden': ['water', 'stone', 'grass', 'sand', 'stone', 'mosaic', 'water', 'sand'],
+  'dino-park': ['grass', 'water', 'stone', 'grass', 'grass', 'parquet', 'stone', 'grass'],
+  'friendly-monster-town': [
+    'stone',
+    'mosaic',
+    'concrete',
+    'stone',
+    'carpet',
+    'parquet',
+    'grass',
+    'parquet',
+  ],
+  'color-fair': ['rubber', 'cork', 'stage', 'grass', 'carpet', 'parquet', 'cork', 'stone'],
+  'mountain-trip': ['parquet', 'stone', 'grass', 'water', 'grass', 'parquet', 'stone', 'stone'],
   'music-studio': ['stage', 'carpet', 'metal', 'rubber', 'parquet', 'concrete'],
   'sports-festival': ['artificial-turf', 'rubber', 'concrete', 'grass', 'mosaic', 'cork'],
   'creative-lab': ['cork', 'concrete', 'metal', 'carpet', 'mosaic', 'parquet'],
@@ -478,9 +496,6 @@ const themeMaterials: Readonly<Record<AdvancedThemeId, readonly FloorMaterial[]>
   'city-garden': ['grass', 'soil', 'parquet', 'stone', 'stone', 'soil'],
   'weekend-market': ['stone', 'mosaic', 'concrete', 'parquet', 'sand', 'mosaic'],
 }
-
-const isAdvancedTheme = (themeId: ThemeId): themeId is AdvancedThemeId =>
-  themeId in themeMaterials
 
 export const floorMaterialIds = [
   'artificial-turf',
@@ -505,9 +520,7 @@ export const floorTextureForMaterial = (material: FloorMaterial): FloorTexture =
 })
 
 export const floorTextureForRoom = (themeId: ThemeId, roomIndex: number): FloorTexture => {
-  const materials = isAdvancedTheme(themeId)
-    ? themeMaterials[themeId]
-    : themeMaterials['book-club']
+  const materials = themeMaterials[themeId]
   const material = materials[roomIndex % materials.length] ?? 'parquet'
   return floorTextureForMaterial(material)
 }
