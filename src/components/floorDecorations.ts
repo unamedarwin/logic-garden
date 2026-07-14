@@ -22,6 +22,27 @@ export type MotifId =
   | 'sprout'
   | 'waves'
 
+type MotifColorPalette = Readonly<Record<MotifId, readonly string[]>>
+
+const motifColorPalettes = {
+  audio: ['#f3bd4d', '#d9657f', '#fff0b5'],
+  bolt: ['#edf3f4', '#9bb0b7', '#54727d'],
+  circle: ['#d77d62', '#e5b94f', '#657fa8'],
+  diamond: ['#e5b84d', '#d9785f', '#649ca1'],
+  disc: ['#77c6b7', '#547d91', '#d7a64c'],
+  droplets: ['#d9f7ff', '#75c4d7', '#276985'],
+  flower: ['#ef91a6', '#f1c957', '#c95b85'],
+  gem: ['#55c5bd', '#6685d1', '#b276c9'],
+  hexagon: ['#91b19d', '#668477', '#d0aa5d'],
+  leaf: ['#79aa60', '#3f794c', '#b5c96d'],
+  music: ['#f5c65d', '#d65f7c', '#b28ab5'],
+  shell: ['#e6b57f', '#dc8f87', '#ffe0aa'],
+  shapes: ['#c97754', '#7199ad', '#d4b34f'],
+  sparkles: ['#f6d568', '#c9b9ea', '#e58ca8'],
+  sprout: ['#5d9b62', '#93bd68', '#b9915d'],
+  waves: ['#71b9bd', '#d6b66b', '#6d8fba'],
+} satisfies MotifColorPalette
+
 export interface FloorDecoration {
   readonly color: string
   readonly motif: MotifId
@@ -37,34 +58,35 @@ export const floorDecorationScale = { minimum: 0.3, maximum: 0.46 } as const
 
 interface MaterialDetails {
   readonly motifs: readonly MotifId[]
-  readonly colors: readonly string[]
+  readonly colorsByMotif: MotifColorPalette
 }
 
+const withMotifs = (motifs: readonly MotifId[]): MaterialDetails => ({
+  motifs,
+  colorsByMotif: motifColorPalettes,
+})
+
 const materialDetails: Readonly<Record<FloorMaterial, MaterialDetails>> = {
-  'artificial-turf': {
-    motifs: ['diamond', 'circle', 'waves'],
-    colors: ['#f2d35c', '#183e32', '#d96752'],
-  },
-  parquet: { motifs: ['waves'], colors: ['#57361f', '#2e6f5e', '#b94e3e'] },
-  mosaic: { motifs: ['diamond', 'sparkles'], colors: ['#1e5d59', '#b94f3d', '#e3ad28'] },
-  carpet: { motifs: ['sparkles', 'waves'], colors: ['#ffe29a', '#29203f', '#ee6b9f'] },
-  rubber: { motifs: ['circle', 'disc', 'hexagon'], colors: ['#f4b942', '#1d2730', '#49c2ae'] },
-  cork: { motifs: ['shapes', 'circle', 'hexagon'], colors: ['#5e3d23', '#2c6d5c', '#bf4f3c'] },
-  grass: { motifs: ['leaf', 'flower', 'sprout'], colors: ['#1c5e39', '#e3a51a', '#d85168'] },
-  soil: { motifs: ['sprout', 'circle', 'shapes'], colors: ['#214f37', '#f1c95c', '#8e3f2d'] },
-  stone: { motifs: ['circle', 'disc', 'hexagon'], colors: ['#344f48', '#c04d3f', '#d99f24'] },
-  sand: { motifs: ['shell', 'waves', 'circle'], colors: ['#684820', '#2e7a77', '#bf4f3c'] },
-  water: { motifs: ['droplets', 'waves', 'circle'], colors: ['#effcff', '#145f7a', '#f0b935'] },
-  concrete: {
-    motifs: ['hexagon', 'circle', 'shapes'],
-    colors: ['#35423d', '#c65143', '#d9a62e'],
-  },
-  metal: { motifs: ['bolt', 'disc', 'hexagon'], colors: ['#edf9f7', '#153b46', '#dd6a4f'] },
-  stage: { motifs: ['music', 'audio', 'sparkles'], colors: ['#ffd46f', '#231a2d', '#e65f88'] },
+  'artificial-turf': withMotifs(['diamond', 'circle', 'waves']),
+  parquet: withMotifs(['waves']),
+  mosaic: withMotifs(['diamond', 'sparkles']),
+  carpet: withMotifs(['sparkles', 'waves']),
+  rubber: withMotifs(['circle', 'disc', 'hexagon']),
+  cork: withMotifs(['shapes', 'circle', 'hexagon']),
+  grass: withMotifs(['leaf', 'flower', 'sprout']),
+  soil: withMotifs(['sprout', 'circle', 'shapes']),
+  stone: withMotifs(['circle', 'disc', 'hexagon']),
+  sand: withMotifs(['shell', 'waves', 'circle']),
+  water: withMotifs(['droplets', 'waves', 'circle']),
+  concrete: withMotifs(['hexagon', 'circle', 'shapes']),
+  metal: withMotifs(['bolt', 'disc', 'hexagon']),
+  stage: withMotifs(['music', 'audio', 'sparkles']),
 }
 
 export const floorMaterialDetails = (material: FloorMaterial): MaterialDetails =>
   materialDetails[material]
+
+export const floorMotifColors = (motif: MotifId): readonly string[] => motifColorPalettes[motif]
 
 const groupPositionsByRoom = (
   plan: SpatialPlan,
@@ -109,11 +131,12 @@ export const buildFloorDecorations = (
 
     for (const position of selectedPositions) {
       const random = new SeededRandom(`${puzzleSeed}|floor-cell|${position.id}`)
+      const motif = random.pick(details.motifs)
       decorations.push({
         positionId: position.id,
         roomIndex,
-        motif: random.pick(details.motifs),
-        color: random.pick(details.colors),
+        motif,
+        color: random.pick(details.colorsByMotif[motif]),
         rotation: random.integer(-35, 35),
         scale:
           random.integer(

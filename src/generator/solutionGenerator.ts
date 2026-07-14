@@ -2,13 +2,14 @@ import { themesForAudience, type Theme, type ThemeItem } from '../domain/themes'
 import {
   BUILDING_CHARACTER_COUNT,
   BUILDING_COLUMNS,
-  BUILDING_DEPTH,
-  BUILDING_PLAYABLE_COUNT,
   BUILDING_ROWS,
   buildingCellAt,
+  buildingDepthForPositions,
   buildingPlaceIndex,
+  buildingPlayableCount,
   buildingUnitsAreNeighbors,
   isBuildingAbove,
+  type BuildingDepth,
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
 import {
@@ -57,7 +58,7 @@ export interface SpatialWorldStructure {
 export interface CubeWorldStructure {
   readonly boardMode: 'logic-cube'
   readonly gridSize: 5
-  readonly depth: 5
+  readonly depth: BuildingDepth
   readonly characterCount: 8
 }
 
@@ -101,8 +102,20 @@ const selectBuildingPositions = (
   positions: readonly Position[],
   random: SeededRandom,
 ): readonly Position[] => {
+  const hasVisibleLandmark = (position: Position) =>
+    positions.some(
+      (candidate) =>
+        candidate.blocked &&
+        candidate.obstacleEmoji !== undefined &&
+        candidate.obstacleLabel !== undefined &&
+        candidate.placeId === position.placeId &&
+        Math.abs(candidate.row - position.row) +
+          Math.abs(candidate.column - position.column) ===
+          1,
+    )
   const shops = positions.filter(
-    (position) => !position.blocked && position.buildingKind === 'shop',
+    (position) =>
+      !position.blocked && position.buildingKind === 'shop' && hasVisibleLandmark(position),
   )
   const homes = positions.filter(
     (position) => !position.blocked && position.buildingKind === 'home',
@@ -125,14 +138,24 @@ const selectBuildingPositions = (
   )
   if (shopPairs.length === 0)
     throw new Error('Les dues botigues no tenen accessos compatibles.')
-  const residentialFloors = Array.from({ length: BUILDING_DEPTH - 1 }, (_, index) => index + 1)
+  const depth = buildingDepthForPositions(positions)
+  const residentialFloors = Array.from({ length: depth - 1 }, (_, index) => index + 1)
+  // Six residents need not occupy six different floors. Using at most five
+  // residential floors leaves room for same-floor neighbor clues at every height.
+  const residentFloorCount = Math.min(BUILDING_CHARACTER_COUNT - 3, residentialFloors.length)
 
   // A bounded constructive search scales with the enlarged set of genuinely free
   // cells without enumerating every six-position combination.
   for (let attempt = 0; attempt < 2_000; attempt += 1) {
     const selected: Position[] = [...random.pick(shopPairs)]
-    let failed = false
+    const adjacentFloor = random.integer(1, depth - 2)
+    const selectedFloors = new Set([adjacentFloor, adjacentFloor + 1])
     for (const layer of random.shuffle(residentialFloors)) {
+      if (selectedFloors.size >= residentFloorCount) break
+      selectedFloors.add(layer)
+    }
+    let failed = false
+    for (const layer of random.shuffle([...selectedFloors])) {
       const candidate = random
         .shuffle(homes.filter((position) => position.layer === layer))
         .find((position) => !selected.some((occupied) => shareCubeAxisLine(occupied, position)))
@@ -285,6 +308,7 @@ export const generateWorld = (
         ? 'logic-cube'
         : 'logic-grid'
   const spatialAudience = audience === 'children' ? 'teens' : audience
+  const buildingDepth = structure?.boardMode === 'logic-cube' ? structure.depth : undefined
   const characterCount =
     boardMode === 'map'
       ? config.characterCount
@@ -317,6 +341,18 @@ export const generateWorld = (
       description: character.description,
       itemId: items[index]!.id,
     }))
+  const carriedItemEmojis = new Set(items.map((item) => item.emoji))
+  const buildingRoomObjects =
+    boardMode === 'logic-cube'
+      ? random.shuffle(
+          (theme.roomObjects ?? theme.items).filter(
+            (object) => !carriedItemEmojis.has(object.emoji),
+          ),
+        )
+      : []
+  if (boardMode === 'logic-cube' && buildingRoomObjects.length === 0) {
+    throw new Error("No s'ha pogut preparar el mobiliari de l'edifici.")
+  }
   const positions: readonly Position[] =
     boardMode === 'logic-grid'
       ? (() => {
@@ -394,13 +430,17 @@ export const generateWorld = (
         })()
       : boardMode === 'logic-cube'
         ? Array.from(
-            { length: BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS },
+            { length: buildingDepth! * BUILDING_ROWS * BUILDING_COLUMNS },
             (_, index) => {
               const floorSize = BUILDING_ROWS * BUILDING_COLUMNS
               const layer = Math.floor(index / floorSize)
               const row = Math.floor((index % floorSize) / BUILDING_COLUMNS)
               const column = index % BUILDING_COLUMNS
               const cell = buildingCellAt(layer, row, column)
+              const roomObject =
+                cell.blocked && (cell.kind === 'home' || cell.kind === 'shop')
+                  ? buildingRoomObjects[index % buildingRoomObjects.length]
+                  : undefined
               return {
                 id: positionId(`position-${layer}-${row}-${column}`),
                 placeId: placeId(`place-${buildingPlaceIndex(layer, cell.unitId)}`),
@@ -411,6 +451,8 @@ export const generateWorld = (
                 buildingUnitId: cell.unitId,
                 buildingKind: cell.kind,
                 blocked: cell.blocked,
+                obstacleEmoji: roomObject?.emoji,
+                obstacleLabel: roomObject?.label,
               }
             },
           )
@@ -456,12 +498,13 @@ export const generateWorld = (
       : boardMode === 'logic-cube'
         ? (() => {
             if (
-              positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
+              buildingDepth === undefined ||
+              positions.length !== buildingDepth * BUILDING_ROWS * BUILDING_COLUMNS ||
               characters.length !== BUILDING_CHARACTER_COUNT ||
               positions.filter((position) => !position.blocked).length !==
-                BUILDING_PLAYABLE_COUNT
+                buildingPlayableCount(buildingDepth)
             ) {
-              throw new Error('No s’ha pogut construir l’edifici lògic 5×5×5.')
+              throw new Error(`No s’ha pogut construir l’edifici lògic 5×5×${buildingDepth}.`)
             }
             const selected = selectBuildingPositions(positions, random)
             return Object.fromEntries(

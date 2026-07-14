@@ -57,4 +57,23 @@ describe('local completion statistics', () => {
     expect(JSON.stringify(statistics.history[0])).not.toContain('solution')
     expect(set).toHaveBeenCalledOnce()
   })
+
+  it('stores the selected building height for a reproducible 3D history entry', async () => {
+    vi.mocked(get).mockResolvedValue(undefined)
+    const statistics = await recordCompletion({
+      seed: 'tall-building',
+      theme: 'music-studio',
+      audience: 'teens',
+      difficulty: 'hard',
+      puzzleVariant: 'cube',
+      buildingDepth: 10,
+      generatorVersion: GENERATOR_VERSION,
+      elapsedSeconds: 180,
+      moves: 16,
+      hintsUsed: 0,
+    })
+
+    expect(statistics.history[0]?.buildingDepth).toBe(10)
+    expect(JSON.stringify(statistics.history[0])).not.toContain('solution')
+  })
 })

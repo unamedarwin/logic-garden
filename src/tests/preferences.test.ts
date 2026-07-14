@@ -1,6 +1,7 @@
 import { del, get, set } from 'idb-keyval'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadPreferences } from '../storage/preferences'
+import { detectBrowserLocale } from '../domain/locales'
 
 vi.mock('idb-keyval', () => ({ del: vi.fn(), get: vi.fn(), set: vi.fn() }))
 
@@ -93,5 +94,46 @@ describe('preference migration without profiles', () => {
 
     await expect(loadPreferences()).resolves.toMatchObject({ collection: 'two-dimensional' })
     expect(del).not.toHaveBeenCalled()
+  })
+
+  it('uses the first supported browser language on a new installation', async () => {
+    vi.mocked(get).mockResolvedValue(undefined)
+
+    await expect(loadPreferences(['pt-PT', 'gl-ES', 'es-ES'])).resolves.toMatchObject({
+      locale: 'gl',
+    })
+  })
+
+  it('keeps a stored language ahead of the browser language', async () => {
+    vi.mocked(get).mockImplementation((storageKey) =>
+      Promise.resolve(
+        storageKey === 'logic-garden:preferences:v1'
+          ? {
+              schemaVersion: 4,
+              difficulty: 'easy',
+              collection: 'children',
+              locale: 'de',
+              soundEnabled: false,
+              reducedMotion: false,
+              showCheckProgress: true,
+            }
+          : undefined,
+      ),
+    )
+
+    await expect(loadPreferences(['fr-FR'])).resolves.toMatchObject({ locale: 'de' })
+  })
+})
+
+describe('browser language detection', () => {
+  it.each([
+    [['eu-ES'], 'eu'],
+    [['gl_ES'], 'gl'],
+    [['fr-CA'], 'fr'],
+    [['de-DE'], 'de'],
+    [['pt-BR', 'en-GB'], 'en'],
+    [[], 'ca'],
+  ] as const)('detects %j as %s', (languages, expected) => {
+    expect(detectBrowserLocale(languages)).toBe(expected)
   })
 })

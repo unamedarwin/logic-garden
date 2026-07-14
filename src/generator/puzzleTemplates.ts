@@ -7,6 +7,7 @@ import {
   type Puzzle,
 } from '../domain/types'
 import { analyzeSolutions } from '../solver/solver'
+import { buildingDepthForPositions, type BuildingDepth } from '../domain/buildingPlan'
 import { landmarkCandidateCount } from './landmarkDomains'
 import { deriveSeed, SeededRandom } from './seededRandom'
 import { generateWorld } from './solutionGenerator'
@@ -48,11 +49,11 @@ export type AdvancedPuzzleTemplate =
   | (PuzzleTemplateBase & {
       readonly boardMode: 'logic-cube'
       readonly gridSize: 5
-      readonly depth: 5
+      readonly depth: BuildingDepth
     })
 
 export const templateBucketKey = (template: AdvancedPuzzleTemplate) =>
-  `${template.audience}:${template.difficulty}:${template.boardMode}:${template.gridSize}`
+  `${template.audience}:${template.difficulty}:${template.boardMode}:${template.gridSize}:${template.boardMode === 'logic-cube' ? template.depth : ''}`
 
 export const canonicalTemplateSignature = (template: AdvancedPuzzleTemplate) =>
   JSON.stringify({
@@ -197,7 +198,12 @@ export const extractAdvancedPuzzleTemplate = (
   }
 
   return puzzle.boardMode === 'logic-cube'
-    ? { ...base, boardMode: 'logic-cube', gridSize: 5, depth: 5 }
+    ? {
+        ...base,
+        boardMode: 'logic-cube',
+        gridSize: 5,
+        depth: buildingDepthForPositions(puzzle.positions),
+      }
     : {
         ...base,
         boardMode: 'logic-grid',
@@ -382,7 +388,7 @@ export const materializeAdvancedPuzzleTemplate = (
     random,
     template.audience,
     template.boardMode === 'logic-cube'
-      ? { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 }
+      ? { boardMode: 'logic-cube', gridSize: 5, depth: template.depth, characterCount: 8 }
       : {
           boardMode: 'logic-grid',
           gridSize: template.gridSize,

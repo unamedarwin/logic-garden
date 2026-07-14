@@ -2725,7 +2725,7 @@ summary:focus-visible {
   }
 }
 
-/* The 5x5x5 building uses an elevator control while one floor stays interactive. */
+/* The variable-height 5x5 building keeps one floor interactive at a time. */
 .logic-cube {
   width: min(100%, 700px);
   margin-inline: auto;
@@ -3229,11 +3229,12 @@ summary:focus-visible {
     width: 17px;
   }
   .logic-cube__layers {
+    grid-column: 1 / -1;
     gap: 3px;
   }
   .logic-cube__layer {
-    min-height: 30px;
-    border-radius: 50%;
+    min-height: 44px;
+    border-radius: 9px;
   }
   .logic-cube__elevator {
     grid-template-columns: 44px minmax(0, 1fr) 44px;
@@ -3245,7 +3246,7 @@ summary:focus-visible {
     display: none;
   }
   .logic-cube__elevator-direction {
-    min-height: 44px;
+    display: none;
   }
   .logic-cube__floor-title {
     margin-bottom: 3px;

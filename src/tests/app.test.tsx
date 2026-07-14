@@ -313,21 +313,24 @@ describe('game interface', () => {
     expect(container.querySelector('.location-cell__drop-preview')).not.toBeInTheDocument()
   })
 
-  it('starts the separate 5x5x5 building collection without a profile', async () => {
+  it('starts the separate variable-height building collection without a profile', async () => {
     const user = userEvent.setup()
     render(<App />)
 
     expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeChecked()
     expect(screen.getByRole('radio', { name: /^Puzzles 2D/u })).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
-    expect(screen.getByRole('radio', { name: 'Avançat · edifici 5×5×5' })).toBeChecked()
+    expect(
+      screen.getByRole('radio', { name: 'Avançat · edifici de 3 a 10 plantes' }),
+    ).toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Juga' }))
 
     expect(
-      await screen.findByRole('grid', { name: /Edifici de deducció 5×5×5:/u }),
+      await screen.findByRole('grid', { name: /Edifici de deducció en 3D:/u }),
     ).toBeInTheDocument()
     expect(screen.getByRole('group', { name: "Ascensor de l'edifici" })).toBeInTheDocument()
-    expect(screen.getAllByRole('tab')).toHaveLength(5)
+    expect(screen.getAllByRole('tab').length).toBeGreaterThanOrEqual(3)
+    expect(screen.getAllByRole('tab').length).toBeLessThanOrEqual(10)
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
     expect(
       screen.getByRole('heading', {

@@ -36,7 +36,20 @@ describe('shared routes', () => {
     const shared = new URL(url)
 
     expect(shared.pathname).toBe(import.meta.env.BASE_URL)
-    expect(shared.searchParams.get('p')).toMatch(/^[A-Za-z0-9_-]+$/u)
+    const encoded = shared.searchParams.get('p')
+    expect(encoded).toMatch(/^gz_[A-Za-z0-9_-]+$/u)
+    if (!encoded) throw new Error('Expected a compressed share payload')
+    const gzipBytes = Uint8Array.from(
+      atob(
+        encoded
+          .slice(3)
+          .replaceAll('-', '+')
+          .replaceAll('_', '/')
+          .padEnd(Math.ceil((encoded.length - 3) / 4) * 4, '='),
+      ),
+      (character) => character.charCodeAt(0),
+    )
+    expect([...gzipBytes.slice(0, 2)]).toEqual([0x1f, 0x8b])
     expect(parseSharedGameRoute(shared as unknown as Location)).toEqual({
       difficulty: 'medium',
       seed: 'ABCD-1234',
@@ -47,7 +60,7 @@ describe('shared routes', () => {
     })
   })
 
-  it('keeps the 5x5x5 variant in a shared challenge', () => {
+  it('keeps the variable-height 3D variant in a shared challenge', () => {
     const shared = new URL(
       shareUrl(
         {
@@ -122,26 +135,34 @@ describe('shared routes', () => {
   })
 
   it('rejects unsafe completion marks instead of trusting URL data', () => {
-    const valid = new URL(
-      shareUrl(
-        {
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 4,
           difficulty: 'easy',
-          seed: seed('SAFE-42'),
+          seed: 'SAFE-42',
+          audience: 'children',
           generatorVersion: GENERATOR_VERSION,
-        },
-        'children',
-        42,
+          variant: 'spatial',
+          benchmarkSeconds: 999_999,
+        }),
       ),
-    )
-    const encoded = valid.searchParams.get('p')
-    if (!encoded) throw new Error('Expected a share payload')
-    const decoded = JSON.parse(
-      atob(encoded.replaceAll('-', '+').replaceAll('_', '/')),
-    ) as Record<string, unknown>
-    decoded.benchmarkSeconds = 999_999
-    valid.searchParams.set('p', btoa(JSON.stringify(decoded)))
+    ).toBeNull()
+  })
 
-    expect(parseSharedGameRoute(valid as unknown as Location)).toBeNull()
+  it('keeps accepting legacy uncompressed Base64 payloads', () => {
+    expect(
+      parseSharedGameRoute(
+        encodedLocation({
+          v: 4,
+          difficulty: 'easy',
+          seed: 'LEGACY-42',
+          audience: 'children',
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'spatial',
+        }),
+      ),
+    ).toMatchObject({ seed: 'LEGACY-42', variant: 'spatial' })
   })
 
   it('rejects oversized or non-URL-safe seeds from shared payloads', () => {

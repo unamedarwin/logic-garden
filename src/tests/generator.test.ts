@@ -3,9 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { getTheme, themes } from '../domain/themes'
 import { fluentIconData } from '../assets/generated/fluentIconData'
 import type { Audience, Difficulty } from '../domain/types'
-import { renderClue } from '../domain/vocabulary'
+import { renderClue, renderClueParts } from '../domain/vocabulary'
+import { supportedLocales } from '../domain/i18n'
+import {
+  BUILDING_DEPTHS,
+  buildingDepthForPositions,
+  buildingHomeCount,
+  buildingPlayableCount,
+  buildingShopCount,
+  buildingUnitsAreNeighbors,
+  isBuildingAbove,
+} from '../domain/buildingPlan'
 import {
   generatePuzzle,
+  generatePuzzleDirect,
   generatePuzzleForCollection,
   selectAdvancedPuzzleTemplate,
 } from '../generator/puzzleGenerator'
@@ -40,59 +51,132 @@ describe('seeded puzzle generator', () => {
     expect(advancedAudiences).toEqual(new Set(['teens', 'adults']))
   })
 
-  it('builds a deterministic 5x5x5 building with three spatial axes', () => {
-    const puzzle = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
-    const repeated = generatePuzzle('hard', 'five-cube', 'teens', 'cube')
-    const solution = solve(puzzle)
+  it('builds deterministic 5x5 buildings at every height with three spatial axes', () => {
+    for (const depth of BUILDING_DEPTHS) {
+      const structure = {
+        boardMode: 'logic-cube' as const,
+        gridSize: 5 as const,
+        depth,
+        characterCount: 8 as const,
+      }
+      const puzzle = generatePuzzleDirect(
+        'hard',
+        `height-${depth}`,
+        depth % 2 === 0 ? 'teens' : 'adults',
+        structure,
+      )
+      const repeated = generatePuzzleDirect(
+        'hard',
+        `height-${depth}`,
+        depth % 2 === 0 ? 'teens' : 'adults',
+        structure,
+      )
+      const solution = solve(puzzle)
 
-    expect(repeated).toEqual(puzzle)
-    expect(puzzle.boardMode).toBe('logic-cube')
-    expect(puzzle.positions).toHaveLength(125)
-    expect(puzzle.characters).toHaveLength(8)
-    expect(solution).not.toBeNull()
-    expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
-    expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
-      new Set([0, 1, 2, 3, 4]),
-    )
-    expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(66)
-    expect(puzzle.positions.find((position) => position.id === 'position-3-1-1')?.blocked).toBe(
-      false,
-    )
-    const occupied = Object.values(solution ?? {}).map((positionId) =>
-      puzzle.positions.find((position) => position.id === positionId),
-    )
-    expect(occupied.filter((position) => position?.buildingKind === 'shop')).toHaveLength(2)
-    expect(occupied.filter((position) => position?.buildingKind === 'home')).toHaveLength(6)
-    expect(
-      new Set(
-        Object.values(solution ?? {}).map(
-          (positionId) =>
-            puzzle.positions.find((position) => position.id === positionId)?.layer,
+      expect(repeated, `depth ${depth}`).toEqual(puzzle)
+      expect(puzzle.boardMode).toBe('logic-cube')
+      expect(buildingDepthForPositions(puzzle.positions)).toBe(depth)
+      expect(puzzle.positions).toHaveLength(depth * 25)
+      expect(puzzle.characters).toHaveLength(8)
+      expect(solution).not.toBeNull()
+      expect(countSolutions(puzzle, { limit: 2 }), `depth ${depth}`).toBe(1)
+      expect(new Set(puzzle.positions.map((position) => position.layer))).toEqual(
+        new Set(Array.from({ length: depth }, (_, layer) => layer)),
+      )
+      expect(puzzle.positions.filter((position) => !position.blocked)).toHaveLength(
+        buildingPlayableCount(depth),
+      )
+      expect(buildingHomeCount(depth)).toBe(14 * (depth - 1))
+      expect(buildingShopCount(depth)).toBe(10)
+      expect(
+        puzzle.positions.filter(
+          (position) =>
+            position.blocked &&
+            (position.buildingKind === 'home' || position.buildingKind === 'shop'),
         ),
-      ),
-    ).toEqual(new Set([0, 1, 2, 3, 4]))
-    const shopClues = puzzle.clues.filter(
-      (clue) =>
-        clue.type === 'character-at-position' &&
-        puzzle.positions.find((position) => position.id === clue.positionId)?.buildingKind ===
-          'shop',
-    )
-    expect(shopClues).toHaveLength(2)
-    expect(
-      shopClues.every((clue) => /obre|botiga|atén/u.test(renderClue(puzzle, clue, 'ca'))),
-    ).toBe(true)
-    expect(
-      shopClues.every((clue) => /abre|tienda|atiende/u.test(renderClue(puzzle, clue, 'es'))),
-    ).toBe(true)
-    expect(
-      shopClues.every((clue) => /opens|shop|customers/u.test(renderClue(puzzle, clue, 'en'))),
-    ).toBe(true)
-    expect(
-      puzzle.clues.every((clue) =>
-        solution ? isClueSatisfiedByPartialAssignment(puzzle, clue, solution) : false,
-      ),
-    ).toBe(true)
-  })
+      ).toHaveLength(depth * 6)
+
+      const occupied = Object.values(solution ?? {}).map((positionId) =>
+        puzzle.positions.find((position) => position.id === positionId),
+      )
+      expect(occupied.filter((position) => position?.buildingKind === 'shop')).toHaveLength(2)
+      expect(occupied.filter((position) => position?.buildingKind === 'home')).toHaveLength(6)
+      expect(new Set(occupied.map((position) => position?.layer)).size).toBe(
+        1 + Math.min(5, depth - 1),
+      )
+      expect(
+        occupied.some((first, index) =>
+          occupied
+            .slice(index + 1)
+            .some(
+              (second) =>
+                first &&
+                second &&
+                (isBuildingAbove(first, second) || isBuildingAbove(second, first)),
+            ),
+        ),
+      ).toBe(true)
+      expect(
+        occupied.some((first, index) =>
+          occupied
+            .slice(index + 1)
+            .some((second) => first && second && buildingUnitsAreNeighbors(first, second)),
+        ),
+      ).toBe(true)
+
+      const shopClues = puzzle.clues.filter(
+        (clue) =>
+          clue.type === 'character-at-position' &&
+          puzzle.positions.find((position) => position.id === clue.positionId)?.buildingKind ===
+            'shop',
+      )
+      expect(shopClues).toHaveLength(2)
+      const blockedRooms = puzzle.positions.filter(
+        (position) =>
+          position.blocked &&
+          (position.buildingKind === 'home' || position.buildingKind === 'shop'),
+      )
+      expect(blockedRooms.length).toBeGreaterThan(0)
+      expect(
+        blockedRooms.every((position) => position.obstacleEmoji && position.obstacleLabel),
+      ).toBe(true)
+      expect(
+        blockedRooms.some((position) =>
+          puzzle.items.some((item) => item.emoji === position.obstacleEmoji),
+        ),
+      ).toBe(false)
+      for (const clue of puzzle.clues.filter(
+        (candidate) => candidate.type === 'character-at-position',
+      )) {
+        if (clue.type !== 'character-at-position') continue
+        const target = puzzle.positions.find((position) => position.id === clue.positionId)
+        const landmark = target
+          ? puzzle.positions.find(
+              (position) =>
+                position.blocked &&
+                position.placeId === target.placeId &&
+                Math.abs(position.row - target.row) +
+                  Math.abs(position.column - target.column) ===
+                  1,
+            )
+          : undefined
+        expect(landmark?.obstacleEmoji).toBeTruthy()
+        expect(landmark?.obstacleLabel).toBeTruthy()
+        for (const locale of supportedLocales) {
+          expect(
+            renderClueParts(puzzle, clue, locale).some(
+              (part) => part.type === 'icon' && part.emoji === landmark?.obstacleEmoji,
+            ),
+          ).toBe(true)
+        }
+      }
+      expect(
+        puzzle.clues.every((clue) =>
+          solution ? isClueSatisfiedByPartialAssignment(puzzle, clue, solution) : false,
+        ),
+      ).toBe(true)
+    }
+  }, 120_000)
 
   it('keeps character identities visually separate from object markers in every theme', () => {
     for (const theme of themes) {
@@ -284,7 +368,7 @@ describe('seeded puzzle generator', () => {
 
       expect(puzzle.clues.some((clue) => forbiddenTypes.has(clue.type))).toBe(false)
       expect(puzzle.clues.length).toBeGreaterThan(0)
-      const rendered = (['ca', 'es', 'en'] as const).flatMap((locale) =>
+      const rendered = supportedLocales.flatMap((locale) =>
         puzzle.clues.map((clue) => renderClue(puzzle, clue, locale)),
       )
       expect(rendered.join(' ')).not.toMatch(
@@ -337,9 +421,7 @@ describe('seeded puzzle generator', () => {
       ).toBe(true)
       const landmarkTexts = puzzle.clues
         .filter((clue) => clue.type === 'character-next-to-obstacle')
-        .flatMap((clue) =>
-          (['ca', 'es', 'en'] as const).map((locale) => renderClue(puzzle, clue, locale)),
-        )
+        .flatMap((clue) => supportedLocales.map((locale) => renderClue(puzzle, clue, locale)))
       expect(landmarkTexts.every((text) => text.length > 24)).toBe(true)
     }
   })

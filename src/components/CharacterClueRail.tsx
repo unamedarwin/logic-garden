@@ -54,6 +54,18 @@ const clueReferencesCharacter = (clue: Clue, characterId: CharacterId) => {
   }
 }
 
+const cluePrecision = (clue: Clue) => {
+  switch (clue.type) {
+    case 'character-at-position':
+      return 0
+    case 'character-next-to-obstacle':
+    case 'character-in-place':
+      return 1
+    default:
+      return 2
+  }
+}
+
 export const CharacterClueRail = ({
   puzzle,
   assignments,
@@ -77,7 +89,9 @@ export const CharacterClueRail = ({
     puzzle.characters[0]
   const activeCharacterId = activeCharacter?.id
   const clues = activeCharacter
-    ? puzzle.clues.filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
+    ? puzzle.clues
+        .filter((clue) => clueReferencesCharacter(clue, activeCharacter.id))
+        .toSorted((first, second) => cluePrecision(first) - cluePrecision(second))
     : []
 
   useEffect(() => {

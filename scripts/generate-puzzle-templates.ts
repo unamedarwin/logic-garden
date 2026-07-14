@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spatialPlanIdsForAudience } from '../src/domain/spatialPlan'
+import { BUILDING_DEPTHS, type BuildingDepth } from '../src/domain/buildingPlan'
 import type { Difficulty } from '../src/domain/types'
 import { generatePuzzleDirect, GENERATOR_VERSION } from '../src/generator/puzzleGenerator'
 import {
@@ -19,7 +20,7 @@ import {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const outputPath = resolve(root, 'src/assets/generated/puzzleTemplateData.ts')
 const catalogSize = 1_000
-const expectedBucketCount = 20
+const expectedBucketCount = 34
 const isCheck = process.argv.includes('--check')
 const isRepair = process.argv.includes('--repair')
 const isCubeMigration = process.argv.includes('--migrate-cubes')
@@ -34,6 +35,10 @@ const mergeInputs = argumentValue('merge')?.split(',').filter(Boolean)
 
 const characterCounts: Record<Difficulty, number> = { easy: 4, medium: 6, hard: 8 }
 
+// Four templates at the smallest height plus three at every other height keep
+// exactly 25 answer-free structures per advanced audience.
+const cubeTemplateQuota = (depth: BuildingDepth) => (depth === 3 ? 4 : 3)
+
 type TemplateBucket =
   | {
       readonly audience: 'teens' | 'adults'
@@ -46,6 +51,7 @@ type TemplateBucket =
       readonly difficulty: 'hard'
       readonly boardMode: 'logic-cube'
       readonly gridSize: 5
+      readonly depth: BuildingDepth
     }
 
 const templateBuckets = (): readonly TemplateBucket[] => {
@@ -63,18 +69,21 @@ const templateBuckets = (): readonly TemplateBucket[] => {
         })),
       ),
     ),
-    ...audiences.map((audience) => ({
-      audience,
-      difficulty: 'hard' as const,
-      boardMode: 'logic-cube' as const,
-      gridSize: 5 as const,
-    })),
+    ...audiences.flatMap((audience) =>
+      BUILDING_DEPTHS.map((depth) => ({
+        audience,
+        difficulty: 'hard' as const,
+        boardMode: 'logic-cube' as const,
+        gridSize: 5 as const,
+        depth,
+      })),
+    ),
   ]
 }
 
 const difficultyMetricsMatch = (template: AdvancedPuzzleTemplate) => {
   if (template.boardMode === 'logic-cube') {
-    return template.characterCount === 8 && template.depth === 5
+    return template.characterCount === 8 && BUILDING_DEPTHS.includes(template.depth)
   }
   const counts = template.landmarkCandidateCounts
   if (counts.length !== template.characterCount) return false
@@ -117,14 +126,25 @@ const assertCatalogDistribution = (templates: readonly AdvancedPuzzleTemplate[])
         `El catàleg 3D conté ${audienceCubes.length} plantilles per a ${audience}.`,
       )
     }
+    for (const depth of BUILDING_DEPTHS) {
+      const expected = cubeTemplateQuota(depth)
+      const actual = audienceCubes.filter((template) => template.depth === depth).length
+      if (actual !== expected) {
+        throw new Error(
+          `El catàleg 3D conté ${actual} plantilles de ${depth} plantes per a ${audience}.`,
+        )
+      }
+    }
   }
   if (
     cubes.some(
       (template) =>
-        template.depth !== 5 || template.characterCount !== 8 || template.gridSize !== 5,
+        !BUILDING_DEPTHS.includes(template.depth) ||
+        template.characterCount !== 8 ||
+        template.gridSize !== 5,
     )
   ) {
-    throw new Error('El catàleg 3D conté una geometria que no és 5×5×5 amb vuit residents.')
+    throw new Error('El catàleg 3D conté una geometria que no és 5×5×3-10 amb vuit persones.')
   }
 }
 
@@ -157,7 +177,12 @@ const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: s
           'hard',
           `catalog-${GENERATOR_VERSION}-${candidateIndex}`,
           bucket.audience,
-          { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 },
+          {
+            boardMode: 'logic-cube',
+            gridSize: 5,
+            depth: bucket.depth,
+            characterCount: 8,
+          },
         )
       : (() => {
           const plans = spatialPlanIdsForAudience(bucket.audience)
@@ -187,7 +212,7 @@ const generateTemplates = async () => {
   const spatialBuckets = buckets.filter((bucket) => bucket.boardMode === 'logic-grid')
   const quotaFor = (bucket: TemplateBucket) => {
     if (requestedCount !== catalogSize) return Number.POSITIVE_INFINITY
-    if (bucket.boardMode === 'logic-cube') return 25
+    if (bucket.boardMode === 'logic-cube') return cubeTemplateQuota(bucket.depth)
     const index = spatialBuckets.indexOf(bucket)
     return index < 14 ? 53 : 52
   }
@@ -200,7 +225,7 @@ const generateTemplates = async () => {
     const candidateIndex = seedOffset + localIndex
     const bucket = buckets[candidateIndex % buckets.length]
     if (!bucket) continue
-    const bucketKey = `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}`
+    const bucketKey = `${bucket.audience}:${bucket.difficulty}:${bucket.boardMode}:${bucket.gridSize}:${bucket.boardMode === 'logic-cube' ? bucket.depth : ''}`
     if ((bucketCounts.get(bucketKey) ?? 0) >= quotaFor(bucket)) continue
     try {
       const candidate = generateCandidate(
@@ -325,31 +350,31 @@ const migrateCatalogWithCubes = async () => {
   }
 
   const cubeTemplates: AdvancedPuzzleTemplate[] = []
-  const cubeCounts = new Map<'teens' | 'adults', number>([
-    ['teens', 0],
-    ['adults', 0],
-  ])
+  const cubeCounts = new Map<string, number>()
 
   for (
     let candidateIndex = 0;
-    candidateIndex < 1_000 && cubeTemplates.length < 50;
+    candidateIndex < 12_000 && cubeTemplates.length < 50;
     candidateIndex += 1
   ) {
     const audience = candidateIndex % 2 === 0 ? 'teens' : 'adults'
-    if ((cubeCounts.get(audience) ?? 0) >= 25) continue
+    const depth = BUILDING_DEPTHS[Math.floor(candidateIndex / 2) % BUILDING_DEPTHS.length]!
+    const bucketKey = `${audience}:${depth}`
+    const target = cubeTemplateQuota(depth)
+    if ((cubeCounts.get(bucketKey) ?? 0) >= target) continue
     try {
       const puzzle = generatePuzzleDirect(
         'hard',
         `cube-catalog-${GENERATOR_VERSION}-${candidateIndex}`,
         audience,
-        { boardMode: 'logic-cube', gridSize: 5, depth: 5, characterCount: 8 },
+        { boardMode: 'logic-cube', gridSize: 5, depth, characterCount: 8 },
       )
       const template = extractAdvancedPuzzleTemplate(puzzle, audience, `cube-${candidateIndex}`)
       const signature = canonicalTemplateSignature(template)
       if (signatures.has(signature)) continue
       signatures.add(signature)
       cubeTemplates.push(template)
-      cubeCounts.set(audience, (cubeCounts.get(audience) ?? 0) + 1)
+      cubeCounts.set(bucketKey, (cubeCounts.get(bucketKey) ?? 0) + 1)
     } catch {
       // Discard candidates that cannot be reduced to a unique cube.
     }

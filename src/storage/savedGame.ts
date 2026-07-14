@@ -2,10 +2,9 @@ import { del, get, set } from 'idb-keyval'
 import { isChallengeMetadata, type ChallengeMetadata } from '../domain/types'
 import {
   BUILDING_CHARACTER_COUNT,
-  BUILDING_COLUMNS,
-  BUILDING_DEPTH,
-  BUILDING_PLAYABLE_COUNT,
-  BUILDING_ROWS,
+  buildingPlayableCount,
+  buildingDepthForPositions,
+  hasCanonicalBuildingGeometry,
 } from '../domain/buildingPlan'
 import type { GameState } from '../game/gameReducer'
 import { GENERATOR_VERSION } from '../generator/version'
@@ -41,16 +40,12 @@ const isCompatibleState = (value: unknown): value is GameState => {
   )
     return false
   if (puzzle.boardMode === 'logic-cube') {
-    const layers = new Set(puzzle.positions.map((position) => position.layer))
+    if (!hasCanonicalBuildingGeometry(puzzle.positions)) return false
+    const depth = buildingDepthForPositions(puzzle.positions)
     if (
-      puzzle.positions.length !== BUILDING_DEPTH * BUILDING_ROWS * BUILDING_COLUMNS ||
       puzzle.characters.length !== BUILDING_CHARACTER_COUNT ||
       puzzle.positions.filter((position) => !position.blocked).length !==
-        BUILDING_PLAYABLE_COUNT ||
-      layers.size !== BUILDING_DEPTH ||
-      !Array.from({ length: BUILDING_DEPTH }, (_, layer) => layer).every((layer) =>
-        layers.has(layer),
-      )
+        buildingPlayableCount(depth)
     )
       return false
   }

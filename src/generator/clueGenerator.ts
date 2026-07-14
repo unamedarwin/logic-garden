@@ -32,6 +32,17 @@ export const generateCandidateClues = (
 ): Clue[] => {
   const candidates: Clue[] = []
   const add = (clue: Clue) => candidates.push(clue)
+  const hasVisibleLandmark = (position: Position) =>
+    puzzle.positions.some(
+      (candidate) =>
+        candidate.blocked &&
+        candidate.obstacleEmoji !== undefined &&
+        candidate.obstacleLabel !== undefined &&
+        candidate.placeId === position.placeId &&
+        Math.abs(candidate.row - position.row) +
+          Math.abs(candidate.column - position.column) ===
+          1,
+    )
 
   for (const character of puzzle.characters) {
     const position = solutionPosition(puzzle, solution, character.id)
@@ -41,7 +52,7 @@ export const generateCandidateClues = (
         !candidate.blocked &&
         (puzzle.boardMode !== 'logic-cube' || candidate.placeId !== position.placeId) &&
         (puzzle.boardMode === 'map' ||
-          puzzle.boardMode === 'logic-cube' ||
+          (puzzle.boardMode === 'logic-cube' && hasVisibleLandmark(candidate)) ||
           puzzle.positions.some(
             (obstacle) =>
               obstacle.blocked &&
@@ -91,12 +102,14 @@ export const generateCandidateClues = (
         placeId: position.placeId,
       })
     } else if (puzzle.boardMode === 'logic-cube') {
-      add({
-        ...clueBase(random, 'character-at-position', character.id),
-        type: 'character-at-position',
-        characterId: character.id,
-        positionId: position.id,
-      })
+      if (hasVisibleLandmark(position)) {
+        add({
+          ...clueBase(random, 'character-at-position', character.id),
+          type: 'character-at-position',
+          characterId: character.id,
+          positionId: position.id,
+        })
+      }
       add({
         ...clueBase(random, 'character-in-place', character.id),
         type: 'character-in-place',

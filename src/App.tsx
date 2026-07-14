@@ -52,6 +52,7 @@ import {
   t,
   themeCopy,
 } from './domain/i18n'
+import { buildingDepthForPositions } from './domain/buildingPlan'
 import { getTheme } from './domain/themes'
 import {
   seed,
@@ -116,7 +117,7 @@ const HomeScene = ({ collection }: { readonly collection: PuzzleCollection }) =>
       <div className="home-hero__scene home-hero__scene--three-dimensional" aria-hidden="true">
         <span className="scene-building__roof" />
         <span className="scene-building">
-          {Array.from({ length: 5 }, (_, floor) => (
+          {Array.from({ length: 8 }, (_, floor) => (
             <i key={floor}>
               <span />
               <span />
@@ -178,25 +179,30 @@ export default function App() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadPreferences(), loadStatistics(), loadSavedGame(), hasVisited()]).then(
-      ([storedPreferences, storedStatistics, savedGame, visited]) => {
-        if (!active) return
-        setPreferences(storedPreferences)
-        setStatistics(storedStatistics)
-        const shared = parseSharedGameRoute(window.location)
-        setFirstVisit(!visited)
-        setChallengeFirstVisit(!visited)
-        void markVisited()
-        if (shared) {
-          setSharedChallenge(shared)
-          setShowChallengeIntro(true)
-        } else if (savedGame?.state.status === 'playing') {
-          setGame(savedGame.state)
-          setSharedChallenge(savedGame.challenge ?? null)
-        }
-        setReady(true)
-      },
-    )
+    const browserLanguages =
+      navigator.languages.length > 0 ? navigator.languages : [navigator.language]
+    void Promise.all([
+      loadPreferences(browserLanguages),
+      loadStatistics(),
+      loadSavedGame(),
+      hasVisited(),
+    ]).then(([storedPreferences, storedStatistics, savedGame, visited]) => {
+      if (!active) return
+      setPreferences(storedPreferences)
+      setStatistics(storedStatistics)
+      const shared = parseSharedGameRoute(window.location)
+      setFirstVisit(!visited)
+      setChallengeFirstVisit(!visited)
+      void markVisited()
+      if (shared) {
+        setSharedChallenge(shared)
+        setShowChallengeIntro(true)
+      } else if (savedGame?.state.status === 'playing') {
+        setGame(savedGame.state)
+        setSharedChallenge(savedGame.challenge ?? null)
+      }
+      setReady(true)
+    })
     return () => {
       active = false
     }
@@ -336,17 +342,25 @@ export default function App() {
     if (action.type === 'check' && nextGame.status === 'won' && game.status !== 'won') {
       void clearSavedGame()
       const finishedAt = nextGame.finishedAt ?? Date.now()
-      void recordCompletion({
+      const completion = {
         seed: nextGame.puzzle.seed,
         theme: nextGame.puzzle.theme,
         audience: activeAudience,
         difficulty: nextGame.puzzle.difficulty,
-        puzzleVariant: nextGame.puzzle.boardMode === 'logic-cube' ? 'cube' : 'spatial',
         generatorVersion: nextGame.puzzle.metadata.generatorVersion,
         elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
         moves: nextGame.moves,
         hintsUsed: nextGame.hintsUsed,
-      }).then(setStatistics)
+      }
+      void recordCompletion(
+        nextGame.puzzle.boardMode === 'logic-cube'
+          ? {
+              ...completion,
+              puzzleVariant: 'cube',
+              buildingDepth: buildingDepthForPositions(nextGame.puzzle.positions),
+            }
+          : { ...completion, puzzleVariant: 'spatial' },
+      ).then(setStatistics)
     }
   }
 

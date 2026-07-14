@@ -1,19 +1,24 @@
 import { describe, expect, it } from 'vitest'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
-import { GENERATOR_VERSION, generatePuzzle } from '../generator/puzzleGenerator'
+import {
+  GENERATOR_VERSION,
+  generatePuzzle,
+  selectAdvancedPuzzleTemplate,
+} from '../generator/puzzleGenerator'
 import {
   canonicalTemplateSignature,
   materializeAdvancedPuzzleTemplate,
   templateBucketKey,
 } from '../generator/puzzleTemplates'
 import { countSolutions } from '../solver/solver'
+import { BUILDING_DEPTHS, buildingDepthForPositions } from '../domain/buildingPlan'
 
 describe('validated advanced puzzle templates', () => {
   it('contains one thousand distinct answer-free structures across every content bucket', () => {
     expect(advancedPuzzleTemplates).toHaveLength(1_000)
     expect(new Set(advancedPuzzleTemplates.map(canonicalTemplateSignature)).size).toBe(1_000)
     expect(JSON.stringify(advancedPuzzleTemplates)).not.toContain('solution')
-    expect(new Set(advancedPuzzleTemplates.map(templateBucketKey)).size).toBe(20)
+    expect(new Set(advancedPuzzleTemplates.map(templateBucketKey)).size).toBe(34)
     expect(
       advancedPuzzleTemplates.filter((template) => template.boardMode === 'logic-grid'),
     ).toHaveLength(950)
@@ -27,11 +32,16 @@ describe('validated advanced puzzle templates', () => {
     expect(buildingTemplates.filter((template) => template.audience === 'adults')).toHaveLength(
       25,
     )
-    expect(
-      buildingTemplates.every(
-        (template) => template.depth === 5 && template.characterCount === 8,
-      ),
-    ).toBe(true)
+    for (const audience of ['teens', 'adults'] as const) {
+      for (const depth of BUILDING_DEPTHS) {
+        expect(
+          buildingTemplates.filter(
+            (template) => template.audience === audience && template.depth === depth,
+          ),
+        ).toHaveLength(depth === 3 ? 4 : 3)
+      }
+    }
+    expect(buildingTemplates.every((template) => template.characterCount === 8)).toBe(true)
     expect(
       advancedPuzzleTemplates.every(
         (template) => template.generatorVersion === GENERATOR_VERSION,
@@ -67,17 +77,39 @@ describe('validated advanced puzzle templates', () => {
     expect([6, 9, 16]).toContain(Math.sqrt(first.positions.length))
   })
 
-  it('selects a solver-verified 5x5x5 structure for the advanced building', () => {
+  it('selects a solver-verified variable-height structure for the advanced building', () => {
     const first = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
     const repeated = generatePuzzle('hard', 'cube-catalog', 'adults', 'cube')
 
     expect(first).toEqual(repeated)
     expect(first.boardMode).toBe('logic-cube')
-    expect(first.positions).toHaveLength(125)
+    const depth = buildingDepthForPositions(first.positions)
+    expect(BUILDING_DEPTHS).toContain(depth)
+    expect(first.positions).toHaveLength(depth * 25)
     expect(first.characters).toHaveLength(8)
     expect(new Set(first.positions.map((position) => position.layer))).toEqual(
-      new Set([0, 1, 2, 3, 4]),
+      new Set(Array.from({ length: depth }, (_, layer) => layer)),
     )
     expect(countSolutions(first, { limit: 2 })).toBe(1)
+  })
+
+  it('selects building height independently of uneven template quotas', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      const depths = new Set(
+        Array.from({ length: 600 }, (_, index) => {
+          const template = selectAdvancedPuzzleTemplate(
+            'hard',
+            `height-selection-${audience}-${index}`,
+            audience,
+            'cube',
+          )
+          if (!template || template.boardMode !== 'logic-cube') {
+            throw new Error('Expected a building template')
+          }
+          return template.depth
+        }),
+      )
+      expect(depths).toEqual(new Set(BUILDING_DEPTHS))
+    }
   })
 })

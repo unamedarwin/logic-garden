@@ -1,8 +1,8 @@
 [
   {
     "material": "artificial-turf",
-    "meanRgb": [121.04, 165.95, 140.68],
-    "standardDeviationRgb": [71.02, 42.85, 50.18],
+    "meanRgb": [123.17, 171.7, 143.9],
+    "standardDeviationRgb": [69.54, 39.69, 48.33],
     "variants": [
       {
         "seed": "terrain-sample:artificial-turf:0",
@@ -26,8 +26,8 @@
   },
   {
     "material": "carpet",
-    "meanRgb": [167.54, 151.97, 174.65],
-    "standardDeviationRgb": [45.79, 50.54, 32.56],
+    "meanRgb": [171.66, 153.99, 175.28],
+    "standardDeviationRgb": [43.58, 49.38, 32.25],
     "variants": [
       {
         "seed": "terrain-sample:carpet:0",
@@ -51,8 +51,8 @@
   },
   {
     "material": "concrete",
-    "meanRgb": [194.42, 195.12, 187.59],
-    "standardDeviationRgb": [32.46, 28.64, 27.08],
+    "meanRgb": [195.62, 195.63, 188.35],
+    "standardDeviationRgb": [31.81, 28.24, 26.5],
     "variants": [
       {
         "seed": "terrain-sample:concrete:0",
@@ -76,8 +76,8 @@
   },
   {
     "material": "cork",
-    "meanRgb": [202.85, 180.38, 143.21],
-    "standardDeviationRgb": [28.92, 35.44, 49.12],
+    "meanRgb": [205.2, 176.38, 133.97],
+    "standardDeviationRgb": [27.59, 37.21, 54.05],
     "variants": [
       {
         "seed": "terrain-sample:cork:0",
@@ -101,8 +101,8 @@
   },
   {
     "material": "grass",
-    "meanRgb": [181.83, 201.37, 158.73],
-    "standardDeviationRgb": [38.49, 25.99, 40.67],
+    "meanRgb": [183.39, 205.88, 158.12],
+    "standardDeviationRgb": [37.53, 24.09, 40.81],
     "variants": [
       {
         "seed": "terrain-sample:grass:0",
@@ -126,8 +126,8 @@
   },
   {
     "material": "metal",
-    "meanRgb": [156.61, 171.89, 173.51],
-    "standardDeviationRgb": [51.4, 39.66, 33.12],
+    "meanRgb": [182.09, 191.15, 186.14],
+    "standardDeviationRgb": [38.15, 30.15, 27.23],
     "variants": [
       {
         "seed": "terrain-sample:metal:0",
@@ -151,8 +151,8 @@
   },
   {
     "material": "mosaic",
-    "meanRgb": [199.4, 214.3, 206.82],
-    "standardDeviationRgb": [30.52, 21.57, 20.64],
+    "meanRgb": [203.08, 216.68, 209.28],
+    "standardDeviationRgb": [29.58, 21.64, 20.66],
     "variants": [
       {
         "seed": "terrain-sample:mosaic:0",
@@ -176,8 +176,8 @@
   },
   {
     "material": "parquet",
-    "meanRgb": [207.4, 187.03, 154.74],
-    "standardDeviationRgb": [28.45, 33.02, 43.14],
+    "meanRgb": [208.74, 184.77, 148.08],
+    "standardDeviationRgb": [30.79, 36.18, 47.6],
     "variants": [
       {
         "seed": "terrain-sample:parquet:0",
@@ -201,8 +201,8 @@
   },
   {
     "material": "rubber",
-    "meanRgb": [139.33, 153.48, 157.8],
-    "standardDeviationRgb": [60.98, 49.53, 41.15],
+    "meanRgb": [109.76, 120.69, 119.63],
+    "standardDeviationRgb": [77.59, 67.8, 62.08],
     "variants": [
       {
         "seed": "terrain-sample:rubber:0",
@@ -226,8 +226,8 @@
   },
   {
     "material": "sand",
-    "meanRgb": [225.34, 207.15, 164.53],
-    "standardDeviationRgb": [21.91, 23.69, 37.59],
+    "meanRgb": [225.26, 206.5, 160.14],
+    "standardDeviationRgb": [21.71, 23.46, 39.64],
     "variants": [
       {
         "seed": "terrain-sample:sand:0",
@@ -251,8 +251,8 @@
   },
   {
     "material": "soil",
-    "meanRgb": [194.26, 167.73, 133.31],
-    "standardDeviationRgb": [32.38, 41.84, 54.5],
+    "meanRgb": [158.65, 130.63, 107.25],
+    "standardDeviationRgb": [50.11, 62.12, 69.16],
     "variants": [
       {
         "seed": "terrain-sample:soil:0",
@@ -276,8 +276,8 @@
   },
   {
     "material": "stage",
-    "meanRgb": [145.86, 120.43, 125.27],
-    "standardDeviationRgb": [57.46, 68.05, 58.92],
+    "meanRgb": [144.13, 118.47, 123.71],
+    "standardDeviationRgb": [58.55, 69.23, 60.01],
     "variants": [
       {
         "seed": "terrain-sample:stage:0",
@@ -301,8 +301,8 @@
   },
   {
     "material": "stone",
-    "meanRgb": [193.47, 198.49, 189.24],
-    "standardDeviationRgb": [32.86, 27.13, 26.32],
+    "meanRgb": [197.39, 193.11, 178.88],
+    "standardDeviationRgb": [31.56, 29.49, 30.61],
     "variants": [
       {
         "seed": "terrain-sample:stone:0",
@@ -326,8 +326,8 @@
   },
   {
     "material": "water",
-    "meanRgb": [160.74, 199.42, 205.07],
-    "standardDeviationRgb": [49.3, 26.44, 20.56],
+    "meanRgb": [156.52, 201.7, 208.19],
+    "standardDeviationRgb": [51.65, 25.62, 19.79],
     "variants": [
       {
         "seed": "terrain-sample:water:0",

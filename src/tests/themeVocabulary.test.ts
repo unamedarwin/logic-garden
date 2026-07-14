@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { localizeThemeLabel, localizeThemePositionLabel } from '../domain/themeVocabulary'
 import { themes, type Theme } from '../domain/themes'
 import type { Locale } from '../domain/types'
+import { supportedLocales } from '../domain/i18n'
 
-const locales = ['ca', 'es', 'en'] as const satisfies readonly Locale[]
+const locales = supportedLocales satisfies readonly Locale[]
 
 const unchangedSpanishLabels = new Set([
   'La palmera',
@@ -77,7 +78,10 @@ describe('theme vocabulary', () => {
 
           if (locale === 'ca') {
             expect(localized).toBe(sourceLabel)
-          } else if (locale === 'en' || !unchangedSpanishLabels.has(sourceLabel)) {
+          } else if (
+            locale === 'en' ||
+            (locale === 'es' && !unchangedSpanishLabels.has(sourceLabel))
+          ) {
             expect(localized, `${locale}/${theme.id}/${sourceLabel}`).not.toBe(sourceLabel)
           }
         }

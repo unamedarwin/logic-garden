@@ -18,7 +18,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard'
 export type BoardMode = 'map' | 'logic-grid' | 'logic-cube'
 export type PuzzleVariant = 'spatial' | 'cube'
 export type PuzzleCollection = 'children' | 'two-dimensional' | 'three-dimensional'
-export type Locale = 'ca' | 'es' | 'en'
+export type Locale = 'ca' | 'es' | 'en' | 'eu' | 'gl' | 'fr' | 'de'
 export type Audience = 'children' | 'teens' | 'adults'
 export type ThemeId =
   | 'forest-party'

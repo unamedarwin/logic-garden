@@ -8,8 +8,11 @@ valid for the room that contains it; global random object assignment is not allo
 
 ## Material catalog
 
-Every material uses three square, repeatable SVG layers bundled into the application. The patterns
-are adapted from Hero Patterns and recolored locally; the PWA never fetches scene art at runtime.
+Every material uses three square, repeatable SVG layers bundled into the application. The catalog
+uses bespoke local material drawings with deliberately different scale, geometry, and contrast for
+each surface. Water alone also keeps a very subtle adapted Hero Patterns bubble layer; no common
+micro-grid is shared across the catalog, so parquet, stone, rubber, turf, and the other surfaces do
+not collapse into palette swaps. The PWA never fetches scene art at runtime.
 
 | Material        | Intended use                                                 |
 | --------------- | ------------------------------------------------------------ |
@@ -35,8 +38,10 @@ instead of restarting the pattern at every cell or room edge.
 
 For each room, the seeded PRNG chooses an exact proportion between 25% and 75% of its unblocked
 cells. Only those cells receive a small Lucide motif. Material-specific catalogs constrain motif,
-color, scale, position, and rotation so floor marks cannot be confused with characters, clue items,
-or fixed obstacles. Motifs occupy 30-46% of one cell and use transparent line art without a token
+scale, position, and rotation, while every `MotifId` has its own semantic three-color palette: flowers
+use petal colors, shells use warm mineral colors, bolts use cool metal colors, and water droplets use
+blue water colors. The seeded color choice therefore cannot make every extra element look like the
+same generic mark. Motifs occupy 30-46% of one cell and use transparent line art without a token
 background, so density differences remain visible without resembling playable pieces. Blocked cells
 and untouched cells receive no decorative motif.
 

@@ -1,5 +1,5 @@
 import type { PartialAssignment, Puzzle } from '../domain/types'
-import { isPartialAssignmentValid, solve } from '../solver/solver'
+import { analyzeSolutions, isPartialAssignmentValid, solve } from '../solver/solver'
 import type { GameFeedback } from './feedback'
 
 export interface ValidationResult {
@@ -12,7 +12,9 @@ export const validateAssignment = (
   puzzle: Puzzle,
   assignment: PartialAssignment,
 ): ValidationResult => {
-  const solution = solve(puzzle)
+  const analysis = analyzeSolutions(puzzle, { limit: 2 })
+  const solution =
+    analysis.count === 1 && !analysis.reachedNodeLimit ? analysis.firstSolution : null
   const totalCount = puzzle.characters.length
   const correctCount = solution
     ? puzzle.characters.filter(
@@ -28,7 +30,11 @@ export const validateAssignment = (
     }
   }
 
-  if (!isPartialAssignmentValid(puzzle, assignment)) {
+  if (
+    !solution ||
+    !isPartialAssignmentValid(puzzle, assignment) ||
+    correctCount !== totalCount
+  ) {
     return {
       complete: true,
       correct: false,

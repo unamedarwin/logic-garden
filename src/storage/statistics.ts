@@ -1,4 +1,5 @@
 import { get, set } from 'idb-keyval'
+import type { BuildingDepth } from '../domain/buildingPlan'
 import type { Audience, Difficulty, PuzzleVariant, ThemeId } from '../domain/types'
 
 const key = 'logic-garden:statistics:v1'
@@ -12,6 +13,7 @@ export interface CompletedGame {
   readonly audience: Audience
   readonly difficulty: Difficulty
   readonly puzzleVariant?: PuzzleVariant
+  readonly buildingDepth?: BuildingDepth
   readonly generatorVersion: number
   readonly completedAt: number
   readonly elapsedSeconds: number
@@ -19,17 +21,28 @@ export interface CompletedGame {
   readonly hintsUsed: number
 }
 
-export interface CompletionInput {
+interface CompletionBase {
   readonly seed: string
   readonly theme: ThemeId
   readonly audience: Audience
   readonly difficulty: Difficulty
-  readonly puzzleVariant: PuzzleVariant
   readonly generatorVersion: number
   readonly elapsedSeconds: number
   readonly moves: number
   readonly hintsUsed: number
 }
+
+export type CompletionInput = CompletionBase &
+  (
+    | {
+        readonly puzzleVariant: 'cube'
+        readonly buildingDepth: BuildingDepth
+      }
+    | {
+        readonly puzzleVariant: 'spatial'
+        readonly buildingDepth?: never
+      }
+  )
 
 export interface Statistics {
   readonly schemaVersion: 4

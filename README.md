@@ -2,7 +2,7 @@
 
 Logic Garden is an offline-first logic puzzle game with three public collections: Children,
 Puzzles 2D, and Puzzles 3D. Children place friendly characters on compact illustrated maps. The
-2D collection uses irregular deduction plans, and the 3D collection uses a five-floor building
+2D collection uses irregular deduction plans, and the 3D collection uses a 3-to-10-floor building
 where placement affects the horizontal, vertical, and height axes. Every visible puzzle is
 generated locally, has exactly one solver-verified answer, and can be reproduced from its seed.
 
@@ -70,7 +70,8 @@ generator version, variant, audience, difficulty, and seed therefore create the 
 
 The 2D and 3D collections select one of 1,000 pre-generated structural templates. The catalog
 contains 950 spatial templates across the internal teen and adult content catalogs, all three
-difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 50 hard `5 x 5 x 5` building
+difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 50 hard variable-height
+`5 x 5 x 3` through `5 x 5 x 10` building
 templates split evenly between those content catalogs. A template
 contains compact generic clue tuples, geometry references, and difficulty metrics, but never an
 answer, name, avatar, localized phrase, concrete object, or personal value. The public seed then
@@ -86,14 +87,16 @@ The solver uses backtracking with partial-constraint pruning, unique positions, 
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
 
-The 3D collection presents 125 visual cells as five accessible floor slices. Its 16 homes and two
-ground-floor shops provide 66 genuinely playable cells for two shopkeepers and six residents;
-entrances, landings, stairs, and 30 visible room fixtures remain blocked throughout generation,
-solving, reducer actions, and the DOM. A room cell without a visible fixture is never disabled just
-because it is absent from the final solution. A placement crosses the complete row and column
+For a selected height `d`, the 3D collection presents `25d` visual cells as accessible floor
+slices. Its `4(d-1)` semantic homes expose `14(d-1)` genuinely playable cells, while two
+ground-floor shops expose 10 more. Every game still uses only two shopkeepers and six residents;
+at most five residential floors are occupied, so taller buildings keep meaningful empty levels.
+Entrances, landings, stairs, and `6d` visible room fixtures remain blocked throughout generation,
+solving, reducer actions, and the DOM. A room cell without a visible fixture is never disabled
+just because it is absent from the final solution. A placement crosses the complete row and column
 on that floor plus the same position one floor above and below; non-adjacent floors remain
-independent so the model can grow further in height. A detached elevator ordered from ground floor
-to fourth floor switches floors without narrowing or hiding the active plan. Doors are
+independent. A detached elevator ordered from the ground floor to the selected building's highest
+floor switches levels without narrowing or hiding the active plan. Doors are
 non-interactive wall fixtures centered between adjacent cells,
 never objects that occupy a destination. Seeded local furniture and plants warm the blocked scenery
 without becoming puzzle objects. See [`docs/building-system.md`](docs/building-system.md).
@@ -108,7 +111,7 @@ language and safe local themes:
 | ---------- | ---------------------- | ----------------------------------------------------------- |
 | Children   | Illustrated map        | Forests, farms, trips, and gentle discoveries               |
 | Puzzles 2D | Spatial deduction plan | Music, sports, creative spaces, books, gardens, and markets |
-| Puzzles 3D | Five-floor building    | Friendly neighbors, shared landings, homes, and local shops |
+| Puzzles 3D | 3-to-10-floor building | Friendly neighbors, shared landings, homes, and local shops |
 
 Children keep the compact map difficulties below. Seeded rectangular boards alternate their
 orientation, so a `2 x 3` board can also appear as `3 x 2`.
@@ -153,7 +156,9 @@ whole experiment without the interface revealing the answer early.
 
 Every check opens an accessible result dialog instead of placing feedback below the game. By default,
 it reports the solver-verified number of correctly placed people as `N/total`. A local setting can hide
-that exact score and retain only encouraging guidance. No answer or rendered result text is persisted.
+that exact score and retain only encouraging guidance. Before accepting a completed board, validation
+reruns the solver with a limit of two, rejects non-unique puzzles, and requires every placement to match
+the single derived solution. No answer or rendered result text is persisted.
 
 During a game, `Canvia el nivell` returns to the level picker and clears the temporary saved
 game. The same action is available from the header and the completion dialog, so a player can
@@ -198,11 +203,14 @@ deliberate pixel-art theme. See the [visual asset policy](docs/visual-asset-poli
 licensing, category separation, and migration QA. The current Fluent subset remains local and
 deterministic until a complete reviewed category is ready to replace it.
 
-Floor materials use three layered, square, seamless SVG tiles adapted from Hero Patterns. The
-14-material catalog covers parquet, mosaic, carpet, rubber, cork, grass, soil, stone, sand, water,
-concrete, metal, stage flooring, and artificial turf. A second seeded layer scatters small curated
+Floor materials use three layered, square, seamless SVG tiles. The 14-material catalog uses
+material-specific local drawings with deliberately different scale, geometry, palette, and contrast;
+only water keeps a very subtle adapted bubble layer. Parquet, mosaic, carpet, rubber, cork, grass,
+soil, stone, sand, water, concrete, metal, stage flooring, and artificial turf therefore look materially
+distinct instead of reading as near-identical recolors. A second seeded layer scatters small curated
 Lucide motifs inside cells. Each room decorates an exact seeded proportion between 25% and 75% of
-its unblocked cells; every motif varies within restrained color, scale, offset, and rotation ranges.
+its unblocked cells; every motif uses its own restrained semantic color palette and varies within
+seeded scale, offset, and rotation ranges.
 The remaining cells stay visually quiet. Patterns share a continuous phase across room and cell
 boundaries. In the city garden, the pond is a contiguous 1/2/4-cell blocked patch on 6/9/16 boards;
 the surrounding room remains a playable stone or garden edge. The puzzle seed makes the complete
@@ -225,8 +233,10 @@ reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
 
-Catalan, Spanish, and English are available from the collection picker and in settings. Every clue
-is a discriminated union value; `renderClue` converts it into a short local template for the selected language.
+Catalan, Spanish, English, Basque, Galician, French, and German are available from the collection
+picker and in settings. A new installation chooses the first supported language reported by the
+browser; an explicit saved choice always takes priority. Every clue is a discriminated union value;
+`renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
 Child clues use the same narrative pattern as advanced clues: each precise fact is paired with a
 short friendly action, object, or motivation instead of being reduced to a bare placement command.
@@ -238,8 +248,11 @@ obstacle, and the direction from that obstacle. They never expose route, row, co
 distance wording.
 
 `cspell.json` loads Catalan and Spanish dictionaries alongside the built-in English one.
-`pnpm spellcheck` is part of `pnpm verify`. Add only intentional names and technical terms
-to that dictionary, never a spelling mistake.
+`pnpm spellcheck` is part of `pnpm verify` for project prose and non-catalog source. The localized
+catalogs are checked with strict key and logical-placeholder audits; Basque, Galician, French, and
+German additionally use independent composition review without installing language packages.
+Add only intentional names and technical terms to the project dictionary, never a spelling mistake.
+See [localization](docs/localisation.md).
 
 ## PWA and offline play
 
@@ -255,10 +268,11 @@ short Share > Add to Home Screen instruction.
 Share links are available during play and after completion, and never contain the answer or
 personal data. Payload schema 4 stores a generator version,
 variant, difficulty, seed, audience, and an optional bounded completion-time benchmark
-in a URL-safe Base64 payload:
+as JSON compressed with GZIP and then encoded as URL-safe Base64. New payloads use the `gz_`
+prefix, while the reader remains compatible with validated legacy uncompressed Base64 links:
 
 ```text
-/logic-garden/?p=<url-safe-base64-payload>
+/logic-garden/?p=gz_<url-safe-base64-gzip-payload>
 ```
 
 After a solve, the local history stores the theme identifier, audience, difficulty, generator version,

@@ -49,6 +49,9 @@ const patternPath = (
     `<path fill="${fill}" fill-opacity="${opacity}"${fillRule ? ` fill-rule="${fillRule}"` : ''} d="${path}"/>`,
   )
 
+const patternMarkup = (side: number, parts: readonly string[]) =>
+  svgPattern(side, parts.join(''))
+
 // Adapted from Hero Patterns by Steve Schoger (CC BY 4.0). The original square SVG tiles are
 // recolored and layered locally; no texture is fetched while the game is running.
 const heroPatterns = {
@@ -104,117 +107,365 @@ const heroPatterns = {
   },
 }
 
+const bespokePatterns = {
+  parquetSeams: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="2.6" fill="none">`,
+      '<path d="M0 0h62v48H0zM62 0h34v48H62zM0 48h34v48H0zM34 48h62v48H34z"/>',
+      '<path d="M18 0v48M44 0v48M78 48v48M52 48v48"/>',
+      '<path d="M0 14h62M0 34h62M34 66h62M34 84h62"/>',
+      '</g>',
+    ]),
+  woodGrain: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.25" fill="none" stroke-linecap="round">`,
+      '<path d="M4 10c12-4 24-4 36 0M2 22c14 5 28 5 42 0M6 34c11-4 21-4 32 0"/>',
+      '<path d="M56 58c11-4 23-4 35 0M52 70c14 5 27 5 40 0M54 82c11-4 22-4 34 0"/>',
+      '<path d="M58 10c9-3 19-3 28 0M10 58c10-3 20-3 30 0"/>',
+      '</g>',
+    ]),
+  mosaicTiles: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<rect x="3" y="3" width="25" height="19" rx="4" transform="rotate(-2 15 12.5)"/>',
+      '<rect x="33" y="2" width="29" height="23" rx="5" transform="rotate(3 47 13.5)"/>',
+      '<rect x="69" y="4" width="24" height="18" rx="4" transform="rotate(-4 81 13)"/>',
+      '<rect x="2" y="31" width="20" height="28" rx="4" transform="rotate(4 12 45)"/>',
+      '<rect x="28" y="31" width="31" height="25" rx="5" transform="rotate(-3 43.5 43.5)"/>',
+      '<rect x="66" y="30" width="28" height="27" rx="5" transform="rotate(2 80 43.5)"/>',
+      '<rect x="4" y="68" width="29" height="25" rx="5" transform="rotate(-3 18.5 80.5)"/>',
+      '<rect x="39" y="66" width="21" height="28" rx="4" transform="rotate(4 49.5 80)"/>',
+      '<rect x="67" y="68" width="26" height="24" rx="5" transform="rotate(-2 80 80)"/>',
+      '</g>',
+    ]),
+  mosaicGlaze: (fill: string, opacity: number) =>
+    patternMarkup(72, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.4" fill="none" stroke-linecap="round">`,
+      '<path d="M3 24h66M3 48h66M24 3v66M48 3v66"/>',
+      '<path d="M8 10c3 2 6 2 9 0M32 14c4 2 7 2 10 0M56 10c3 2 6 2 9 0"/>',
+      '<path d="M12 38c3 2 6 2 9 0M36 34c4 2 7 2 10 0M54 40c4 2 8 2 11 0"/>',
+      '<path d="M8 58c3 2 6 2 9 0M30 60c4 2 8 2 12 0M56 58c3 2 6 2 9 0"/>',
+      '</g>',
+    ]),
+  carpetWeave: (fill: string, opacity: number) =>
+    patternMarkup(48, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="3" stroke-linecap="round">`,
+      '<path d="M0 6h48M0 18h48M0 30h48M0 42h48"/>',
+      '<path d="M6 0v48M18 0v48M30 0v48M42 0v48"/>',
+      '</g>',
+    ]),
+  carpetNap: (fill: string, opacity: number) =>
+    patternMarkup(48, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.4" fill="none" stroke-linecap="round">`,
+      '<path d="M2 10c4-2 8-2 12 0M20 6c4-2 8-2 12 0M34 14c4-2 8-2 12 0"/>',
+      '<path d="M4 26c5 2 9 2 13 0M18 22c4 2 8 2 12 0M32 30c5 2 9 2 13 0"/>',
+      '<path d="M6 38c4-2 8-2 12 0M22 42c4-2 8-2 12 0M36 38c4-2 8-2 12 0"/>',
+      '</g>',
+    ]),
+  rubberStuds: (fill: string, opacity: number) =>
+    patternMarkup(54, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<circle cx="9" cy="9" r="4.6"/><circle cx="27" cy="9" r="4.6"/><circle cx="45" cy="9" r="4.6"/>',
+      '<circle cx="18" cy="27" r="4.6"/><circle cx="36" cy="27" r="4.6"/>',
+      '<circle cx="9" cy="45" r="4.6"/><circle cx="27" cy="45" r="4.6"/><circle cx="45" cy="45" r="4.6"/>',
+      '</g>',
+    ]),
+  rubberGrip: (fill: string, opacity: number) =>
+    patternMarkup(54, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.25" fill="none" stroke-linecap="round">`,
+      '<path d="M6 18h6M24 18h6M42 18h6M15 36h6M33 36h6"/>',
+      '<path d="M6 0l12 12M24 0l12 12M42 0l12 12M-3 18l12 12M15 18l12 12M33 18l12 12"/>',
+      '</g>',
+    ]),
+  corkFlakes: (fill: string, opacity: number) =>
+    patternMarkup(84, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<path d="M5 13l6-5l7 2l4 7l-5 7l-9 1l-5-5z"/>',
+      '<path d="M33 7l9-3l8 5l-1 9l-7 5l-10-3l-3-7z"/>',
+      '<path d="M61 16l8-4l8 4l1 8l-7 6l-9-2l-4-6z"/>',
+      '<path d="M14 43l8-4l9 5l1 8l-7 7l-10-2l-4-7z"/>',
+      '<path d="M47 37l8-3l8 5l-1 8l-8 5l-9-3l-3-7z"/>',
+      '<path d="M66 54l7-4l8 4l1 8l-6 7l-9-2l-4-7z"/>',
+      '<path d="M7 68l7-5l8 3l3 7l-5 8l-9-1l-5-6z"/>',
+      '<path d="M36 65l9-4l8 5l1 8l-7 7l-10-2l-4-7z"/>',
+      '</g>',
+    ]),
+  corkPores: (fill: string, opacity: number) =>
+    patternMarkup(84, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<circle cx="12" cy="14" r="1.6"/><circle cx="24" cy="20" r="1.4"/><circle cx="40" cy="16" r="1.5"/>',
+      '<circle cx="58" cy="24" r="1.4"/><circle cx="72" cy="18" r="1.6"/><circle cx="18" cy="48" r="1.5"/>',
+      '<circle cx="34" cy="38" r="1.4"/><circle cx="54" cy="44" r="1.5"/><circle cx="70" cy="58" r="1.5"/>',
+      '<circle cx="12" cy="70" r="1.6"/><circle cx="42" cy="72" r="1.4"/><circle cx="62" cy="68" r="1.5"/>',
+      '</g>',
+    ]),
+  grassBlades: (fill: string, opacity: number) =>
+    patternMarkup(80, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.6" fill="none" stroke-linecap="round">`,
+      '<path d="M8 24c3-11 8-19 16-24M16 26c4-10 11-18 20-24M24 24c5-8 12-14 20-18"/>',
+      '<path d="M42 44c3-11 8-19 16-24M50 46c4-10 11-18 20-24M58 44c5-8 12-14 20-18"/>',
+      '<path d="M8 66c4-10 10-18 18-24M18 70c4-10 10-18 18-24M28 66c4-8 10-14 18-18"/>',
+      '</g>',
+    ]),
+  grassHighlights: (fill: string, opacity: number) =>
+    patternMarkup(80, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1" fill="none" stroke-linecap="round">`,
+      '<path d="M6 18c8 4 16 4 24 0M38 38c8 4 16 4 24 0M10 60c8 4 16 4 24 0"/>',
+      '<path d="M24 8c3 7 8 12 15 15M56 28c3 7 8 12 15 15M34 50c3 7 8 12 15 15"/>',
+      '</g>',
+    ]),
+  soilClumps: (fill: string, opacity: number) =>
+    patternMarkup(84, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<path d="M5 14l5-6l9 1l5 5l-3 7l-8 3l-7-4z"/>',
+      '<path d="M29 10l8-5l10 2l5 6l-4 7l-10 2l-8-4z"/>',
+      '<path d="M56 17l7-5l11 2l5 6l-4 8l-10 2l-8-5z"/>',
+      '<path d="M12 42l8-5l10 3l4 7l-5 7l-10 2l-8-5z"/>',
+      '<path d="M41 37l10-5l10 4l4 8l-6 8l-11 1l-8-6z"/>',
+      '<path d="M64 54l7-5l9 2l3 7l-5 7l-9 1l-6-5z"/>',
+      '<path d="M8 70l8-5l10 3l3 7l-5 7l-10 1l-7-5z"/>',
+      '<path d="M38 67l8-5l10 3l4 7l-5 8l-10 0l-7-5z"/>',
+      '</g>',
+    ]),
+  soilPebbles: (fill: string, opacity: number) =>
+    patternMarkup(84, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<circle cx="10" cy="12" r="1.7"/><circle cx="28" cy="22" r="1.5"/><circle cx="42" cy="18" r="1.6"/>',
+      '<circle cx="58" cy="28" r="1.5"/><circle cx="74" cy="14" r="1.7"/><circle cx="18" cy="48" r="1.6"/>',
+      '<circle cx="38" cy="44" r="1.5"/><circle cx="60" cy="42" r="1.7"/><circle cx="70" cy="64" r="1.6"/>',
+      '<circle cx="10" cy="72" r="1.7"/><circle cx="34" cy="66" r="1.5"/><circle cx="56" cy="72" r="1.7"/>',
+      '</g>',
+    ]),
+  stoneSlabs: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="2.4" fill="none">`,
+      '<path d="M0 18h54v24H0zM54 0h42v28H54zM60 28h36v26H60zM0 42h34v26H0z"/>',
+      '<path d="M34 42h30v26H34zM64 54h32v24H64zM0 68h44v28H0zM44 70h52v26H44z"/>',
+      '</g>',
+    ]),
+  stoneSpeckles: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<circle cx="10" cy="10" r="1.8"/><circle cx="28" cy="26" r="1.4"/><circle cx="72" cy="12" r="1.6"/>',
+      '<circle cx="88" cy="22" r="1.8"/><circle cx="18" cy="54" r="1.7"/><circle cx="50" cy="46" r="1.5"/>',
+      '<circle cx="82" cy="58" r="1.8"/><circle cx="24" cy="82" r="1.6"/><circle cx="66" cy="84" r="1.7"/>',
+      '</g>',
+    ]),
+  sandRipples: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.4" fill="none" stroke-linecap="round">`,
+      '<path d="M2 16c10 4 22 4 34 0c12-4 24-4 36 0c8 3 16 3 24 0"/>',
+      '<path d="M0 34c10 4 22 4 34 0c12-4 24-4 36 0c8 3 16 3 24 0"/>',
+      '<path d="M2 54c10 4 22 4 34 0c12-4 24-4 36 0c8 3 16 3 24 0"/>',
+      '<path d="M0 74c10 4 22 4 34 0c12-4 24-4 36 0c8 3 16 3 24 0"/>',
+      '</g>',
+    ]),
+  sandGrains: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<circle cx="8" cy="12" r="1.3"/><circle cx="26" cy="20" r="1.1"/><circle cx="42" cy="14" r="1.2"/>',
+      '<circle cx="64" cy="24" r="1.1"/><circle cx="82" cy="18" r="1.3"/><circle cx="18" cy="44" r="1.2"/>',
+      '<circle cx="36" cy="50" r="1.1"/><circle cx="58" cy="42" r="1.2"/><circle cx="76" cy="58" r="1.1"/>',
+      '<circle cx="10" cy="78" r="1.3"/><circle cx="30" cy="70" r="1.1"/><circle cx="50" cy="76" r="1.2"/><circle cx="72" cy="82" r="1.1"/>',
+      '</g>',
+    ]),
+  waterRipples: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.8" fill="none" stroke-linecap="round">`,
+      '<path d="M6 18c8-5 16-5 24 0s16 5 24 0s16-5 24 0s8 5 12 3"/>',
+      '<path d="M0 40c8-5 16-5 24 0s16 5 24 0s16-5 24 0s16 5 24 0"/>',
+      '<path d="M6 62c8-5 16-5 24 0s16 5 24 0s16-5 24 0s8 5 12 3"/>',
+      '<path d="M0 84c8-5 16-5 24 0s16 5 24 0s16-5 24 0s16 5 24 0"/>',
+      '</g>',
+    ]),
+  waterHighlights: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<ellipse cx="14" cy="20" rx="8" ry="3"/><ellipse cx="42" cy="38" rx="10" ry="3.5"/>',
+      '<ellipse cx="74" cy="18" rx="9" ry="3"/><ellipse cx="24" cy="62" rx="10" ry="3.5"/>',
+      '<ellipse cx="62" cy="72" rx="11" ry="3.8"/><ellipse cx="84" cy="50" rx="7" ry="2.8"/>',
+      '</g>',
+    ]),
+  concreteAggregate: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<path d="M8 15l4-4l6 1l3 5l-4 5l-6 0z"/><path d="M25 9l4-3l5 2l1 5l-4 3l-5-2z"/>',
+      '<path d="M43 17l4-4l6 2l2 5l-5 4l-6-2z"/><path d="M65 11l5-3l6 2l2 5l-5 4l-7-2z"/>',
+      '<path d="M82 21l4-4l6 2l2 5l-4 4l-7-2z"/><path d="M17 41l5-3l6 2l2 5l-4 4l-7-2z"/>',
+      '<path d="M39 39l4-4l6 1l3 5l-4 5l-7-1z"/><path d="M59 45l5-3l6 2l1 5l-5 4l-6-2z"/>',
+      '<path d="M77 55l4-4l6 2l2 5l-4 4l-7-2z"/><path d="M11 73l5-4l6 2l2 5l-4 4l-7-2z"/>',
+      '<path d="M31 65l4-3l6 2l2 5l-4 4l-7-2z"/><path d="M53 75l5-4l6 2l2 5l-4 4l-7-2z"/>',
+      '<path d="M73 81l4-3l6 2l1 5l-4 4l-6-2z"/>',
+      '</g>',
+    ]),
+  concreteCracks: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g fill="${fill}" fill-opacity="${opacity * 0.28}">`,
+      '<ellipse cx="18" cy="18" rx="13" ry="5" transform="rotate(-18 18 18)"/>',
+      '<ellipse cx="69" cy="27" rx="17" ry="5" transform="rotate(12 69 27)"/>',
+      '<ellipse cx="31" cy="72" rx="15" ry="4" transform="rotate(8 31 72)"/>',
+      '<ellipse cx="80" cy="76" rx="10" ry="4" transform="rotate(-20 80 76)"/>',
+      '</g>',
+      `<g stroke="${fill}" stroke-opacity="${opacity * 0.55}" stroke-width="0.8" fill="none" stroke-linecap="round" stroke-linejoin="round">`,
+      '<path d="M7 51l9-3l6 2l8-4"/>',
+      '<path d="M57 6l6 3l5-2"/>',
+      '</g>',
+    ]),
+  metalBrushed: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.1" fill="none" stroke-linecap="round">`,
+      '<path d="M0 12h96M0 28h96M0 46h96M0 65h96M0 83h96"/>',
+      '<path d="M18 0l9 9M58 0l9 9M84 18l12 12M4 58l12 12M46 76l10 10"/>',
+      '</g>',
+    ]),
+  metalRivets: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.5" fill="none">`,
+      '<circle cx="16" cy="18" r="4.5"/><circle cx="81" cy="29" r="4.5"/><circle cx="39" cy="78" r="4.5"/><circle cx="75" cy="76" r="3.5"/>',
+      '<path d="M8 53c18-4 32-4 48 0" stroke-width="0.8"/>',
+      '</g>',
+    ]),
+  turfStripes: (fill: string, opacity: number) =>
+    patternMarkup(72, [
+      `<g fill="${fill}" fill-opacity="${opacity}">`,
+      '<rect x="0" y="0" width="24" height="72"/><rect x="48" y="0" width="24" height="72"/>',
+      '</g>',
+    ]),
+  turfFibers: (fill: string, opacity: number) =>
+    patternMarkup(72, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.4" fill="none" stroke-linecap="round">`,
+      '<path d="M4 10l4-8M10 14l4-8M16 8l4-7M24 12l4-8M32 8l4-7M40 14l4-8M48 10l4-8M58 14l4-8M66 8l4-7"/>',
+      '<path d="M4 34l4-8M12 40l4-8M20 32l4-7M28 38l4-8M38 34l4-8M46 40l4-8M56 34l4-8M64 40l4-8"/>',
+      '<path d="M8 58l4-8M16 64l4-8M26 56l4-7M34 62l4-8M44 58l4-8M54 64l4-8M64 56l4-7"/>',
+      '</g>',
+    ]),
+  stageBoards: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="2.4" fill="none">`,
+      '<path d="M0 0h24v96H0zM24 0h24v96H24zM48 0h24v96H48zM72 0h24v96H72z"/>',
+      '<path d="M12 0v96M36 0v96M60 0v96M84 0v96"/>',
+      '</g>',
+    ]),
+  stageScuffs: (fill: string, opacity: number) =>
+    patternMarkup(96, [
+      `<g stroke="${fill}" stroke-opacity="${opacity}" stroke-width="1.2" fill="none" stroke-linecap="round">`,
+      '<path d="M6 18c8-3 16-3 24 0M34 34c8-3 16-3 24 0M62 18c8-3 16-3 24 0"/>',
+      '<path d="M10 58c8-3 16-3 24 0M42 72c8-3 16-3 24 0M66 54c8-3 16-3 24 0"/>',
+      '</g>',
+    ]),
+}
+
 const textureCatalog: Readonly<Record<FloorMaterial, Omit<FloorTexture, 'material'>>> = {
   parquet: {
-    baseColor: '#d4b98d',
+    baseColor: '#d3b382',
     layers: [
-      heroPatterns.parkay('#38271d', 0.13),
-      heroPatterns.texture('#fff9eb', 0.16),
-      heroPatterns.pixelDots('#4a3426', 0.035),
+      bespokePatterns.parquetSeams('#6a4c33', 0.42),
+      bespokePatterns.woodGrain('#f8edd8', 0.28),
+      bespokePatterns.woodGrain('#4a3426', 0.1),
     ],
   },
   mosaic: {
-    baseColor: '#b8d0ca',
+    baseColor: '#bcd4ce',
     layers: [
-      heroPatterns.floorTile('#fffdf4', 0.2),
-      heroPatterns.hideout('#3e5550', 0.075),
-      heroPatterns.texture('#fffdf4', 0.14),
+      bespokePatterns.mosaicTiles('#fff8ef', 0.18),
+      bespokePatterns.mosaicGlaze('#40615b', 0.24),
+      bespokePatterns.mosaicGlaze('#fffdf4', 0.12),
     ],
   },
   carpet: {
-    baseColor: '#8d789f',
+    baseColor: '#90799d',
     layers: [
-      heroPatterns.tinyCheckers('#fff7e8', 0.085),
-      heroPatterns.pixelDots('#271f39', 0.045),
-      heroPatterns.texture('#fff7e8', 0.16),
+      bespokePatterns.carpetWeave('#f6e8dc', 0.12),
+      bespokePatterns.carpetNap('#4d3659', 0.18),
+      bespokePatterns.carpetNap('#fff7e8', 0.1),
     ],
   },
   rubber: {
-    baseColor: '#5e7581',
+    baseColor: '#3f5053',
     layers: [
-      heroPatterns.bubbles('#182a31', 0.075),
-      heroPatterns.pixelDots('#fff8ec', 0.085),
-      heroPatterns.texture('#fff8ec', 0.12),
+      bespokePatterns.rubberStuds('#20323a', 0.2),
+      bespokePatterns.rubberGrip('#f4efe4', 0.16),
+      bespokePatterns.rubberGrip('#fff8ec', 0.08),
     ],
   },
   cork: {
-    baseColor: '#c9aa78',
+    baseColor: '#c7a16a',
     layers: [
-      heroPatterns.bubbles('#5a432d', 0.045),
-      heroPatterns.pixelDots('#3e3125', 0.085),
-      heroPatterns.texture('#fff5dc', 0.17),
+      bespokePatterns.corkFlakes('#8c6439', 0.18),
+      bespokePatterns.corkPores('#5b4328', 0.2),
+      bespokePatterns.corkPores('#fff5dc', 0.1),
     ],
   },
   grass: {
-    baseColor: '#a9c68e',
+    baseColor: '#a7c88a',
     layers: [
-      heroPatterns.leaf('#315b3e', 0.12),
-      heroPatterns.texture('#fff9dc', 0.1),
-      heroPatterns.pixelDots('#55764a', 0.055),
+      bespokePatterns.grassBlades('#3a6a42', 0.22),
+      bespokePatterns.grassHighlights('#eaf7c8', 0.16),
+      bespokePatterns.grassHighlights('#688755', 0.07),
     ],
   },
   soil: {
-    baseColor: '#bd986b',
+    baseColor: '#856044',
     layers: [
-      heroPatterns.bubbles('#5c4630', 0.04),
-      heroPatterns.pixelDots('#463626', 0.095),
-      heroPatterns.texture('#fff0d1', 0.12),
+      bespokePatterns.soilClumps('#6c4a2d', 0.18),
+      bespokePatterns.soilPebbles('#4f3928', 0.2),
+      bespokePatterns.soilPebbles('#eed1a4', 0.1),
     ],
   },
   stone: {
-    baseColor: '#b9c1b9',
+    baseColor: '#bdb8a8',
     layers: [
-      heroPatterns.bathroomFloor('#475953', 0.08),
-      heroPatterns.floorTile('#fffdf4', 0.12),
-      heroPatterns.texture('#405049', 0.07),
+      bespokePatterns.stoneSlabs('#64736c', 0.24),
+      bespokePatterns.stoneSpeckles('#eef1eb', 0.16),
+      bespokePatterns.stoneSpeckles('#50635b', 0.08),
     ],
   },
   sand: {
-    baseColor: '#dfc88f',
+    baseColor: '#e0c88c',
     layers: [
-      heroPatterns.bubbles('#775d36', 0.055),
-      heroPatterns.pixelDots('#fff5d5', 0.08),
-      heroPatterns.texture('#6b5738', 0.065),
+      bespokePatterns.sandRipples('#af9061', 0.22),
+      bespokePatterns.sandGrains('#fff1cb', 0.18),
+      bespokePatterns.sandGrains('#7d643f', 0.05),
     ],
   },
   water: {
-    baseColor: '#84bcc8',
+    baseColor: '#7ebfcc',
     layers: [
-      heroPatterns.bubbles('#e7fbff', 0.2),
-      heroPatterns.floorTile('#2f6f80', 0.035),
-      heroPatterns.texture('#e7fbff', 0.12),
+      bespokePatterns.waterRipples('#d8f8ff', 0.34),
+      bespokePatterns.waterHighlights('#f3feff', 0.16),
+      heroPatterns.bubbles('#2d7386', 0.04),
     ],
   },
   concrete: {
-    baseColor: '#b9bcb6',
+    baseColor: '#b9bbb5',
     layers: [
-      heroPatterns.bubbles('#4f5652', 0.035),
-      heroPatterns.pixelDots('#4b514e', 0.055),
-      heroPatterns.texture('#fffdf5', 0.14),
+      bespokePatterns.concreteAggregate('#666a65', 0.14),
+      bespokePatterns.concreteCracks('#f3f2e8', 0.2),
+      bespokePatterns.concreteAggregate('#50534f', 0.08),
     ],
   },
   metal: {
-    baseColor: '#80989e',
+    baseColor: '#a5b3b0',
     layers: [
-      heroPatterns.bathroomFloor('#263a3f', 0.065),
-      heroPatterns.tinyCheckers('#eaf5f4', 0.085),
-      heroPatterns.hideout('#eaf5f4', 0.045),
+      bespokePatterns.metalBrushed('#274147', 0.2),
+      bespokePatterns.metalRivets('#eef6f4', 0.18),
+      bespokePatterns.metalBrushed('#eff7f5', 0.08),
     ],
   },
   stage: {
-    baseColor: '#75535f',
+    baseColor: '#73515d',
     layers: [
-      heroPatterns.parkay('#2b1720', 0.16),
-      heroPatterns.floorTile('#ffdca8', 0.075),
-      heroPatterns.hideout('#fff1d4', 0.1),
+      bespokePatterns.stageBoards('#2b171f', 0.28),
+      bespokePatterns.stageScuffs('#ffd8a3', 0.18),
+      bespokePatterns.stageScuffs('#f7ecd2', 0.08),
     ],
   },
   'artificial-turf': {
-    baseColor: '#4f9273',
+    baseColor: '#4c9472',
     layers: [
-      heroPatterns.floorTile('#e7ffd8', 0.075),
-      heroPatterns.pixelDots('#123f35', 0.075),
-      heroPatterns.texture('#e7ffd8', 0.14),
+      bespokePatterns.turfStripes('#d9f0c6', 0.08),
+      bespokePatterns.turfFibers('#194a3a', 0.26),
+      bespokePatterns.turfFibers('#eefbd8', 0.1),
     ],
   },
 }

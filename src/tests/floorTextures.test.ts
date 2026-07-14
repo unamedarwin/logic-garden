@@ -151,11 +151,27 @@ describe('floor textures', () => {
       const details = floorMaterialDetails(material)
       expect(texture.material).toBe(material)
       expect(texture.layers).toHaveLength(3)
-      expect(details.colors.length).toBeGreaterThanOrEqual(3)
       expect(details.motifs.length).toBeGreaterThan(0)
+      for (const motif of details.motifs) {
+        const palette = details.colorsByMotif[motif]
+        expect(palette.length).toBeGreaterThanOrEqual(3)
+        expect(new Set(palette).size).toBe(palette.length)
+      }
     }
     expect(floorMaterialDetails('stone').motifs).not.toContain('diamond')
     expect(floorMaterialDetails('stone').motifs).not.toContain('gem')
+  })
+
+  it('keeps semantic motifs on distinct color palettes', () => {
+    const flower = floorMaterialDetails('grass').colorsByMotif.flower
+    const shell = floorMaterialDetails('sand').colorsByMotif.shell
+    const music = floorMaterialDetails('stage').colorsByMotif.music
+
+    expect(
+      new Set([JSON.stringify(flower), JSON.stringify(shell), JSON.stringify(music)]).size,
+    ).toBe(3)
+    expect(flower).not.toEqual(shell)
+    expect(flower).not.toEqual(music)
   })
 
   it('makes seeded variants structurally different rather than changing only a label', () => {

@@ -88,7 +88,7 @@ const panel = (material: FloorMaterial, variant: number, offsetX: number) => {
       const motifRandom = new SeededRandom(seed(`${sampleSeed}:cell:${cell}`))
       const motif = motifRandom.pick(details.motifs)
       motifNames.push(motif)
-      const color = motifRandom.pick(details.colors)
+      const color = motifRandom.pick(details.colorsByMotif[motif])
       const column = cell % cellCount
       const row = Math.floor(cell / cellCount)
       const x = column * cellSize + (motifRandom.integer(22, 78) / 100) * cellSize

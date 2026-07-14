@@ -1,25 +1,26 @@
 # Terrain sample review
 
-Review date: 2026-07-13. Each 744 x 312 PNG was inspected individually at original resolution, then
+Review date: 2026-07-14. Each 744 x 312 PNG was inspected individually at original resolution, then
 compared in `atlas.png`. The three panels intentionally keep the same seamless base material and
-vary seeded motif occupancy, position, icon, color, scale, and rotation.
+vary seeded motif occupancy, position, icon, semantic motif color, scale, and rotation. Motif colors
+come from a fixed palette per element rather than from one shared material color list.
 
 | Material        | Individual review                                                                                                              | Result |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| Artificial turf | Compact geometric weave; colored circles, diamonds, and field-like waves separate all three variants without botanical leaves. | Pass   |
-| Carpet          | Soft woven checker; sparkles and flowing lines read as print rather than loose objects.                                        | Pass   |
-| Concrete        | Pale granular aggregate; warm and dark geometric marks distinguish it from metal and stone.                                    | Pass   |
-| Cork            | Warm irregular grain; circles and small geometric clusters replace the earlier inappropriate leaf pattern.                     | Pass   |
-| Grass           | The only broad botanical repeat; seeded leaves, flowers, and sprouts use visible garden accents.                               | Pass   |
-| Metal           | Cool diagonal plate hatch; bolts, discs, and hexagons reinforce a technical surface.                                           | Pass   |
-| Mosaic          | Light alternating tile structure; diamonds and sparkles remain legible without hiding labels.                                  | Pass   |
-| Parquet         | Continuous wood-block direction; sparse colored grain waves vary clearly while preserving the material.                        | Pass   |
-| Rubber          | Dense resilient stud texture; circles, discs, and hexagons work for sport and rehearsal rooms.                                 | Pass   |
-| Sand            | Fine granular base; shells, ripples, and pebbles are visible and no longer inherit indoor crosses.                             | Pass   |
-| Soil            | Warm granular base; sprouts and earth-toned forms differ from cork and support garden rooms.                                   | Pass   |
-| Stage           | Dark performance parquet; music, waveform, and sparkle accents remain clearly thematic.                                        | Pass   |
-| Stone           | Alternating cut-paving hatch; circles, discs, and hexagonal paving marks avoid jewel imagery.                                  | Pass   |
-| Water           | Cool bubble repeat; adjacent cells share one surface, with no internal stone edges and a continuous stone rim against land.    | Pass   |
+| Artificial turf | Alternating mow stripes and short fiber strokes read as synthetic sports grass rather than a generic green checker.            | Pass   |
+| Carpet          | Soft woven lines and directional nap feel textile without the old shared micro-grid becoming a second visible checker.         | Pass   |
+| Concrete        | Irregular aggregate, soft stains, and only a few hairline marks feel cast and matte rather than tiled.                         | Pass   |
+| Cork            | Angular, uneven flakes and small pores read as compressed cork instead of a recolored granular floor.                          | Pass   |
+| Grass           | Curved blade clusters and light highlights feel like trimmed lawn, while motifs stay readable as decorative accents.           | Pass   |
+| Metal           | Sparse brushed bands and offset rivets read as engineered plating without competing with the board interaction layer.          | Pass   |
+| Mosaic          | Uneven ceramic pieces with slight rotations and glaze marks read as hand-laid tilework instead of a checker pattern.           | Pass   |
+| Parquet         | Offset board joints and visible wood grain feel warm and less mechanically basket-woven across adjacent cells.                 | Pass   |
+| Rubber          | Raised round studs and restrained diagonal grip marks read as dark, matte gym flooring, distinct from metal.                   | Pass   |
+| Sand            | Broad dune ripples with fine grains feel natural and airy while still leaving enough calm space for scene objects.             | Pass   |
+| Soil            | A deeper earth base, irregular clumps, and pebble scatter separate planting beds from cork and sand at a glance.               | Pass   |
+| Stage           | Vertical stage boards and subtle scuff sheen feel like a used performance floor rather than a recolored parquet copy.          | Pass   |
+| Stone           | Warm offset slab joints and mineral speckles read as cut paving, clearly separated from cool cast concrete.                    | Pass   |
+| Water           | Long ripples, soft highlights, and faint bubbles read as one pond surface across adjacent cells, with no accidental tile look. | Pass   |
 
 All variants remain within the exact 25-75% decorated-cell rule. Decorative strokes occupy 30-46%
 of one cell and have no fill plate or shadow, while playable people and fixed objects use full-color

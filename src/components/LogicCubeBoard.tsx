@@ -13,8 +13,8 @@ import {
 import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import {
   BUILDING_COLUMNS,
-  BUILDING_DEPTH,
   BUILDING_ROWS,
+  buildingDepthForPositions,
   buildingFloorLabel,
   buildingFloorShortLabel,
   buildingSummary,
@@ -213,11 +213,14 @@ export const LogicCubeBoard = ({
   const requestedPosition = requestedCharacterId
     ? positions.find((position) => position.id === assignments[requestedCharacterId])
     : undefined
-  const [activeLayer, setActiveLayer] = useState(requestedPosition?.layer ?? 1)
+  const buildingDepth = buildingDepthForPositions(positions)
+  const [activeLayer, setActiveLayer] = useState(
+    Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1),
+  )
 
   useEffect(() => {
-    if (requestedPosition?.layer !== undefined) setActiveLayer(requestedPosition.layer)
-  }, [requestedPosition?.layer])
+    setActiveLayer(Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1))
+  }, [buildingDepth, puzzleSeed, requestedPosition?.layer])
 
   const visiblePositions = positions.filter((position) => position.layer === activeLayer)
   const placedPositions = Object.entries(assignments)
@@ -249,6 +252,7 @@ export const LogicCubeBoard = ({
   }
   const decorativeFurniture = (position: Position) => {
     if (!position.blocked || position.buildingKind === 'stairs') return undefined
+    if (position.obstacleEmoji) return position.obstacleEmoji
     const catalogs: Partial<Record<NonNullable<Position['buildingKind']>, readonly string[]>> =
       {
         home: ['🪑', '🛋️', '🪴', '🗄️', '📚', '🪞', '🧺', '🪟'],
@@ -309,7 +313,7 @@ export const LogicCubeBoard = ({
   const cubeStyle = {
     '--board-columns': BUILDING_COLUMNS,
     '--board-rows': BUILDING_ROWS,
-    '--building-depth': BUILDING_DEPTH,
+    '--building-depth': buildingDepth,
     width: zoom > 1 ? `${zoom * 100}%` : undefined,
     maxWidth: zoom > 1 ? 'none' : undefined,
   } as CSSProperties
@@ -349,7 +353,7 @@ export const LogicCubeBoard = ({
           : 0
     if (offset === 0) return
     event.preventDefault()
-    const nextLayer = Math.min(BUILDING_DEPTH - 1, Math.max(0, layer + offset))
+    const nextLayer = Math.min(buildingDepth - 1, Math.max(0, layer + offset))
     if (nextLayer === layer) return
     setActiveLayer(nextLayer)
     requestAnimationFrame(() => document.getElementById(`building-floor-${nextLayer}`)?.focus())
@@ -360,7 +364,7 @@ export const LogicCubeBoard = ({
       className={`logic-cube ${draggedCharacter ? 'game-board--dragging' : ''}`}
       style={cubeStyle}
       data-grid-size={BUILDING_COLUMNS}
-      data-grid-depth={BUILDING_DEPTH}
+      data-grid-depth={buildingDepth}
       aria-label={boardLabel}
     >
       <div className="logic-cube__heading">
@@ -369,7 +373,7 @@ export const LogicCubeBoard = ({
         </span>
         <div>
           <strong>{boardLabel}</strong>
-          <span>{buildingSummary(locale)}</span>
+          <span>{buildingSummary(locale, buildingDepth)}</span>
         </div>
       </div>
       <div className="logic-cube__elevator" role="group" aria-label={elevatorLabel}>
@@ -388,7 +392,7 @@ export const LogicCubeBoard = ({
           <ChevronDown aria-hidden="true" />
         </button>
         <div className="logic-cube__layers" role="tablist" aria-label={boardLabel}>
-          {Array.from({ length: BUILDING_DEPTH }, (_, layer) => layer).map((layer) => {
+          {Array.from({ length: buildingDepth }, (_, layer) => layer).map((layer) => {
             const active = activeLayer === layer
             const placedCount = placedPositions.filter(
               ({ position }) => position.layer === layer,
@@ -421,8 +425,8 @@ export const LogicCubeBoard = ({
           type="button"
           className="logic-cube__elevator-direction"
           aria-label={floorUpLabel}
-          disabled={activeLayer === BUILDING_DEPTH - 1}
-          onClick={() => setActiveLayer((layer) => Math.min(BUILDING_DEPTH - 1, layer + 1))}
+          disabled={activeLayer === buildingDepth - 1}
+          onClick={() => setActiveLayer((layer) => Math.min(buildingDepth - 1, layer + 1))}
         >
           <ChevronUp aria-hidden="true" />
         </button>

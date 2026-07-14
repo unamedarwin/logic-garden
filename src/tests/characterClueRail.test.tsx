@@ -54,4 +54,50 @@ describe('character clue rail', () => {
 
     expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: 'auto' })
   })
+
+  it('shows an exact location before a broader landmark clue for the same person', () => {
+    const basePuzzle = createPuzzle()
+    const puzzle = {
+      ...basePuzzle,
+      positions: basePuzzle.positions.map((position) =>
+        position.id === positionIds.p1
+          ? { ...position, blocked: true, obstacleEmoji: '🌳', obstacleLabel: 'arbre' }
+          : position,
+      ),
+      clues: [
+        {
+          id: 'a-landmark',
+          type: 'character-next-to-obstacle' as const,
+          characterId: characterIds.a,
+          obstaclePositionId: positionIds.p1,
+          phraseVariant: 0,
+        },
+        {
+          id: 'a-exact',
+          type: 'character-at-position' as const,
+          characterId: characterIds.a,
+          positionId: positionIds.p0,
+          phraseVariant: 0,
+        },
+      ],
+    }
+    const { container } = render(
+      <CharacterClueRail
+        puzzle={puzzle}
+        assignments={{}}
+        locale="ca"
+        selectedCharacterId={characterIds.a}
+        label="Amics"
+        emptyLabel="Sense pistes"
+        previousClueLabel="Pista anterior"
+        nextClueLabel="Pista següent"
+        onSelect={() => undefined}
+      />,
+    )
+
+    const clueCards = container.querySelectorAll('.character-clue-rail__clue')
+    expect(clueCards).toHaveLength(2)
+    expect(clueCards[0]).toHaveTextContent('l’espai «A»')
+    expect(clueCards[1]).toHaveTextContent('al costat de')
+  })
 })

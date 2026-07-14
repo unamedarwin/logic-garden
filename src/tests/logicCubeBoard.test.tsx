@@ -3,11 +3,16 @@ import { describe, expect, it, vi } from 'vitest'
 import { LogicCubeBoard } from '../components/LogicCubeBoard'
 import { buildingFloorLabel } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
-import { generatePuzzle } from '../generator/puzzleGenerator'
+import { generatePuzzle, generatePuzzleDirect } from '../generator/puzzleGenerator'
 
-describe('5x5x5 building board', () => {
-  it('shows one accessible 5x5 floor and lets the player switch floors', () => {
-    const puzzle = generatePuzzle('hard', 'cube-component', 'adults', 'cube')
+describe('variable-height 5x5 building board', () => {
+  it('shows one accessible 5x5 floor and all ten elevator stops', () => {
+    const puzzle = generatePuzzleDirect('hard', 'cube-component', 'adults', {
+      boardMode: 'logic-cube',
+      gridSize: 5,
+      depth: 10,
+      characterCount: 8,
+    })
     const first = puzzle.characters[0]!
     const { container } = render(
       <LogicCubeBoard
@@ -32,17 +37,22 @@ describe('5x5x5 building board', () => {
     )
 
     const floorTabs = screen.getAllByRole('tab')
-    expect(floorTabs).toHaveLength(5)
+    expect(floorTabs).toHaveLength(10)
     expect(floorTabs.map((tab) => tab.getAttribute('aria-label'))).toEqual([
       'Planta baixa',
       'Primer pis',
       'Segon pis',
       'Tercer pis',
       'Quart pis',
+      'Cinquè pis',
+      'Sisè pis',
+      'Setè pis',
+      'Vuitè pis',
+      'Novè pis',
     ])
     expect(screen.getAllByRole('gridcell')).toHaveLength(25)
-    expect(container.querySelector('[data-grid-depth="5"]')).toBeInTheDocument()
-    expect(screen.getByText('16 llars + 2 botigues')).toBeInTheDocument()
+    expect(container.querySelector('[data-grid-depth="10"]')).toBeInTheDocument()
+    expect(screen.getByText('36 llars + 2 botigues')).toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Ascensor' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Puja un pis' })).toBeEnabled()
     expect(container.querySelectorAll('.logic-cube__door')).toHaveLength(4)
@@ -74,7 +84,7 @@ describe('5x5x5 building board', () => {
       'aria-selected',
       'true',
     )
-  })
+  }, 15_000)
 
   it('crosses the horizontal, vertical, and depth lines after a placement', () => {
     const puzzle = generatePuzzle('hard', 'cube-three-axes', 'teens', 'cube')

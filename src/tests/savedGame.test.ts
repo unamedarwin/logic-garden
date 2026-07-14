@@ -125,4 +125,24 @@ describe('saved game compatibility', () => {
 
     await expect(loadSavedGame()).resolves.toEqual({ state: wrongState })
   })
+
+  it('rejects a building whose stored cell geometry was altered', async () => {
+    const puzzle = generatePuzzle('hard', 'saved-building-geometry', 'adults', 'cube')
+    const corruptedState = {
+      ...createGameState(puzzle),
+      puzzle: {
+        ...puzzle,
+        positions: puzzle.positions.map((position, index) =>
+          index === 0 ? { ...position, row: 1 } : position,
+        ),
+      },
+    }
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state: corruptedState,
+    })
+
+    await expect(loadSavedGame()).resolves.toBeNull()
+  })
 })

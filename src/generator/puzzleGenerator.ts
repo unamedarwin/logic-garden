@@ -9,6 +9,7 @@ import {
   type Seed,
 } from '../domain/types'
 import { advancedPuzzleTemplates } from '../assets/generated/puzzleTemplateData'
+import { BUILDING_DEPTHS } from '../domain/buildingPlan'
 import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
 import { analyzeSolutions } from '../solver/solver'
 import { selectMinimalUniqueClues } from './clueReducer'
@@ -251,10 +252,11 @@ export const generatePuzzle = (
   }
 
   if (variant === 'cube') {
+    const buildingDepth = new SeededRandom(deriveSeed(puzzleSeed, 97)).pick(BUILDING_DEPTHS)
     return generatePuzzleDirect('hard', source, audience, {
       boardMode: 'logic-cube',
       gridSize: 5,
-      depth: 5,
+      depth: buildingDepth,
       characterCount: 8,
     })
   }
@@ -318,7 +320,20 @@ const advancedTemplateCandidates = (
   )
   if (templates.length === 0) return []
   const selector = new SeededRandom(deriveSeed(puzzleSeed, 97))
-  if (variant === 'cube') return selector.shuffle(templates)
+  if (variant === 'cube') {
+    const availableDepths = BUILDING_DEPTHS.filter((depth) =>
+      templates.some(
+        (template) => template.boardMode === 'logic-cube' && template.depth === depth,
+      ),
+    )
+    if (availableDepths.length === 0) return []
+    const selectedDepth = selector.pick(availableDepths)
+    return selector.shuffle(
+      templates.filter(
+        (template) => template.boardMode === 'logic-cube' && template.depth === selectedDepth,
+      ),
+    )
+  }
   const availableSizes = advancedGridSizes.filter((gridSize) =>
     templates.some((template) => template.gridSize === gridSize),
   )

@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { renderClue, renderClueParts } from '../domain/vocabulary'
+import {
+  auditClueTemplatePlaceholders,
+  renderClue,
+  renderClueParts,
+} from '../domain/vocabulary'
 import type { Clue } from '../domain/types'
+import { supportedLocales } from '../domain/i18n'
 import { characterIds, createPuzzle, positionIds } from './fixtures'
 
 describe('local clue templates', () => {
+  it('preserves every logical placeholder in every locale and clue family', () => {
+    expect(auditClueTemplatePlaceholders()).toEqual([])
+  })
+
   it('renders the same structured clue in every supported language', () => {
     const clue: Clue = {
       id: 'simple',
@@ -13,9 +22,9 @@ describe('local clue templates', () => {
       positionId: positionIds.p0,
     }
     const puzzle = createPuzzle([clue])
-    expect(renderClue(puzzle, clue, 'ca')).toContain('Aina')
-    expect(renderClue(puzzle, clue, 'es')).toContain('Aina')
-    expect(renderClue(puzzle, clue, 'en')).toContain('Aina')
+    for (const locale of supportedLocales) {
+      expect(renderClue(puzzle, clue, locale)).toContain('Aina')
+    }
   })
 
   it('gives child clues a warm action without losing their structured item token', () => {
@@ -33,9 +42,11 @@ describe('local clue templates', () => {
       en: /arrived|smile/u,
     } as const
 
-    for (const locale of ['ca', 'es', 'en'] as const) {
+    for (const locale of supportedLocales) {
       const sentence = renderClue(puzzle, clue, locale)
-      expect(sentence).toMatch(expectedActions[locale])
+      if (locale === 'ca' || locale === 'es' || locale === 'en') {
+        expect(sentence).toMatch(expectedActions[locale])
+      }
       expect(
         renderClueParts(puzzle, clue, locale).find((part) => part.type === 'icon'),
       ).toMatchObject({
@@ -72,10 +83,83 @@ describe('local clue templates', () => {
     }
     const puzzle = createPuzzle([clue])
 
-    for (const locale of ['ca', 'es', 'en'] as const) {
+    for (const locale of supportedLocales) {
       const sentence = renderClue(puzzle, clue, locale)
       expect(sentence).toContain('Aina')
       expect(sentence).not.toMatch(/\d+[.,:]\d+/u)
     }
+  })
+
+  it('applies French elision before dynamic names that start with a vowel', () => {
+    const basePuzzle = createPuzzle()
+    const vowelPuzzle = {
+      ...basePuzzle,
+      characters: basePuzzle.characters.map((character, index) => ({
+        ...character,
+        name: index === 0 ? 'Aina' : index === 1 ? 'Estel' : character.name,
+      })),
+    }
+    const mapClues: readonly Clue[] = [
+      {
+        id: 'near-vowel',
+        type: 'adjacent',
+        phraseVariant: 1,
+        firstCharacterId: characterIds.a,
+        secondCharacterId: characterIds.b,
+      },
+      {
+        id: 'left-vowel',
+        type: 'left-of',
+        phraseVariant: 1,
+        firstCharacterId: characterIds.a,
+        secondCharacterId: characterIds.b,
+      },
+    ]
+    const cubePuzzle = {
+      ...vowelPuzzle,
+      boardMode: 'logic-cube' as const,
+      positions: vowelPuzzle.positions.map((position, index) => ({
+        ...position,
+        buildingUnitId: index < 2 ? 'home-a' : 'home-b',
+        buildingKind: 'home' as const,
+        layer: 1,
+      })),
+    }
+    const cubeClues: readonly Clue[] = [
+      {
+        id: 'home-vowel',
+        type: 'character-in-place',
+        phraseVariant: 0,
+        characterId: characterIds.a,
+        placeId: cubePuzzle.positions[0]!.placeId,
+      },
+      {
+        id: 'corner-vowel',
+        type: 'in-corner',
+        phraseVariant: 0,
+        characterId: characterIds.a,
+      },
+      {
+        id: 'doors-vowel',
+        type: 'not-adjacent',
+        phraseVariant: 0,
+        firstCharacterId: characterIds.a,
+        secondCharacterId: characterIds.b,
+      },
+      {
+        id: 'above-vowel',
+        type: 'above',
+        phraseVariant: 0,
+        firstCharacterId: characterIds.a,
+        secondCharacterId: characterIds.b,
+      },
+    ]
+
+    const rendered = [
+      ...mapClues.map((clue) => renderClue(vowelPuzzle, clue, 'fr')),
+      ...cubeClues.map((clue) => renderClue(cubePuzzle, clue, 'fr')),
+    ]
+    expect(rendered.join(' ')).not.toMatch(/\bde (?:Aina|Estel)\b/u)
+    expect(rendered.join(' ')).toMatch(/d’(?:Aina|Estel)/u)
   })
 })

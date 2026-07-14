@@ -34,9 +34,10 @@ size so uneven bucket counts cannot couple board size back to difficulty.
 Board size and difficulty are independent. Grade advanced difficulty through the number of
 candidate cells around visible landmarks and the deduction chain, not by assigning one grid size
 to each difficulty.
-Keep the structural catalog split at 950 spatial entries and 50 hard `5 x 5 x 5` building entries,
-with 25 building entries for teens and 25 for adults. The building subset must use generator
-version 14 or later and remain answer-free under the same canonical-identity rules.
+Keep the structural catalog split at 950 spatial entries and 50 hard building entries covering
+every height from `5 x 5 x 3` through `5 x 5 x 10`, with 25 building entries for teens and 25 for
+adults. Choose height uniformly before choosing a template so uneven per-height quotas cannot bias
+selection. The building subset must remain answer-free under the same canonical-identity rules.
 
 ## TypeScript
 
@@ -46,8 +47,8 @@ immutable transformations, and exhaustive checks.
 ## Localisation
 
 Keep all player-facing wording in local template dictionaries. Sentences must be short,
-simple, and derived from structured clues so they can be reused in Catalan, Spanish, and
-English without changing puzzle logic. Run the multilingual spell checker after wording
+simple, and derived from structured clues so they can be reused in every supported language
+without changing puzzle logic. Run the multilingual checks after wording
 changes and add only intentional domain terms to its project dictionary.
 Reducer, validation, and solver feedback must remain structured data and be localized only by the
 interface; never persist a rendered feedback sentence in game state.
@@ -103,6 +104,8 @@ of fixed objects must remain place-specific, and pond objects never use the fall
 Clue sentences must retain icon placeholders as structured tokens. Render those tokens through the
 same local `SceneIcon` SVG key used by the matching board object; never interpolate a system emoji
 string into otherwise SVG-rendered scene copy.
+Exact building clues must resolve their landmark from the blocked cell's stored object label and
+icon. Never reuse the home or shop name as a missing-object fallback.
 Advanced room floors use local square seamless SVG materials plus a seeded decorative motif layer.
 Decorate an exact seeded 25-75% of each room's unblocked cells, keep every motif behind interaction
 and clue artwork, and reproduce the same material composition from the same puzzle seed. Keep the
@@ -155,10 +158,11 @@ Every spatial position must inherit its `placeId` from the room polygon that con
 Anchor solutions must sit beside a visible obstacle so exact localized clues can use room,
 obstacle, and direction wording without exposing routes, rows, columns, steps, or distances.
 
-The advanced building board contains five `5 x 5` floor slices, 125 visual cells, 56 playable
-home cells, 10 playable shop cells, and eight people across 16 semantic homes and two shops. Every
-generated solution uses two ground-floor shopkeepers and six residents across all four residential
-floors. Entrance cells, landings, stairs, and 30 curated room-fixture cells are blocked scenery.
+The advanced building board contains 3 to 10 `5 x 5` floor slices. For depth `d`, it has `25d`
+visual cells, `14(d-1)` playable home cells, 10 playable shop cells, and eight people across
+`4(d-1)` semantic homes and two shops. Every generated solution uses two ground-floor shopkeepers
+and six residents across at most five residential floors; tall buildings must retain unoccupied
+floors. Entrance cells, landings, stairs, and `6d` curated room-fixture cells are blocked scenery.
 Every blocked home or shop cell must show a visible object; every visually empty home or shop cell
 must remain a genuine solver, reducer, and DOM candidate even when it is not part of the final
 solution. Placed people conflict across the
@@ -166,9 +170,9 @@ complete row and column of their current floor. A height conflict at the same ro
 only the immediately adjacent floor above and below, so adding more floors does not create an
 unbounded full-height exclusion.
 Render each floor as semantic DOM controls and use a keyboard-accessible, non-wrapping elevator to
-switch among all five floors without changing placements or timer state. Keep the elevator outside
-the active-floor frame, order its floor buttons from ground floor to fourth floor, and let the fitted
-`5 x 5` plan use the available mobile width.
+switch among all floors without changing placements or timer state. Keep the elevator outside the
+active-floor frame, order its floor buttons from ground floor to the selected height's top floor,
+and let the fitted `5 x 5` plan use the available mobile width.
 Corner clues are secondary variety and must retain the same positive social wording rule as other
 advanced spatial clues.
 Render doors as non-interactive wall fixtures centered on the boundary between two cells. A door
@@ -195,8 +199,10 @@ than localized titles in new history records so history follows the active langu
 ## Delivery
 
 GitHub Pages serves this app below `/logic-garden/`. Keep Vite's base path, the PWA manifest
-scope, internal navigation, and shared URLs aligned with that path. Share payloads are URL-safe
-Base64 under the `p` query parameter and must be validated before use. Deploy only the compiled
+scope, internal navigation, and shared URLs aligned with that path. New share payloads are JSON
+compressed with GZIP and encoded as URL-safe Base64 under the `p` query parameter. Validate the
+encoded and declared decompressed sizes before use, while retaining safe legacy Base64 parsing.
+Deploy only the compiled
 `dist` directory with `.github/workflows/deploy-pages.yml`; never publish source files as the
 site artifact.
 Use automatic service-worker activation and client claiming. Check for an update when the app
@@ -214,7 +220,8 @@ mode, broken zoom/pan restoration, and touch targets obscured by artwork before 
 During drag QA, compare the pixel center of every fixed object and placed avatar with its semantic
 cell, and verify that every valid destination has the same visible overlay while invalid and
 blocked cells remain clearly distinct.
-Also inspect every floor of the `5 x 5 x 5` building at 390x844. Verify centered wall doors, floor
+Also inspect every floor of representative 3-, 6-, and 10-floor `5 x 5` buildings at 390x844.
+Verify centered wall doors, floor
 switching, 25 cells per slice, exact avatar/drop-preview centers, and crossed destinations on the
 horizontal and vertical axes plus the neighboring-floor height axis, without unintended fit-mode
 panning. A non-adjacent floor at the same row and column must remain available. Verify that seeded

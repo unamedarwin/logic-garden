@@ -5,6 +5,7 @@ import {
   type Locale,
   type PuzzleCollection,
 } from '../domain/types'
+import { detectBrowserLocale, isLocale } from '../domain/locales'
 
 const key = 'logic-garden:preferences:v1'
 const legacyProfileKey = 'logic-garden:profile:v1'
@@ -37,11 +38,16 @@ const legacyAudience = (profile: unknown) =>
     ? (profile as Record<string, unknown>).audience
     : undefined
 
-const migratePreferences = (stored: unknown, legacyProfile: unknown): Preferences => {
+const migratePreferences = (
+  stored: unknown,
+  legacyProfile: unknown,
+  initialLocale: Locale,
+): Preferences => {
   const profileAudience = legacyAudience(legacyProfile)
   if (!stored || typeof stored !== 'object') {
     return {
       ...defaultPreferences,
+      locale: initialLocale,
       collection:
         isAudience(profileAudience) && profileAudience !== 'children'
           ? 'two-dimensional'
@@ -55,7 +61,7 @@ const migratePreferences = (stored: unknown, legacyProfile: unknown): Preference
     candidate.schemaVersion !== 3 &&
     candidate.schemaVersion !== 4
   ) {
-    return defaultPreferences
+    return { ...defaultPreferences, locale: initialLocale }
   }
   const legacyCollection: PuzzleCollection =
     candidate.puzzleVariant === 'cube'
@@ -68,16 +74,20 @@ const migratePreferences = (stored: unknown, legacyProfile: unknown): Preference
     ...(candidate as Partial<Preferences>),
     schemaVersion: 4,
     collection: isCollection(candidate.collection) ? candidate.collection : legacyCollection,
+    locale: isLocale(candidate.locale) ? candidate.locale : initialLocale,
   }
 }
 
-export const loadPreferences = async (): Promise<Preferences> => {
+export const loadPreferences = async (
+  browserLanguages: readonly string[] = [],
+): Promise<Preferences> => {
+  const initialLocale = detectBrowserLocale(browserLanguages)
   try {
     const [stored, legacyProfile] = await Promise.all([
       get<unknown>(key),
       get<unknown>(legacyProfileKey),
     ])
-    const preferences = migratePreferences(stored, legacyProfile)
+    const preferences = migratePreferences(stored, legacyProfile, initialLocale)
     const storedPreferencesAreCurrent =
       stored !== null &&
       typeof stored === 'object' &&
@@ -91,7 +101,7 @@ export const loadPreferences = async (): Promise<Preferences> => {
     }
     return preferences
   } catch {
-    return defaultPreferences
+    return { ...defaultPreferences, locale: initialLocale }
   }
 }
 

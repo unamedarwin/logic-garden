@@ -2,7 +2,10 @@ import { formatCounter } from '../game/time'
 import type { Locale } from '../domain/types'
 import type { CompletedGame } from '../storage/statistics'
 import { themeCopy } from '../domain/i18n'
-import { FIVE_FLOOR_BUILDING_VERSION } from '../generator/version'
+import {
+  FIVE_FLOOR_BUILDING_VERSION,
+  VARIABLE_HEIGHT_BUILDING_VERSION,
+} from '../generator/version'
 
 interface CompletedGamesProps {
   readonly games?: readonly CompletedGame[]
@@ -20,6 +23,13 @@ const dateFormatter = (locale: Locale) =>
     hour: '2-digit',
     minute: '2-digit',
   })
+
+const buildingDimension = (game: CompletedGame) => {
+  if (game.buildingDepth) return `5×5×${game.buildingDepth}`
+  if (game.generatorVersion < FIVE_FLOOR_BUILDING_VERSION) return '5×5×3'
+  if (game.generatorVersion < VARIABLE_HEIGHT_BUILDING_VERSION) return '5×5×5'
+  return '3D'
+}
 
 export const CompletedGames = ({
   games = [],
@@ -48,10 +58,7 @@ export const CompletedGames = ({
             </div>
             <p>
               {game.puzzleVariant === 'cube' && (
-                <span className="completed-games__mode">
-                  {game.generatorVersion >= FIVE_FLOOR_BUILDING_VERSION ? '5×5×5' : '5×5×3'}{' '}
-                  ·{' '}
-                </span>
+                <span className="completed-games__mode">{buildingDimension(game)} · </span>
               )}
               {formatCounter(game.elapsedSeconds)} · {game.moves} {movesLabel}
             </p>
