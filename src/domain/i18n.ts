@@ -128,7 +128,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Mida del tauler',
     childMapSize: 'Mida del mapa',
     buildingSize: "Alçada de l'edifici",
-    automaticChildSize: 'El mapa infantil adapta la mida al nivell triat.',
+    automaticChildSize: 'El mapa il·lustrat adapta la mida al nivell triat.',
     automaticBuildingSize: 'Cada edifici pot tenir entre 3 i 10 plantes.',
     language: 'Idioma',
     close: 'Tancar',
@@ -215,7 +215,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Tamaño del tablero',
     childMapSize: 'Tamaño del mapa',
     buildingSize: 'Altura del edificio',
-    automaticChildSize: 'El mapa infantil adapta el tamaño al nivel elegido.',
+    automaticChildSize: 'El mapa ilustrado adapta el tamaño al nivel elegido.',
     automaticBuildingSize: 'Cada edificio puede tener entre 3 y 10 plantas.',
     language: 'Idioma',
     close: 'Cerrar',
@@ -302,7 +302,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Board size',
     childMapSize: 'Map size',
     buildingSize: 'Building height',
-    automaticChildSize: 'The children’s map adapts its size to the chosen level.',
+    automaticChildSize: 'The illustrated map adapts its size to the chosen level.',
     automaticBuildingSize: 'Each building can have between 3 and 10 floors.',
     language: 'Language',
     close: 'Close',
@@ -389,7 +389,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Taularen tamaina',
     childMapSize: 'Maparen tamaina',
     buildingSize: 'Eraikinaren altuera',
-    automaticChildSize: 'Haurrentzako mapak aukeratutako mailara egokitzen du tamaina.',
+    automaticChildSize: 'Mapa irudidunak aukeratutako mailara egokitzen du tamaina.',
     automaticBuildingSize: 'Eraikin bakoitzak 3 eta 10 solairu artean izan ditzake.',
     language: 'Hizkuntza',
     close: 'Itxi',
@@ -476,7 +476,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Tamaño do taboleiro',
     childMapSize: 'Tamaño do mapa',
     buildingSize: 'Altura do edificio',
-    automaticChildSize: 'O mapa infantil adapta o tamaño ao nivel elixido.',
+    automaticChildSize: 'O mapa ilustrado adapta o tamaño ao nivel elixido.',
     automaticBuildingSize: 'Cada edificio pode ter entre 3 e 10 plantas.',
     language: 'Idioma',
     close: 'Pechar',
@@ -563,7 +563,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Taille du plateau',
     childMapSize: 'Taille de la carte',
     buildingSize: "Hauteur de l'immeuble",
-    automaticChildSize: 'La carte enfant adapte sa taille au niveau choisi.',
+    automaticChildSize: 'La carte illustrée adapte sa taille au niveau choisi.',
     automaticBuildingSize: 'Chaque immeuble peut avoir de 3 à 10 étages.',
     language: 'Langue',
     close: 'Fermer',
@@ -653,7 +653,7 @@ const ui: Record<Locale, Record<UiKey, string>> = {
     boardSize: 'Spielfeldgröße',
     childMapSize: 'Kartengröße',
     buildingSize: 'Gebäudehöhe',
-    automaticChildSize: 'Die Kinderkarte passt ihre Größe an die gewählte Stufe an.',
+    automaticChildSize: 'Die illustrierte Karte passt ihre Größe an die gewählte Stufe an.',
     automaticBuildingSize: 'Jedes Gebäude kann 3 bis 10 Etagen haben.',
     language: 'Sprache',
     close: 'Schließen',
@@ -1249,8 +1249,8 @@ const collectionCopy: Record<
 > = {
   ca: {
     children: {
-      label: 'Infantil',
-      description: 'Mapes amables per començar',
+      label: 'Aventures il·lustrades',
+      description: 'Petits misteris amables',
       detail: '2×2, 2×3 i 2×4',
       eyebrow: 'Aventures dibuixades',
       title: 'Descobreix on va cada amic.',
@@ -1264,16 +1264,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Puzzles 3D',
-      description: 'Botigues, veïns i edificis de diferents alçades',
-      detail: 'Edifici de 3 a 10 plantes',
+      description: 'Un pis cada vegada, amb pistes guiades',
+      detail: 'Comença amb 3 plantes; arriba fins a 10',
       eyebrow: 'Deducció en alçada',
       title: 'Resol tot un edifici, pis a pis.',
     },
   },
   es: {
     children: {
-      label: 'Infantil',
-      description: 'Mapas amables para empezar',
+      label: 'Aventuras ilustradas',
+      description: 'Pequeños misterios amables',
       detail: '2×2, 2×3 y 2×4',
       eyebrow: 'Aventuras ilustradas',
       title: 'Descubre dónde va cada amigo.',
@@ -1287,16 +1287,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Puzles 3D',
-      description: 'Tiendas, vecinos y edificios de distintas alturas',
-      detail: 'Edificio de 3 a 10 plantas',
+      description: 'Una planta cada vez, con pistas guiadas',
+      detail: 'Empieza con 3 plantas; llega hasta 10',
       eyebrow: 'Deducción en altura',
       title: 'Resuelve todo un edificio, planta a planta.',
     },
   },
   en: {
     children: {
-      label: 'Children',
-      description: 'Friendly maps for getting started',
+      label: 'Illustrated adventures',
+      description: 'Small, friendly mysteries',
       detail: '2×2, 2×3, and 2×4',
       eyebrow: 'Illustrated adventures',
       title: 'Discover where every friend belongs.',
@@ -1310,16 +1310,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: '3D puzzles',
-      description: 'Shops, neighbors, and buildings of different heights',
-      detail: '3–10-floor building',
+      description: 'One floor at a time, with guided clues',
+      detail: 'Start with 3 floors; build up to 10',
       eyebrow: 'Deduction with height',
       title: 'Solve a whole building, floor by floor.',
     },
   },
   eu: {
     children: {
-      label: 'Haurrak',
-      description: 'Hasteko mapa atseginak',
+      label: 'Abentura irudidunak',
+      description: 'Misterio labur eta atseginak',
       detail: '2×2, 2×3 eta 2×4',
       eyebrow: 'Marraztutako abenturak',
       title: 'Aurkitu lagun bakoitzaren lekua.',
@@ -1333,16 +1333,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: '3D puzzleak',
-      description: 'Dendak, bizilagunak eta altuera desberdineko eraikinak',
-      detail: '3-10 solairuko eraikina',
+      description: 'Solairu bat aldiro, pista gidatuekin',
+      detail: 'Hasi 3 solairurekin; iritsi 10era',
       eyebrow: 'Altuerako dedukzioa',
       title: 'Ebatzi eraikin osoa, solairuz solairu.',
     },
   },
   gl: {
     children: {
-      label: 'Infantil',
-      description: 'Mapas amables para comezar',
+      label: 'Aventuras ilustradas',
+      description: 'Pequenos misterios amables',
       detail: '2×2, 2×3 e 2×4',
       eyebrow: 'Aventuras ilustradas',
       title: 'Descubre onde vai cada amigo.',
@@ -1356,16 +1356,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Quebracabezas 3D',
-      description: 'Tendas, veciños e edificios de distintas alturas',
-      detail: 'Edificio de 3 a 10 plantas',
+      description: 'Un andar cada vez, con pistas guiadas',
+      detail: 'Comeza con 3 plantas; chega ata 10',
       eyebrow: 'Dedución en altura',
       title: 'Resolve un edificio enteiro, andar por andar.',
     },
   },
   fr: {
     children: {
-      label: 'Enfants',
-      description: 'Des cartes accueillantes pour commencer',
+      label: 'Aventures illustrées',
+      description: 'De petits mystères bienveillants',
       detail: '2×2, 2×3 et 2×4',
       eyebrow: 'Aventures illustrées',
       title: 'Découvre la place de chaque ami.',
@@ -1379,16 +1379,16 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: 'Puzzles 3D',
-      description: 'Boutiques, voisins et immeubles de différentes hauteurs',
-      detail: 'Immeuble de 3 à 10 niveaux',
+      description: 'Un étage à la fois, avec des indices guidés',
+      detail: 'Commence avec 3 étages; progresse jusqu’à 10',
       eyebrow: 'Déduction en hauteur',
       title: 'Résous tout un immeuble, étage par étage.',
     },
   },
   de: {
     children: {
-      label: 'Kinder',
-      description: 'Freundliche Karten für den Einstieg',
+      label: 'Illustrierte Abenteuer',
+      description: 'Kleine, freundliche Rätsel',
       detail: '2×2, 2×3 und 2×4',
       eyebrow: 'Illustrierte Abenteuer',
       title: 'Finde heraus, wo jeder Freund hingehört.',
@@ -1402,8 +1402,8 @@ const collectionCopy: Record<
     },
     'three-dimensional': {
       label: '3D-Rätsel',
-      description: 'Geschäfte, Nachbarn und Gebäude unterschiedlicher Höhe',
-      detail: 'Gebäude mit 3 bis 10 Etagen',
+      description: 'Etage für Etage, mit klaren Hinweisen',
+      detail: 'Starte mit 3 Etagen; steigere dich bis 10',
       eyebrow: 'Logik über mehrere Stockwerke',
       title: 'Löse ein ganzes Gebäude, Stockwerk für Stockwerk.',
     },
@@ -1542,45 +1542,284 @@ const titles: Record<Locale, Record<ThemeId, string>> = {
   },
 }
 
-export const themeCopy = (locale: Locale, themeId: ThemeId) => {
-  const title = titles[locale][themeId]
-  const messages: Record<Locale, { introduction: string; objective: string; victory: string }> =
+interface IllustratedStoryCopy {
+  readonly introduction: string
+  readonly objective: string
+  readonly victory: string
+}
+
+const illustratedThemeIds = new Set<ThemeId>([
+  'forest-party',
+  'treasure-island',
+  'kind-magic-school',
+  'space-trip',
+  'fun-farm',
+  'sea-garden',
+  'dino-park',
+  'friendly-monster-town',
+  'color-fair',
+  'mountain-trip',
+])
+
+const illustratedStories: Record<
+  Locale,
+  readonly [IllustratedStoryCopy, ...IllustratedStoryCopy[]]
+> = {
+  ca: [
     {
-      ca: {
-        introduction: `A l’aventura «${title}», cada amic té un lloc per descobrir.`,
-        objective: 'Llegeix les pistes i troba el lloc de cada amic.',
-        victory: 'Molt bé! Tots els amics han trobat el seu lloc.',
-      },
-      es: {
-        introduction: `En ${title}, cada amigo tiene un lugar por descubrir.`,
-        objective: 'Lee las pistas y encuentra el lugar de cada amigo.',
-        victory: '¡Muy bien! Todos los amigos han encontrado su lugar.',
-      },
-      en: {
-        introduction: `In ${title}, every friend has a place to discover.`,
-        objective: 'Read the clues and find a place for every friend.',
-        victory: 'Well done! Every friend has found a place.',
-      },
-      eu: {
-        introduction: `«${title}» abenturan, lagun bakoitzak aurkitzeko leku bat du.`,
-        objective: 'Irakurri pistak eta aurkitu lagun bakoitzaren lekua.',
-        victory: 'Oso ondo! Lagun guztiek aurkitu dute beren lekua.',
-      },
-      gl: {
-        introduction: `Na aventura «${title}», cada amigo ten un lugar por descubrir.`,
-        objective: 'Le as pistas e atopa o lugar de cada amigo.',
-        victory: 'Moi ben! Todos os amigos atoparon o seu lugar.',
-      },
-      fr: {
-        introduction: `Dans l’aventure « ${title} », chaque ami a une place à découvrir.`,
-        objective: 'Lis les indices et trouve la place de chaque ami.',
-        victory: 'Bravo ! Tous les amis ont trouvé leur place.',
-      },
-      de: {
-        introduction: `Im Abenteuer „${title}“ hat jeder Freund einen Platz, den du entdecken kannst.`,
-        objective: 'Lies die Hinweise und finde den Platz jedes Freundes.',
-        victory: 'Gut gemacht! Alle Freunde haben ihren Platz gefunden.',
-      },
+      introduction:
+        'A «{title}», {hero} ha trobat el mapa desordenat. Cada amic recorda una part del misteri.',
+      objective: 'Escolta què recorda cadascú i reconstrueix el misteri.',
+      victory: 'Misteri resolt! Cada amic ha retrobat el seu lloc.',
+    },
+    {
+      introduction:
+        'A «{title}», {hero} ha trobat les targetes dels llocs barrejades. Els amics en guarden les pistes.',
+      objective: 'Uneix les petites històries i resol el misteri de cada lloc.',
+      victory: 'Ho has descobert! El mapa torna a explicar tota la història.',
+    },
+    {
+      introduction:
+        'A «{title}», {hero} ha descobert que falta una pàgina del mapa. Cada amic en recorda un tros.',
+      objective: 'Llegeix cada record i completa el petit misteri.',
+      victory: 'Misteri resolt! Tots els records encaixen.',
+    },
+  ],
+  es: [
+    {
+      introduction:
+        'En «{title}», {hero} ha encontrado el mapa desordenado. Cada amigo recuerda una parte del misterio.',
+      objective: 'Escucha lo que recuerda cada uno y reconstruye el misterio.',
+      victory: '¡Misterio resuelto! Cada amigo ha recuperado su lugar.',
+    },
+    {
+      introduction:
+        'En «{title}», {hero} ha encontrado mezcladas las tarjetas de los lugares. Los amigos guardan las pistas.',
+      objective: 'Une las pequeñas historias y resuelve el misterio de cada lugar.',
+      victory: '¡Lo has descubierto! El mapa vuelve a contar toda la historia.',
+    },
+    {
+      introduction:
+        'En «{title}», {hero} ha descubierto que falta una página del mapa. Cada amigo recuerda un fragmento.',
+      objective: 'Lee cada recuerdo y completa el pequeño misterio.',
+      victory: '¡Misterio resuelto! Todos los recuerdos encajan.',
+    },
+  ],
+  en: [
+    {
+      introduction:
+        'In “{title},” {hero} found the map out of order. Each friend remembers part of the mystery.',
+      objective: 'Listen to each memory and rebuild the mystery.',
+      victory: 'Mystery solved! Every friend has found their place again.',
+    },
+    {
+      introduction:
+        'In “{title},” {hero} found the place cards mixed up. The friends are keeping the clues.',
+      objective: 'Join the little stories and solve each place’s mystery.',
+      victory: 'You found it! The map tells the whole story again.',
+    },
+    {
+      introduction:
+        'In “{title},” {hero} discovered a missing map page. Each friend remembers a piece.',
+      objective: 'Read each memory and complete the little mystery.',
+      victory: 'Mystery solved! Every memory fits.',
+    },
+  ],
+  eu: [
+    {
+      introduction:
+        '«{title}» abenturan, mapa nahasia aurkitu duen laguna {hero} da. Lagun bakoitzak misterioaren zati bat gogoratzen du.',
+      objective: 'Entzun lagun bakoitzaren oroitzapena eta argitu misterioa.',
+      victory: 'Misterioa argitu da! Lagun bakoitza bere lekuan dago berriro.',
+    },
+    {
+      introduction:
+        '«{title}» abenturan, leku-txartelak nahasita aurkitu dituen laguna {hero} da. Lagunek pistak dituzte.',
+      objective: 'Lotu istorio laburrak eta argitu leku bakoitzaren misterioa.',
+      victory: 'Asmatu duzu! Mapak istorio osoa erakusten du berriro.',
+    },
+    {
+      introduction:
+        '«{title}» abenturan, mapako orri bat falta dela ikusi duen laguna {hero} da. Lagun bakoitzak zati bat gogoratzen du.',
+      objective: 'Irakurri oroitzapen bakoitza eta argitu misterio txikia.',
+      victory: 'Misterioa argitu da! Oroitzapen guztiak bat datoz.',
+    },
+  ],
+  gl: [
+    {
+      introduction:
+        'Na aventura «{title}», {hero} atopou o mapa desordenado. Cada amigo lembra unha parte do misterio.',
+      objective: 'Escoita o que lembra cada un e reconstrúe o misterio.',
+      victory: 'Misterio resolto! Cada amigo recuperou o seu lugar.',
+    },
+    {
+      introduction:
+        'Na aventura «{title}», {hero} atopou mesturadas as tarxetas dos lugares. Os amigos gardan as pistas.',
+      objective: 'Une as pequenas historias e resolve o misterio de cada lugar.',
+      victory: 'Descubríchelo! O mapa volve contar toda a historia.',
+    },
+    {
+      introduction:
+        'Na aventura «{title}», {hero} descubriu que falta unha páxina do mapa. Cada amigo lembra un anaco.',
+      objective: 'Le cada lembranza e completa o pequeno misterio.',
+      victory: 'Misterio resolto! Todas as lembranzas encaixan.',
+    },
+  ],
+  fr: [
+    {
+      introduction:
+        'Dans « {title} », {hero} a trouvé la carte en désordre. Chaque ami en garde un morceau.',
+      objective: 'Écoute chaque souvenir et reconstitue le mystère.',
+      victory: 'Mystère résolu ! Chaque ami a retrouvé sa place.',
+    },
+    {
+      introduction:
+        'Dans « {title} », {hero} a trouvé les cartes des lieux mélangées. Les amis gardent les indices.',
+      objective: 'Relie les petites histoires et résous le mystère de chaque lieu.',
+      victory: 'Tu as trouvé ! La carte raconte à nouveau toute l’histoire.',
+    },
+    {
+      introduction:
+        'Dans « {title} », {hero} a découvert une page manquante. Chaque ami se souvient d’un morceau.',
+      objective: 'Lis chaque souvenir et complète le petit mystère.',
+      victory: 'Mystère résolu ! Tous les souvenirs s’accordent.',
+    },
+  ],
+  de: [
+    {
+      introduction:
+        'Im Abenteuer „{title}“ fand {hero} die Karte durcheinander. Jeder Freund erinnert sich an einen Teil des Rätsels.',
+      objective: 'Höre dir jede Erinnerung an und löse das Rätsel.',
+      victory: 'Rätsel gelöst! Jeder Freund hat seinen Platz wiedergefunden.',
+    },
+    {
+      introduction:
+        'Im Abenteuer „{title}“ fand {hero} die Ortskarten vertauscht vor. Die Freunde kennen die Hinweise.',
+      objective: 'Verbinde die kleinen Geschichten und löse das Rätsel jedes Ortes.',
+      victory: 'Du hast es herausgefunden! Die Karte erzählt wieder die ganze Geschichte.',
+    },
+    {
+      introduction:
+        'Im Abenteuer „{title}“ entdeckte {hero} eine fehlende Kartenseite. Jeder Freund erinnert sich an ein Stück.',
+      objective: 'Lies jede Erinnerung und löse das kleine Rätsel.',
+      victory: 'Rätsel gelöst! Alle Erinnerungen passen zusammen.',
+    },
+  ],
+}
+
+const illustratedCharacterPrompts: Record<Locale, readonly [string, ...string[]]> = {
+  ca: ['Què recorda {name}?', 'Una pista de {name}', '{name} sap una part del misteri'],
+  es: ['¿Qué recuerda {name}?', 'Una pista de {name}', '{name} conoce una parte del misterio'],
+  en: ['What does {name} remember?', 'A clue from {name}', '{name} knows part of the mystery'],
+  eu: [
+    'Zer gogoratzen du {name} izeneko lagunak?',
+    '{name} izeneko lagunaren pista bat',
+    '{name} izeneko lagunak misterioaren zati bat daki',
+  ],
+  gl: ['Que lembra {name}?', 'Unha pista de {name}', '{name} coñece unha parte do misterio'],
+  fr: [
+    'Que se rappelle {name} ?',
+    'Un indice de {name}',
+    '{name} connaît une partie du mystère',
+  ],
+  de: [
+    'Woran erinnert sich {name}?',
+    'Ein Hinweis von {name}',
+    '{name} kennt einen Teil des Rätsels',
+  ],
+}
+
+const illustratedGroupNames: Record<Locale, string> = {
+  ca: 'El grup',
+  es: 'El grupo',
+  en: 'The group',
+  eu: 'Taldea',
+  gl: 'O grupo',
+  fr: 'Le groupe',
+  de: 'Die Gruppe',
+}
+
+const deterministicCopyIndex = (source: string, length: number) => {
+  let value = 2_166_136_261
+  for (const character of source) {
+    value ^= character.codePointAt(0) ?? 0
+    value = Math.imul(value, 16_777_619)
+  }
+  return (value >>> 0) % length
+}
+
+const renderCopyTemplate = (template: string, values: Readonly<Record<string, string>>) =>
+  Object.entries(values).reduce(
+    (rendered, [key, value]) => rendered.replaceAll(`{${key}}`, value),
+    template,
+  )
+
+export const characterStoryPrompt = (locale: Locale, name: string, storySeed: string) => {
+  const prompts = illustratedCharacterPrompts[locale]
+  return renderCopyTemplate(
+    prompts[deterministicCopyIndex(`${storySeed}:${name}`, prompts.length)] ?? prompts[0],
+    { name },
+  )
+}
+
+export const themeCopy = (
+  locale: Locale,
+  themeId: ThemeId,
+  storySeed: string = themeId,
+  protagonist?: string,
+) => {
+  const title = titles[locale][themeId]
+  if (illustratedThemeIds.has(themeId)) {
+    const stories = illustratedStories[locale]
+    const story =
+      stories[deterministicCopyIndex(`${storySeed}:${themeId}`, stories.length)] ?? stories[0]
+    return {
+      title,
+      introduction: renderCopyTemplate(story.introduction, {
+        title,
+        hero: protagonist ?? illustratedGroupNames[locale],
+      }),
+      objective: story.objective,
+      victory: story.victory,
     }
+  }
+
+  const messages: Record<Locale, IllustratedStoryCopy> = {
+    ca: {
+      introduction: `A l’aventura «${title}», cada amic té un lloc per descobrir.`,
+      objective: 'Llegeix les pistes i troba el lloc de cada amic.',
+      victory: 'Molt bé! Tots els amics han trobat el seu lloc.',
+    },
+    es: {
+      introduction: `En ${title}, cada amigo tiene un lugar por descubrir.`,
+      objective: 'Lee las pistas y encuentra el lugar de cada amigo.',
+      victory: '¡Muy bien! Todos los amigos han encontrado su lugar.',
+    },
+    en: {
+      introduction: `In ${title}, every friend has a place to discover.`,
+      objective: 'Read the clues and find a place for every friend.',
+      victory: 'Well done! Every friend has found a place.',
+    },
+    eu: {
+      introduction: `«${title}» abenturan, lagun bakoitzak aurkitzeko leku bat du.`,
+      objective: 'Irakurri pistak eta aurkitu lagun bakoitzaren lekua.',
+      victory: 'Oso ondo! Lagun guztiek aurkitu dute beren lekua.',
+    },
+    gl: {
+      introduction: `Na aventura «${title}», cada amigo ten un lugar por descubrir.`,
+      objective: 'Le as pistas e atopa o lugar de cada amigo.',
+      victory: 'Moi ben! Todos os amigos atoparon o seu lugar.',
+    },
+    fr: {
+      introduction: `Dans l’aventure « ${title} », chaque ami a une place à découvrir.`,
+      objective: 'Lis les indices et trouve la place de chaque ami.',
+      victory: 'Bravo ! Tous les amis ont trouvé leur place.',
+    },
+    de: {
+      introduction: `Im Abenteuer „${title}“ hat jeder Freund einen Platz, den du entdecken kannst.`,
+      objective: 'Lies die Hinweise und finde den Platz jedes Freundes.',
+      victory: 'Gut gemacht! Alle Freunde haben ihren Platz gefunden.',
+    },
+  }
   return { title, ...messages[locale] }
 }

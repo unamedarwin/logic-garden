@@ -4,6 +4,10 @@ Logic Garden uses an evidence-based 100-point release score. A score is awarded 
 required evidence is reproducible for the same commit. Missing evidence scores zero; reviewers
 must not infer that an untested behavior works.
 
+This scorecard covers technical release quality. Editorial quality, perceived difficulty, and
+enjoyment use the independent [`content quality and enjoyment rubric`](content-quality-rubric.md).
+A high score here must never be presented as proof that the game is fun.
+
 ## Required evidence corpus
 
 - Logic: all 100 structural templates, every compatible theme application, and deterministic

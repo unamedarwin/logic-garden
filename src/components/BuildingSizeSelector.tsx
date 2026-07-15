@@ -10,6 +10,15 @@ interface BuildingSizeSelectorProps {
 }
 
 const sizes = [3, 4, 5, 6, 7, 8, 9, 10] as const
+const recommended: Record<Locale, string> = {
+  ca: 'recomanat',
+  es: 'recomendado',
+  en: 'recommended',
+  eu: 'gomendatua',
+  gl: 'recomendado',
+  fr: 'conseillé',
+  de: 'empfohlen',
+}
 const floorWord: Record<Locale, (size: BuildingSize) => string> = {
   ca: (size) => `${size} plantes`,
   es: (size) => `${size} plantas`,
@@ -38,6 +47,7 @@ export const BuildingSizeSelector = ({
           onChange={() => onChange(size)}
         />
         {floorWord[locale](size)}
+        {size === 3 ? ` · ${recommended[locale]}` : ''}
       </label>
     ))}
   </fieldset>

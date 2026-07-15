@@ -89,38 +89,38 @@ const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
 
 const buildingLabels: Record<Locale, Record<Difficulty, string>> = {
   ca: {
-    easy: 'Fàcil · 4 veïns guiats',
-    medium: 'Mitjà · 2 veïns guiats',
+    easy: 'Per començar · 6 veïns guiats',
+    medium: 'Repte mitjà · 3 veïns guiats',
     hard: 'Difícil · deducció completa',
   },
   es: {
-    easy: 'Fácil · 4 vecinos guiados',
-    medium: 'Medio · 2 vecinos guiados',
+    easy: 'Para empezar · 6 vecinos guiados',
+    medium: 'Reto medio · 3 vecinos guiados',
     hard: 'Difícil · deducción completa',
   },
   en: {
-    easy: 'Easy · 4 guided neighbours',
-    medium: 'Medium · 2 guided neighbours',
+    easy: 'Start here · 6 guided neighbours',
+    medium: 'Medium challenge · 3 guided neighbours',
     hard: 'Hard · full deduction',
   },
   eu: {
-    easy: 'Erraza · 4 bizilagun gidatuta',
-    medium: 'Ertaina · 2 bizilagun gidatuta',
+    easy: 'Hasteko · 6 bizilagun gidatuta',
+    medium: 'Erronka ertaina · 3 bizilagun gidatuta',
     hard: 'Zaila · dedukzio osoa',
   },
   gl: {
-    easy: 'Fácil · 4 veciños guiados',
-    medium: 'Media · 2 veciños guiados',
+    easy: 'Para comezar · 6 veciños guiados',
+    medium: 'Reto medio · 3 veciños guiados',
     hard: 'Difícil · dedución completa',
   },
   fr: {
-    easy: 'Facile · 4 voisins guidés',
-    medium: 'Moyen · 2 voisins guidés',
+    easy: 'Pour commencer · 6 voisins guidés',
+    medium: 'Défi moyen · 3 voisins guidés',
     hard: 'Difficile · déduction complète',
   },
   de: {
-    easy: 'Leicht · 4 geführte Nachbarn',
-    medium: 'Mittel · 2 geführte Nachbarn',
+    easy: 'Zum Einstieg · 6 geführte Nachbarn',
+    medium: 'Mittlere Stufe · 3 geführte Nachbarn',
     hard: 'Schwer · vollständige Logik',
   },
 }

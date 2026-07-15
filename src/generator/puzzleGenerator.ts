@@ -108,7 +108,7 @@ const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle =>
     ...existingPlaceCharacters,
   ])
   const random = new SeededRandom(deriveSeed(puzzle.seed, 313))
-  const directCharacterTarget = difficulty === 'easy' ? 4 : 2
+  const directCharacterTarget = difficulty === 'easy' ? 6 : 3
   const guidanceCount = Math.max(0, directCharacterTarget - directlyGuidedCharacters.size)
   const candidates: Array<{
     readonly character: Puzzle['characters'][number]
@@ -303,19 +303,32 @@ export const generatePuzzleDirect = (
                 ? Math.max(1, world.characters.length - 1)
                 : Math.max(1, Math.floor(world.characters.length / 3)),
             )
+      const childStoryCandidates =
+        world.boardMode === 'map'
+          ? orderedCandidates.filter(
+              (clue) =>
+                clue.type !== 'has-item' &&
+                clue.type !== 'does-not-have-item' &&
+                clue.type !== 'distance' &&
+                clue.type !== 'same-row' &&
+                clue.type !== 'different-row' &&
+                clue.type !== 'same-column' &&
+                clue.type !== 'different-column',
+            )
+          : orderedCandidates
       const childCandidateOrder =
         world.boardMode === 'map' && difficulty === 'hard'
           ? [
-              ...orderedCandidates.filter(
+              ...childStoryCandidates.filter(
                 (clue) =>
                   clue.type !== 'character-at-position' && clue.type !== 'character-in-place',
               ),
-              ...orderedCandidates.filter(
+              ...childStoryCandidates.filter(
                 (clue) =>
                   clue.type === 'character-at-position' || clue.type === 'character-in-place',
               ),
             ]
-          : orderedCandidates
+          : childStoryCandidates
       const childContextAnchors = (() => {
         if (world.boardMode !== 'map') return []
         const protectedClues: Puzzle['clues'][number][] = [...childAnchors]

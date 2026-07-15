@@ -56,6 +56,7 @@ import {
   t,
   themeCopy,
 } from './domain/i18n'
+import { buildChildNarrative } from './domain/childNarrative'
 import { buildingDepthForPositions } from './domain/buildingPlan'
 import { getTheme, themesForPuzzleCollection } from './domain/themes'
 import {
@@ -125,7 +126,7 @@ const HomeScene = ({ collection }: { readonly collection: PuzzleCollection }) =>
       <div className="home-hero__scene home-hero__scene--three-dimensional" aria-hidden="true">
         <span className="scene-building__roof" />
         <span className="scene-building">
-          {Array.from({ length: 8 }, (_, floor) => (
+          {Array.from({ length: 3 }, (_, floor) => (
             <i key={floor}>
               <span />
               <span />
@@ -800,7 +801,11 @@ export default function App() {
     )
   }
 
-  const copy = themeCopy(preferences.locale, game.puzzle.theme)
+  const childNarrative =
+    game.puzzle.boardMode === 'map'
+      ? buildChildNarrative(game.puzzle, preferences.locale)
+      : undefined
+  const copy = childNarrative ?? themeCopy(preferences.locale, game.puzzle.theme)
   const boardActions = boardActionCopy(preferences.locale)
   const boardTitle = t(
     preferences.locale,
@@ -1048,6 +1053,7 @@ export default function App() {
             </div>
             <CharacterClueRail
               puzzle={game.puzzle}
+              narrative={childNarrative}
               assignments={game.assignments}
               locale={preferences.locale}
               selectedCharacterId={game.selectedCharacterId}

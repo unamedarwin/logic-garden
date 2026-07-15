@@ -1,7 +1,8 @@
 # Logic Garden
 
-Logic Garden is an offline-first logic puzzle game with three public collections: Children,
-Puzzles 2D, and Puzzles 3D. Children place friendly characters on compact illustrated maps. The
+Logic Garden is an offline-first logic puzzle game with three public collections: Illustrated
+Adventures, Puzzles 2D, and Puzzles 3D. Illustrated Adventures place friendly characters on compact
+story maps. The
 2D collection uses irregular deduction plans, and the 3D collection uses a 3-to-10-floor building
 where placement affects the horizontal, vertical, and height axes. Every visible puzzle is
 generated locally, has exactly one solver-verified answer, and can be reproduced from its seed.
@@ -128,19 +129,25 @@ The first screen offers three direct play collections. No name, avatar, account,
 required. Language remains an independent local preference. Each collection has its own visual
 language and safe local themes:
 
-| Collection | Interaction            | Themes                                                      |
-| ---------- | ---------------------- | ----------------------------------------------------------- |
-| Children   | Illustrated map        | Forests, farms, trips, and gentle discoveries               |
-| Puzzles 2D | Spatial deduction plan | Music, sports, creative spaces, books, gardens, and markets |
-| Puzzles 3D | 3-to-10-floor building | Friendly neighbors, shared landings, homes, and local shops |
+| Collection             | Interaction            | Themes                                                      |
+| ---------------------- | ---------------------- | ----------------------------------------------------------- |
+| Illustrated Adventures | Illustrated story map  | Forests, farms, trips, and gentle mysteries                 |
+| Puzzles 2D             | Spatial deduction plan | Music, sports, creative spaces, books, gardens, and markets |
+| Puzzles 3D             | 3-to-10-floor building | Friendly neighbors, shared landings, homes, and local shops |
 
-Children choose 4, 6, or 8 friends independently from easy, medium, or hard deduction. Easy maps
+Illustrated Adventures choose 4, 6, or 8 friends independently from easy, medium, or hard
+deduction. Easy maps
 protect direct friendly clues for most friends, medium maps protect fewer direct clues, and hard
 maps prioritize relational deduction before direct placement clues. Seeded
 rectangular boards alternate their orientation, so a `2 x 3` board can also appear as `3 x 2`.
+Each seed also chooses one of three short local mystery arcs. The introduction names a protagonist,
+the selected-person rail asks what that person remembers, and every story fragment retains its
+source structured clue. Decorative item facts cannot be retained as substitute placement clues.
+The solved dialog closes the same mystery. See
+[`docs/illustrated-adventures.md`](docs/illustrated-adventures.md).
 Puzzles 3D similarly choose an exact height from 3 through 10 floors independently from their
-difficulty. Easy deterministically ensures direct home or landmark guidance for at least four
-people, medium ensures it for at least two, and hard keeps the complete structural deduction
+difficulty. Three floors is the recommended first game. Easy deterministically ensures direct home
+or landmark guidance for at least six people, medium ensures it for at least three, and hard keeps the complete structural deduction
 without extra guidance. Existing direct facts count toward those targets and are not repeated.
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
@@ -154,7 +161,7 @@ teen and adult content catalogs.
 Setup follows one compact decision per journey step: collection, size, difficulty, and adventure.
 The fourth step is a real horizontally scrollable theme picker; starting or resuming a game is
 available only after that choice.
-The size step offers 4/6/8 friends for Children, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and
+The size step offers 4/6/8 friends for Illustrated Adventures, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and
 3-10 floors for Puzzles 3D. In the 2D and 3D collections the player chooses size independently from
 easy, medium, or hard deduction. Easy templates keep landmark choices narrow, while harder
 templates allow broader candidate domains. Every `16 x 16` template uses eight people so the
@@ -182,6 +189,8 @@ Selecting a child shows only clues related to that child immediately below the r
 complete clue list remains available as secondary support instead of forcing repeated page travel.
 When a tall child map reaches the fixed mobile action rail, changing the selected child reveals the
 whole contextual clue automatically with a reserved visual gap instead of leaving copy underneath.
+The same exclusion check runs when the rail enters the viewport through manual scrolling or a
+mobile viewport resize, so the eight-friend map cannot leave its people or clue under the actions.
 The child clue reducer protects contextual coverage, so every playable child retains at least one
 related clue without requiring every clue to reveal an exact place.
 Checking a wrong proposal never moves or removes a piece and never rewrites undo/redo history. It
@@ -207,7 +216,7 @@ Every step and direction control is keyboard accessible and at least 44 pixels h
 
 ## Visual direction
 
-Children use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
+Illustrated Adventures use the illustrated field-guide direction: warm paper, garden colors, inked outlines,
 a playful title scene, and a map that stays visually dominant during play. Their playable friends
 use a curated, non-repeating set of child avatars; animals and objects remain scenery rather than
 character identities. Each child place is an independent illustrated room card with a
@@ -360,6 +369,13 @@ plus the two hard structural building audience buckets. Runtime 3D guidance deri
 variants from those unique structures without storing an answer.
 
 Planned product work is tracked in [`docs/product-backlog.md`](docs/product-backlog.md).
+The analyzed, not-yet-implemented whole-room 3D entry mode is documented in
+[`docs/room-based-building-proposal.md`](docs/room-based-building-proposal.md).
+
+Technical release evidence uses [`docs/quality-scorecard.md`](docs/quality-scorecard.md). Content,
+perceived difficulty, replay value, and observed enjoyment use the independent
+[`docs/content-quality-rubric.md`](docs/content-quality-rubric.md); the current scores and evidence
+limits are recorded in [`docs/quality-assessment.md`](docs/quality-assessment.md).
 
 To add a clue type, extend the `Clue` union, partial evaluator, candidate generator, all
 three template dictionaries, and solver tests. Update `GENERATOR_VERSION` when a change can

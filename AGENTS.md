@@ -10,6 +10,11 @@ The game must never include murder, death, weapons, violence, threats, punishmen
 frightening content, advertising, tracking, personal-data collection, or remote generated
 content.
 
+Score technical release quality and content quality separately. Apply
+`docs/content-quality-rubric.md` after changes to themes, clue wording, difficulty, onboarding, or
+generation. Never claim that fun is guaranteed: without anonymized target-audience player testing,
+enjoyment is not validated regardless of automated test coverage.
+
 ## Architecture
 
 Keep UI, puzzle generation, constraint solving, persistence, and PWA infrastructure
@@ -49,8 +54,8 @@ every height from `5 x 5 x 3` through `5 x 5 x 10`, with one building entry per 
 and height. Choose height uniformly before choosing a template so future uneven per-height quotas
 cannot bias selection. The building subset must remain answer-free under the same canonical-identity rules.
 Expose easy, medium, and hard play on every building height without duplicating structural
-templates. Easy deterministically ensures that at least four people have direct home or landmark
-guidance, medium ensures at least two, and hard uses the base clue set. Count existing direct facts
+templates. Easy deterministically ensures that at least six people have direct home or landmark
+guidance, medium ensures at least three, and hard uses the base clue set. Count existing direct facts
 toward those targets instead of repeating them. Derive guidance only after solving the unique
 materialized structure, persist clues rather than an answer, and rerun the solver with a limit of
 two on the guided puzzle.
@@ -110,6 +115,13 @@ same safe, local, accessible game mechanics. Use PixiJS only as a decorative gri
 interaction and accessibility layer.
 Child playable characters must use the curated, non-repeating human child-avatar catalog. Animals
 and objects may decorate a theme but must not become child character identities.
+Expose this collection publicly with the age-neutral localized equivalent of `Illustrated
+Adventures`; keep `children` only as a backwards-compatible internal identifier. Build its short
+story at render time from the local theme, seed, characters, and retained structured clues. Every
+story fragment must preserve one source clue id, and no narrative copy may be persisted in a share
+payload, saved game, or solution. Do not protect carried-item tautologies merely to provide story
+context; every playable character needs a fragment that constrains map placement. Illustrated
+story clues must not use distance, step, row, or column wording.
 Children must use the same horizontally scrollable people and contextual-clue rail as 2D and 3D.
 Selecting a child shows that child's related clue cards directly below the people row; the complete
 clue list remains a collapsed support panel and must never be the only practical clue path.
@@ -261,6 +273,9 @@ duplicate precache URLs and missing offline resources rather than relaxing the m
 
 After meaningful changes, run formatting, lint, type checking, unit tests, and the
 production build. A task is not complete while any check fails.
+After content or difficulty changes, record a fresh content-quality assessment. Implemented
+improvements do not earn real-player or perceived-accessibility points until the relevant anonymous
+player-test protocol has passed.
 Prefer `docker compose run --rm --build verify` when host execution would require new permissions
 or tool installation. The `verify` image must install from the frozen lockfile and execute the same
 `pnpm verify` pipeline as GitHub Pages; do not weaken checks in the container-only path.

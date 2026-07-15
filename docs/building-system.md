@@ -96,10 +96,16 @@ people, objects, furniture, and wording. The answer-free template catalog contai
 content catalog and height combination while the player sees one unified 3D collection. Runtime materialization always
 reruns the solver with a two-solution limit before a puzzle is shown.
 Every 3-10-floor height supports three independent play levels over those same hard structural
-templates. Easy deterministically ensures direct home or landmark guidance for at least four
-people, medium ensures it for at least two, and hard adds none. Existing direct facts count toward
+templates. Easy deterministically ensures direct home or landmark guidance for at least six
+people, medium ensures it for at least three, and hard adds none. Existing direct facts count toward
 the target and are not repeated. These are ordinary structured clues rather than a stored answer,
 and the guided puzzle is rerun with a two-solution limit before display or sharing.
+
+The three-floor building is the recommended entry point. The collection card and home illustration
+show this minimum experience instead of advertising a tall building before the player understands
+that only one floor is active at a time. Perceived difficulty remains a content-quality metric and
+must be rechecked with first-time players; additional direct clues do not by themselves prove that
+the entry experience is understandable.
 
 Share payload schema 5 records the `cube` variant and selected height so a challenge reproduces
 the exact building. New JSON payloads are GZIP-compressed before URL-safe
@@ -138,3 +144,5 @@ someone, but deliberately omits placements and the answer.
   dragging an already placed person, exact drop preview, crossing on all three axes, and return
   navigation. A non-adjacent floor at the same row and column must remain available.
 - Reject furniture that covers a label, door, person, destination, or carried-item icon.
+- For first-time three-floor easy playtests, verify that at least 85% understand the one-floor-at-a-time
+  model and at least 80% make a justified first placement within 120 seconds without facilitation.

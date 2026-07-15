@@ -7,6 +7,8 @@ import { parseSharedGameRoute, shareUrl } from '../app/routes'
 import { seed } from '../domain/types'
 import { GENERATOR_VERSION } from '../generator/version'
 
+// cspell:ignore lustrades
+
 const dndMock = vi.hoisted(() => ({
   overId: null as string | null,
   onDragStart: undefined as ((event: { active: { id: string } }) => void) | undefined,
@@ -169,7 +171,9 @@ describe('game interface', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('radio', { name: /^Aventures il·lustrades/u }),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('radio', { name: /^Fàcil/u })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Aventura/u })).toBeDisabled()
     await user.click(screen.getByRole('radio', { name: /^Puzzles 2D/u }))
@@ -286,6 +290,10 @@ describe('game interface', () => {
     )
     expect(container.querySelector('.character-clue-rail__clue--empty')).not.toBeInTheDocument()
     expect(container.querySelector('.character-clue-rail__clue')).toHaveTextContent(/\S/u)
+    expect(container.querySelector('.character-clue-rail__clue')).toHaveAttribute(
+      'data-source-clue-id',
+    )
+    expect(container.querySelector('.objective-line')).toHaveTextContent(/misteri/u)
     expect(container.querySelector('.clue-panel')).not.toHaveAttribute('open')
   })
 
@@ -478,14 +486,15 @@ describe('game interface', () => {
     const user = userEvent.setup()
     render(<App />)
 
-    expect(await screen.findByRole('radio', { name: /^Infantil/u })).toBeChecked()
+    expect(await screen.findByRole('radio', { name: /^Aventures il·lustrades/u })).toBeChecked()
     expect(screen.getByRole('radio', { name: /^Puzzles 2D/u })).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    expect(screen.getByRole('radio', { name: '3 plantes · recomanat' })).toBeChecked()
     await user.click(screen.getByRole('radio', { name: '10 plantes' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
-    expect(screen.getByRole('radio', { name: 'Fàcil · 4 veïns guiats' })).toBeChecked()
-    await user.click(screen.getByRole('radio', { name: 'Mitjà · 2 veïns guiats' }))
+    expect(screen.getByRole('radio', { name: 'Per començar · 6 veïns guiats' })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: 'Repte mitjà · 3 veïns guiats' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     await user.click(screen.getByRole('button', { name: 'Juga' }))
 

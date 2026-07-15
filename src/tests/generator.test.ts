@@ -154,12 +154,12 @@ describe('seeded puzzle generator', () => {
           puzzles.every((puzzle) => buildingDepthForPositions(puzzle.positions) === depth),
         ).toBe(true)
         expect(guidanceClues).toEqual([
-          Math.max(0, 4 - baseDirectCharacters),
-          Math.max(0, 2 - baseDirectCharacters),
+          Math.max(0, 6 - baseDirectCharacters),
+          Math.max(0, 3 - baseDirectCharacters),
           0,
         ])
-        expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(4)
-        expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(2)
+        expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(6)
+        expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(3)
         for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
       }
     }
@@ -431,6 +431,11 @@ describe('seeded puzzle generator', () => {
 
   it('keeps every selected clue necessary for deduction or child context', () => {
     const puzzle = generatePuzzle('hard', 'minimal-clues')
+    expect(
+      puzzle.clues.filter(
+        (clue) => clue.type === 'has-item' || clue.type === 'does-not-have-item',
+      ),
+    ).toHaveLength(0)
     for (const clue of puzzle.clues) {
       const withoutClue = {
         ...puzzle,
@@ -444,6 +449,38 @@ describe('seeded puzzle generator', () => {
       )
 
       expect(remainsUnique && retainsChildContext).toBe(false)
+    }
+  })
+
+  it('gives every illustrated character a clue that constrains map placement', () => {
+    for (const difficulty of ['easy', 'medium', 'hard'] as const) {
+      for (const childMapSize of [4, 6, 8] as const) {
+        const puzzle = generatePuzzleForCollection(
+          difficulty,
+          `illustrated-context-${difficulty}-${childMapSize}`,
+          'children',
+          undefined,
+          childMapSize,
+        )
+        expect(
+          puzzle.clues.some((clue) =>
+            [
+              'has-item',
+              'does-not-have-item',
+              'distance',
+              'same-row',
+              'different-row',
+              'same-column',
+              'different-column',
+            ].includes(clue.type),
+          ),
+        ).toBe(false)
+        for (const character of puzzle.characters) {
+          expect(
+            puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
+          ).toBe(true)
+        }
+      }
     }
   })
 

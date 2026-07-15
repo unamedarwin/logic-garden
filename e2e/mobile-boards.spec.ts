@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 
-type Collection = 'Infantil' | 'Puzzles 2D' | 'Puzzles 3D'
+type Collection = 'Aventures il·lustrades' | 'Puzzles 2D' | 'Puzzles 3D'
 
 const chooseRadio = async (radio: Locator) => {
   await radio.focus()
@@ -122,7 +122,7 @@ for (const size of [4, 6, 8] as const) {
   test(`Children ${size} rooms exposes contextual clues and textured places`, async ({
     page,
   }, testInfo) => {
-    await startGame(page, 'Infantil', new RegExp(`${size} amics`, 'u'))
+    await startGame(page, 'Aventures il·lustrades', new RegExp(`${size} amics`, 'u'))
     const board = page.locator('.game-board--child-map')
     const rooms = board.locator('.location-cell')
     await expect(rooms).toHaveCount(size)
@@ -139,7 +139,17 @@ for (const size of [4, 6, 8] as const) {
     expect(roomArtwork.every(({ backgroundImage }) => backgroundImage !== 'none')).toBe(true)
     expect(new Set(roomArtwork.map(({ material }) => material)).size).toBeGreaterThanOrEqual(3)
 
+    if (size === 8) {
+      await page.locator('.character-clue-rail__people').scrollIntoViewIfNeeded()
+      await expectContextAboveActions(page)
+    }
+
     await page.locator('.character-clue-rail__person').first().click()
+    await expect(page.locator('.objective-line')).toContainText(/misteri/u)
+    await expect(page.locator('.character-clue-rail__clue').first()).toHaveAttribute(
+      'data-source-clue-id',
+      /.+/u,
+    )
     const railBounds = await page.locator('.character-clue-rail').evaluate((element) => {
       const people = element.querySelector<HTMLElement>('.character-clue-rail__people')
       const context = element.querySelector<HTMLElement>('.character-clue-rail__context')
@@ -164,6 +174,22 @@ for (const size of [4, 6, 8] as const) {
     await saveEvidence(page, testInfo, `children-${size}-placed`)
   })
 }
+
+test('Illustrated 8-person story stays clear at the iPhone 16e viewport', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 393, height: 852 })
+  await startGame(page, 'Aventures il·lustrades', /8 amics/u)
+  await page.locator('.character-clue-rail__people').scrollIntoViewIfNeeded()
+  await expectContextAboveActions(page)
+  await page.locator('.character-clue-rail__person').last().click()
+  await expect(page.locator('.character-clue-rail__story-beat').first()).toBeVisible()
+  await expectContextAboveActions(page)
+  await page.locator('.location-cell__target').first().click()
+  await expectContextAboveActions(page)
+  await expectNoDocumentOverflow(page)
+  await saveEvidence(page, testInfo, 'illustrated-8-iphone-16e')
+})
 
 for (const size of [6, 9, 16] as const) {
   test(`2D ${size}x${size} fits and centers a placed person`, async ({ page }, testInfo) => {
@@ -190,7 +216,7 @@ for (const depth of [3, 6, 10] as const) {
   test(`3D ${depth} floors exposes walls and every fitted floor`, async ({
     page,
   }, testInfo) => {
-    await startGame(page, 'Puzzles 3D', new RegExp(`^${depth} plantes$`, 'u'))
+    await startGame(page, 'Puzzles 3D', new RegExp(`^${depth} plantes(?: · recomanat)?$`, 'u'))
     const cube = page.locator('.logic-cube')
     await expect(cube).toHaveAttribute('data-grid-depth', String(depth))
     const floors = cube.getByRole('tab')

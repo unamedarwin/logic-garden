@@ -9,7 +9,7 @@
   picker suspends rather than clears the current puzzle, placements, timer, and challenge; moving
   forward resumes the same state.
 - Every collection now has an explicit persisted and shared size choice: 4/6/8 friends for
-  Children, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and 3-10 floors for Puzzles 3D. New
+  Illustrated Adventures, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and 3-10 floors for Puzzles 3D. New
   installs default to four friends, `6 x 6`, and three floors; every `16 x 16` template uses
   eight people.
 - Direction controls expose disabled endpoints, step buttons use `aria-current`, every target is
@@ -17,6 +17,11 @@
   both the one-decision-per-step flow and placement restoration.
 - Child easy, medium, and hard modes now differ deductively at the same 4/6/8 size: easy protects
   direct friendly clues for most friends, medium protects fewer, and hard prioritizes relations.
+- The public child-facing label is now the age-neutral `Illustrated Adventures` equivalent in every
+  locale. Three deterministic mystery arcs wrap each local seed, each character exposes a short
+  story prompt, and every rendered fragment retains one structured source clue. The next content
+  pass should author theme-specific premises and validate them with the retained audience protocol
+  in [`content-quality-rubric.md`](content-quality-rubric.md).
 
 ## Deduction grading
 
@@ -34,13 +39,28 @@
   Runtime materialization is still checked with a two-solution limit, and height is selected
   uniformly before a template so the unequal per-height quotas do not bias play.
 - The level step is now real for every height: easy ensures direct home or landmark guidance for at
-  least four people, medium ensures it for at least two, and hard uses the unassisted structural
+  least six people, medium ensures it for at least three, and hard uses the unassisted structural
   clue set. Existing direct facts count toward those targets instead of being repeated. Every
   guided result is rerun through the solver with a two-solution limit and shares its selected level
   normally.
+- A real-user report identified excessive perceived difficulty before 3D play. The entry presentation
+  now recommends three floors, illustrates three floors, and describes one-floor-at-a-time play.
+  This remains open for anonymous first-time validation under `docs/content-quality-rubric.md`;
+  implementation alone does not close the evidence gap.
 - The elevator, deterministic furniture and plants, local SVG rendering, shopkeeper clues, and
   blocked-cell semantics are implemented. Keep expanding building-specific social clue combinations
   only after the published mobile interaction checks remain stable. See `docs/building-system.md`.
+
+## Room-based 3D entry mode: analyzed
+
+- A whole-room placement mode is viable and should remain explicit rather than silently replacing
+  Easy rules. It keeps the current visual `5 x 5 x d` building but exposes only one semantic target
+  per home or shop, hides only the cell-grid interaction layer, and removes cross-room row and column
+  conflicts. The existing walls, doors, materials, furniture, elevator, labels, and avatars are
+  reused.
+- The recommended design, compatibility plan, generator changes, and regression matrix are in
+  `docs/room-based-building-proposal.md`. Implementation starts with a shared pure candidate selector
+  so the solver, reducer, persistence, and DOM cannot disagree about room targets.
 
 ## Catalog verification
 

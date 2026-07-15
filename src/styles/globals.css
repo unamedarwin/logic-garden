@@ -2407,6 +2407,11 @@ summary:focus-visible {
   line-height: 1.35;
   scroll-snap-align: start;
 }
+.character-clue-rail__story-beat {
+  color: var(--ink-soft);
+  font-size: 0.82em;
+  letter-spacing: 0.01em;
+}
 .character-clue-rail__clue--empty {
   grid-column: 1 / -1;
   min-width: 100%;
@@ -2838,6 +2843,7 @@ summary:focus-visible {
   .game-screen .character-clue-rail {
     margin-top: 2px;
     padding: 5px;
+    scroll-margin-bottom: calc(92px + env(safe-area-inset-bottom));
   }
   .game-screen .character-clue-rail__people,
   .game-screen .character-clue-rail__clues {
