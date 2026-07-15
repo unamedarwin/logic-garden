@@ -1,6 +1,8 @@
 import type { Locale } from './types'
 
-const localeCodes: ReadonlySet<string> = new Set(['ca', 'es', 'en', 'eu', 'gl', 'fr', 'de'])
+export const activeLocales = ['ca'] as const satisfies readonly Locale[]
+
+const localeCodes: ReadonlySet<string> = new Set(activeLocales)
 
 export const isLocale = (value: unknown): value is Locale =>
   typeof value === 'string' && localeCodes.has(value)

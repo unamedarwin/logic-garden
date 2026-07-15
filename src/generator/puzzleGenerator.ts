@@ -18,6 +18,7 @@ import { clueReferencesCharacter } from '../domain/clueRelations'
 import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
 import { getTheme, themesForAudience } from '../domain/themes'
 import { analyzeSolutions, solve } from '../solver/solver'
+import { analyzeDeductionTrace } from '../solver/deductionTrace'
 import { selectMinimalUniqueClues } from './clueReducer'
 import { generateCandidateClues } from './clueGenerator'
 import { deriveSeed, SeededRandom } from './seededRandom'
@@ -27,6 +28,15 @@ import { materializeAdvancedPuzzleTemplate } from './puzzleTemplates'
 import { GENERATOR_VERSION } from './version'
 
 export { GENERATOR_VERSION } from './version'
+
+type ExactPositionClue = Extract<
+  Puzzle['clues'][number],
+  { readonly type: 'character-at-position' }
+>
+
+const isExactPositionClue = (clue: Puzzle['clues'][number]): clue is ExactPositionClue =>
+  clue.type === 'character-at-position'
+
 // Try three deterministic batches before giving up. This absorbs discarded
 // geometries without turning an impossible candidate into a visible puzzle.
 const maximumAttempts = 36
@@ -46,6 +56,22 @@ const isNarrativeGridClue = (clue: Puzzle['clues'][number]) =>
     'same-floor',
     'different-floor',
   ].includes(clue.type)
+
+const childCluesAreNecessaryOrContextual = (
+  puzzle: Puzzle,
+  clues: readonly Puzzle['clues'][number][],
+) =>
+  clues.every((clue) => {
+    const reducedClues = clues.filter((candidate) => candidate.id !== clue.id)
+    const remainsUnique =
+      analyzeSolutions({ ...puzzle, clues: reducedClues }, { limit: 2 }).count === 1
+    const retainsContext = puzzle.characters.every((character) =>
+      reducedClues.some((candidate) =>
+        clueReferencesCharacter(puzzle, candidate, character.id),
+      ),
+    )
+    return !remainsUnique || !retainsContext
+  })
 
 const difficultyScore = (puzzle: Puzzle) => {
   const negativeClues = puzzle.clues.filter(
@@ -89,79 +115,247 @@ const difficultyScore = (puzzle: Puzzle) => {
   )
 }
 
-const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle => {
-  if (puzzle.boardMode !== 'logic-cube' || difficulty === 'hard') return puzzle
+const withSpatialGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle => {
+  if (puzzle.boardMode !== 'logic-grid') return puzzle
   const solution = solve(puzzle)
-  if (!solution) throw new Error('No s\u2019ha pogut preparar la guia de l\u2019edifici.')
-  const existingExactCharacters = new Set(
-    puzzle.clues
-      .filter((clue) => clue.type === 'character-at-position')
-      .map((clue) => clue.characterId),
-  )
-  const existingPlaceCharacters = new Set(
-    puzzle.clues
-      .filter((clue) => clue.type === 'character-in-place')
-      .map((clue) => clue.characterId),
-  )
-  const directlyGuidedCharacters = new Set([
-    ...existingExactCharacters,
-    ...existingPlaceCharacters,
-  ])
-  const random = new SeededRandom(deriveSeed(puzzle.seed, 313))
-  const directCharacterTarget = difficulty === 'easy' ? 6 : 3
-  const guidanceCount = Math.max(0, directCharacterTarget - directlyGuidedCharacters.size)
-  const candidates: Array<{
-    readonly character: Puzzle['characters'][number]
-    readonly position: Puzzle['positions'][number]
-    readonly clueType: 'exact' | 'place'
-  }> = []
-  for (const character of puzzle.characters) {
-    if (directlyGuidedCharacters.has(character.id)) continue
-    const positionId = solution[character.id]
-    const position = puzzle.positions.find((candidate) => candidate.id === positionId)
-    if (!position) continue
-    const hasLandmark = puzzle.positions.some(
-      (candidate) =>
-        candidate.blocked &&
-        candidate.obstacleEmoji !== undefined &&
-        candidate.obstacleLabel !== undefined &&
-        candidate.layer === position.layer &&
-        Math.abs(candidate.row - position.row) +
-          Math.abs(candidate.column - position.column) ===
-          1,
+  if (!solution) throw new Error('No s’ha pogut preparar la guia espacial.')
+  const random = new SeededRandom(deriveSeed(puzzle.seed, 307))
+  const shell: Puzzle = { ...puzzle, difficulty, clues: [] }
+  const generatedCandidates = random.shuffle(generateCandidateClues(shell, solution, random))
+  let baseClues = [...puzzle.clues]
+  const exactBaseClues = random.shuffle(puzzle.clues.filter(isExactPositionClue))
+  for (const exactClue of exactBaseClues) {
+    const landmarkClue = generatedCandidates.find(
+      (clue) =>
+        clue.type === 'character-next-to-obstacle' &&
+        clue.characterId === exactClue.characterId,
     )
-    if (hasLandmark) candidates.push({ character, position, clueType: 'exact' })
-    else candidates.push({ character, position, clueType: 'place' })
+    if (!landmarkClue) continue
+    const weakenedClues = baseClues.map((clue) =>
+      clue.id === exactClue.id
+        ? {
+            ...landmarkClue,
+            id: `spatial-base:landmark:${exactClue.characterId}`,
+          }
+        : clue,
+    )
+    const validation = analyzeSolutions({ ...shell, clues: weakenedClues }, { limit: 2 })
+    if (validation.count === 1 && !validation.reachedNodeLimit) baseClues = weakenedClues
   }
-  const orderedCandidates = random.shuffle(candidates)
-  const guidedCandidates = orderedCandidates.slice(0, guidanceCount)
-  if (guidedCandidates.length !== guidanceCount) {
-    throw new Error('No s\u2019ha pogut preparar prou pistes directes per a l\u2019edifici.')
-  }
-  const guidanceClues: Puzzle['clues'] = guidedCandidates.map((guided) =>
-    guided.clueType === 'exact'
-      ? {
-          id: `building-guidance:${difficulty}:${guided.character.id}`,
-          type: 'character-at-position',
-          characterId: guided.character.id,
-          positionId: guided.position.id,
-          phraseVariant: random.integer(0, 2),
-        }
-      : {
-          id: `building-guidance:${difficulty}:${guided.character.id}`,
-          type: 'character-in-place',
-          characterId: guided.character.id,
-          placeId: guided.position.placeId,
-          phraseVariant: random.integer(0, 2),
-        },
+
+  const exactCharacters = new Set(
+    baseClues.filter(isExactPositionClue).map((clue) => clue.characterId),
   )
+  const exactTarget =
+    difficulty === 'easy'
+      ? Math.max(1, puzzle.characters.length - 1)
+      : difficulty === 'medium'
+        ? Math.max(1, Math.floor(puzzle.characters.length / 3))
+        : exactCharacters.size
+  const guidanceCharacters = new Set(exactCharacters)
+  const guidanceClues = generatedCandidates
+    .filter(isExactPositionClue)
+    .filter((clue) => {
+      if (guidanceCharacters.has(clue.characterId)) {
+        return false
+      }
+      guidanceCharacters.add(clue.characterId)
+      return true
+    })
+    .slice(0, Math.max(0, exactTarget - exactCharacters.size))
+    .map((clue) => ({
+      ...clue,
+      id: `spatial-guidance:${difficulty}:${clue.characterId}`,
+    }))
+  if (exactCharacters.size + guidanceClues.length < exactTarget) {
+    throw new Error('No s’han pogut preparar prou ancoratges espacials.')
+  }
   const candidate: Puzzle = {
-    ...puzzle,
-    difficulty,
-    clues: [...puzzle.clues, ...guidanceClues],
+    ...shell,
+    clues: [...baseClues, ...guidanceClues],
     metadata: {
       ...puzzle.metadata,
-      difficultyScore: Math.max(0, puzzle.metadata.difficultyScore - guidanceCount * 5),
+      difficultyScore: difficultyScore({
+        ...shell,
+        clues: [...baseClues, ...guidanceClues],
+      }),
+    },
+  }
+  const validation = analyzeSolutions(candidate, { limit: 2 })
+  if (validation.count !== 1 || validation.reachedNodeLimit) {
+    throw new Error('La guia espacial no conserva una solució única.')
+  }
+  return {
+    ...candidate,
+    metadata: { ...candidate.metadata, exploredNodes: validation.exploredNodes },
+  }
+}
+
+const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle => {
+  if (puzzle.boardMode !== 'logic-cube') return puzzle
+  const solution = solve(puzzle)
+  if (!solution) throw new Error('No s\u2019ha pogut preparar la guia de l\u2019edifici.')
+  const random = new SeededRandom(deriveSeed(puzzle.seed, 313))
+  const shell: Puzzle = { ...puzzle, difficulty, clues: [] }
+  const generatedCandidates = random.shuffle(generateCandidateClues(shell, solution, random))
+  let baseClues = [...puzzle.clues]
+  const exactBaseClues = random.shuffle(puzzle.clues.filter(isExactPositionClue))
+  const weakerClueFor = (exactClue: (typeof exactBaseClues)[number]) =>
+    generatedCandidates.find(
+      (clue) =>
+        clue.type === 'character-next-to-obstacle' &&
+        clue.characterId === exactClue.characterId,
+    ) ??
+    generatedCandidates.find(
+      (clue) =>
+        clue.type === 'character-in-place' && clue.characterId === exactClue.characterId,
+    )
+  const tryWeakenExactClue = (
+    clues: readonly Puzzle['clues'][number][],
+    exactClue: (typeof exactBaseClues)[number],
+  ) => {
+    const weakerClue = weakerClueFor(exactClue)
+    if (!weakerClue) return clues
+    const weakenedClues = clues.map((clue) =>
+      clue.id === exactClue.id
+        ? {
+            ...weakerClue,
+            id: `building-base:${weakerClue.type}:${exactClue.characterId}`,
+          }
+        : clue,
+    )
+    const weakenedValidation = analyzeSolutions(
+      { ...shell, clues: weakenedClues },
+      { limit: 2 },
+    )
+    return weakenedValidation.count === 1 && !weakenedValidation.reachedNodeLimit
+      ? weakenedClues
+      : clues
+  }
+  for (const exactClue of exactBaseClues) {
+    baseClues = [...tryWeakenExactClue(baseClues, exactClue)]
+  }
+  const exactClueCount = (clues: readonly Puzzle['clues'][number][]) =>
+    clues.filter((clue) => clue.type === 'character-at-position').length
+  const relationalSupports = generatedCandidates
+    .filter(
+      (clue) =>
+        clue.type === 'same-floor' ||
+        clue.type === 'different-floor' ||
+        clue.type === 'above' ||
+        clue.type === 'below' ||
+        clue.type === 'adjacent' ||
+        clue.type === 'not-adjacent' ||
+        clue.type === 'in-corner' ||
+        clue.type === 'not-in-corner',
+    )
+    .slice(0, 16)
+  for (const supportClue of relationalSupports) {
+    if (exactClueCount(baseClues) <= 6) break
+    const supportedClues = [
+      ...baseClues,
+      { ...supportClue, id: `building-base:support:${supportClue.id}` },
+    ]
+    for (const exactClue of exactBaseClues) {
+      const weakenedClues = tryWeakenExactClue(supportedClues, exactClue)
+      if (exactClueCount(weakenedClues) < exactClueCount(baseClues)) {
+        baseClues = [...weakenedClues]
+        break
+      }
+    }
+  }
+  const existingExactCharacters = new Set(
+    baseClues.filter(isExactPositionClue).map((clue) => clue.characterId),
+  )
+  const guidanceCharacterIds = new Set(existingExactCharacters)
+  const guidanceCandidates = [...generatedCandidates, ...exactBaseClues]
+    .filter(isExactPositionClue)
+    .filter((clue) => {
+      if (guidanceCharacterIds.has(clue.characterId)) return false
+      guidanceCharacterIds.add(clue.characterId)
+      return true
+    })
+  const availableExactCount = existingExactCharacters.size + guidanceCandidates.length
+  const mediumExactTarget = Math.min(
+    availableExactCount,
+    Math.max(3, existingExactCharacters.size + 1),
+  )
+  const easyExactTarget = Math.min(
+    availableExactCount,
+    Math.max(6, existingExactCharacters.size + 2),
+  )
+  const exactTarget =
+    difficulty === 'easy'
+      ? easyExactTarget
+      : difficulty === 'medium'
+        ? mediumExactTarget
+        : existingExactCharacters.size
+  const guidanceCount = Math.max(0, exactTarget - existingExactCharacters.size)
+  let guidanceClues: Puzzle['clues'] = guidanceCandidates
+    .slice(0, guidanceCount)
+    .map((clue) => ({
+      ...clue,
+      id: `building-guidance:${difficulty}:${clue.characterId}`,
+    }))
+  if (difficulty === 'easy' && easyExactTarget === mediumExactTarget) {
+    const clueFact = (clue: Puzzle['clues'][number]) =>
+      JSON.stringify(clue, (key, value) =>
+        key === 'id' || key === 'phraseVariant' ? undefined : value,
+      )
+    const selectedFacts = new Set([...baseClues, ...guidanceClues].map(clueFact))
+    const currentPuzzle = { ...shell, clues: [...baseClues, ...guidanceClues] }
+    const currentTrace = analyzeDeductionTrace(currentPuzzle)
+    const currentPressure =
+      currentTrace.initialAverageCandidateCount +
+      currentTrace.averageCandidateCount +
+      currentTrace.averageClueInterpretationLoad +
+      currentTrace.branchingMoveCount / Math.max(1, currentTrace.steps.length)
+    const supportCandidates = generatedCandidates.filter(
+      (clue) =>
+        (clue.type === 'character-in-place' ||
+          clue.type === 'character-not-in-place' ||
+          clue.type === 'character-not-at-position' ||
+          clue.type === 'in-corner' ||
+          clue.type === 'not-in-corner') &&
+        !selectedFacts.has(clueFact(clue)),
+    )
+    for (const supportClue of supportCandidates) {
+      const trialClue = {
+        ...supportClue,
+        id: `building-guidance:easy:support:${supportClue.id}`,
+      }
+      const trialPuzzle = {
+        ...shell,
+        clues: [...baseClues, ...guidanceClues, trialClue],
+      }
+      const trialTrace = analyzeDeductionTrace(trialPuzzle)
+      const trialPressure =
+        trialTrace.initialAverageCandidateCount +
+        trialTrace.averageCandidateCount +
+        trialTrace.averageClueInterpretationLoad +
+        trialTrace.branchingMoveCount / Math.max(1, trialTrace.steps.length)
+      if (trialPressure < currentPressure) {
+        guidanceClues = [...guidanceClues, trialClue]
+        break
+      }
+    }
+  }
+  if (
+    difficulty !== 'hard' &&
+    existingExactCharacters.size + guidanceClues.length < exactTarget
+  ) {
+    throw new Error('No s\u2019ha pogut preparar prou pistes visuals per a l\u2019edifici.')
+  }
+  const candidate: Puzzle = {
+    ...shell,
+    difficulty,
+    clues: [...baseClues, ...guidanceClues],
+    metadata: {
+      ...puzzle.metadata,
+      difficultyScore: difficultyScore({
+        ...shell,
+        clues: [...baseClues, ...guidanceClues],
+      }),
     },
   }
   const validation = analyzeSolutions(candidate, { limit: 2 })
@@ -295,13 +489,15 @@ export const generatePuzzleDirect = (
             )
           : []
       const childAnchors =
-        world.boardMode !== 'map' || difficulty === 'hard'
+        world.boardMode !== 'map'
           ? []
           : childDirectCandidates.slice(
               0,
               difficulty === 'easy'
                 ? Math.max(1, world.characters.length - 1)
-                : Math.max(1, Math.floor(world.characters.length / 3)),
+                : difficulty === 'medium'
+                  ? Math.max(2, Math.floor(world.characters.length / 3))
+                  : 1,
             )
       const childStoryCandidates =
         world.boardMode === 'map'
@@ -404,8 +600,10 @@ export const generatePuzzleDirect = (
         },
       }
       const validation = analyzeSolutions(candidate, { limit: 2 })
+      const childContentIsMinimal =
+        world.boardMode !== 'map' || childCluesAreNecessaryOrContextual(basePuzzle, clues)
 
-      if (validation.count === 1 && !validation.reachedNodeLimit) {
+      if (validation.count === 1 && !validation.reachedNodeLimit && childContentIsMinimal) {
         return {
           ...candidate,
           metadata: { ...candidate.metadata, exploredNodes: validation.exploredNodes },
@@ -450,10 +648,10 @@ export const generatePuzzle = (
   )
   for (const template of templates) {
     try {
-      return withBuildingGuidance(
-        materializeAdvancedPuzzleTemplate(template, puzzleSeed),
-        difficulty,
-      )
+      const materialized = materializeAdvancedPuzzleTemplate(template, puzzleSeed)
+      return materialized.boardMode === 'logic-cube'
+        ? withBuildingGuidance(materialized, difficulty)
+        : withSpatialGuidance(materialized, difficulty)
     } catch {
       // Try another structure of the same independently selected size.
     }
@@ -483,11 +681,14 @@ export const generatePuzzle = (
     const spatialPlanId = plans[gridSize % plans.length]
     if (!spatialPlanId) continue
     try {
-      return generatePuzzleDirect(difficulty, source, audience, {
-        gridSize,
-        characterCount: advancedCharacterCount(difficulty, gridSize),
-        spatialPlanId,
-      })
+      return withSpatialGuidance(
+        generatePuzzleDirect(difficulty, source, audience, {
+          gridSize,
+          characterCount: advancedCharacterCount(difficulty, gridSize),
+          spatialPlanId,
+        }),
+        difficulty,
+      )
     } catch {
       // Keep the fallback independent from difficulty by trying every grid size.
     }
@@ -504,7 +705,7 @@ export const audienceForPuzzleCollection = (
   return selector.pick(['teens', 'adults'] as const)
 }
 
-const seedForTheme = (
+const candidateSeedsForTheme = (
   source: Seed | string,
   audience: Audience,
   themeId: ThemeId,
@@ -514,6 +715,7 @@ const seedForTheme = (
   if (!candidates.some((theme) => theme.id === themeId)) {
     throw new Error('El tema no pertany a aquest tipus de puzzle.')
   }
+  const matchingSeeds: Seed[] = []
   for (let attempt = 0; attempt < 256; attempt += 1) {
     const candidateRandom = new SeededRandom(`${source}|theme|${attempt}`)
     const candidate = seed(
@@ -523,9 +725,12 @@ const seedForTheme = (
     )
     const selector = new SeededRandom(deriveSeed(candidate, audience === 'children' ? 0 : 41))
     if (audience === 'children' && childMapSize !== 4) selector.next()
-    if (selector.pick(candidates).id === themeId) return candidate
+    if (selector.pick(candidates).id === themeId) matchingSeeds.push(candidate)
   }
-  throw new Error('No s\u2019ha pogut preparar el tema escollit.')
+  if (matchingSeeds.length === 0) {
+    throw new Error('No s\u2019ha pogut preparar el tema escollit.')
+  }
+  return matchingSeeds
 }
 
 export const generatePuzzleForCollection = (
@@ -549,18 +754,33 @@ export const generatePuzzleForCollection = (
   const audience = selectedTheme
     ? selectedAudience
     : audienceForPuzzleCollection(collection, source)
-  const puzzleSeed = preferredThemeId
-    ? seedForTheme(source, audience, preferredThemeId, preferredChildMapSize)
-    : source
-  return generatePuzzle(
-    difficulty,
-    puzzleSeed,
+  const generateSelectedPuzzle = (puzzleSeed: Seed | string) =>
+    generatePuzzle(
+      difficulty,
+      puzzleSeed,
+      audience,
+      collection === 'three-dimensional' ? 'cube' : 'spatial',
+      collection === 'two-dimensional' ? preferredGridSize : undefined,
+      collection === 'children' ? preferredChildMapSize : undefined,
+      collection === 'three-dimensional' ? preferredBuildingDepth : undefined,
+    )
+
+  if (!preferredThemeId) return generateSelectedPuzzle(source)
+
+  for (const puzzleSeed of candidateSeedsForTheme(
+    source,
     audience,
-    collection === 'three-dimensional' ? 'cube' : 'spatial',
-    collection === 'two-dimensional' ? preferredGridSize : undefined,
-    collection === 'children' ? preferredChildMapSize : undefined,
-    collection === 'three-dimensional' ? preferredBuildingDepth : undefined,
-  )
+    preferredThemeId,
+    preferredChildMapSize,
+  )) {
+    try {
+      const puzzle = generateSelectedPuzzle(puzzleSeed)
+      if (puzzle.theme === preferredThemeId) return puzzle
+    } catch {
+      // Continue until an ordinary reproducible seed validates with the selected theme.
+    }
+  }
+  throw new Error('No s\u2019ha pogut preparar el tema escollit.')
 }
 
 const advancedGridSizes = [6, 9, 16] as const

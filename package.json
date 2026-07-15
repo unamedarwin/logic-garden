@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage --maxWorkers=1 --exclude src/tests/contentCorpus.test.ts",
     "test:e2e": "playwright test",
     "spellcheck": "cspell lint --no-progress",
     "icons:build": "node scripts/generate-fluent-icons.mjs",

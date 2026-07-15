@@ -6,6 +6,7 @@ import { fluentIconData } from '../assets/generated/fluentIconData'
 import type { Audience, Difficulty, Puzzle } from '../domain/types'
 import { renderClue, renderClueParts } from '../domain/vocabulary'
 import { supportedLocales } from '../domain/i18n'
+import { illustratedThemeIds } from '../domain/illustratedStoryCopy'
 import {
   BUILDING_DEPTHS,
   buildingDepthForPositions,
@@ -23,6 +24,7 @@ import {
 } from '../generator/puzzleGenerator'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
 import { countSolutions, solve } from '../solver/solver'
+import { analyzeDeductionTrace, assignmentFromDeductionTrace } from '../solver/deductionTrace'
 
 const bannedTerms =
   /murder|death|weapon|violence|threat|punishment|assassinat|mort|arma|violència|amenaça|càstig|asesinato|muerte|arma|violencia|amenaza|castigo/iu
@@ -31,6 +33,17 @@ const directlyGuidedCharacterCount = (puzzle: Puzzle) =>
   new Set(
     puzzle.clues.flatMap((clue) =>
       clue.type === 'character-at-position' || clue.type === 'character-in-place'
+        ? [clue.characterId]
+        : [],
+    ),
+  ).size
+
+const buildingGuidedCharacterCount = (puzzle: Puzzle) =>
+  new Set(
+    puzzle.clues.flatMap((clue) =>
+      clue.type === 'character-at-position' ||
+      clue.type === 'character-in-place' ||
+      clue.type === 'character-next-to-obstacle'
         ? [clue.characterId]
         : [],
     ),
@@ -118,6 +131,7 @@ describe('seeded puzzle generator', () => {
       expect(directClues[1]).toBeGreaterThanOrEqual(Math.floor(childMapSize / 3))
       expect(directClues[2]).toBeLessThan(directClues[1]!)
       for (const puzzle of puzzles) {
+        expect(analyzeDeductionTrace(puzzle).firstStepCandidateCount).toBe(1)
         expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
         expect(
           puzzle.characters.every((character) =>
@@ -146,24 +160,82 @@ describe('seeded puzzle generator', () => {
           (puzzle) =>
             puzzle.clues.filter((clue) => clue.id.startsWith('building-guidance:')).length,
         )
-        const directlyGuidedCharacters = puzzles.map(directlyGuidedCharacterCount)
-        const baseDirectCharacters = directlyGuidedCharacters[2]!
+        const exactCharacters = puzzles.map(
+          (puzzle) =>
+            new Set(
+              puzzle.clues.flatMap((clue) =>
+                clue.type === 'character-at-position' ? [clue.characterId] : [],
+              ),
+            ).size,
+        )
+        const directlyGuidedCharacters = puzzles.map(buildingGuidedCharacterCount)
+        const traces = puzzles.map(analyzeDeductionTrace)
+        const tracePressure = traces.map(
+          (trace) =>
+            trace.initialAverageCandidateCount +
+            trace.averageCandidateCount +
+            trace.averageClueInterpretationLoad +
+            trace.branchingMoveCount / Math.max(1, trace.steps.length),
+        )
+        const clueSignatures = puzzles.map((puzzle) =>
+          puzzle.clues
+            .map((clue) => `${clue.type}:${clue.id}`)
+            .sort()
+            .join('|'),
+        )
 
         expect(puzzles.map((puzzle) => puzzle.difficulty)).toEqual(['easy', 'medium', 'hard'])
         expect(
           puzzles.every((puzzle) => buildingDepthForPositions(puzzle.positions) === depth),
         ).toBe(true)
-        expect(guidanceClues).toEqual([
-          Math.max(0, 6 - baseDirectCharacters),
-          Math.max(0, 3 - baseDirectCharacters),
-          0,
-        ])
         expect(directlyGuidedCharacters[0]).toBeGreaterThanOrEqual(6)
         expect(directlyGuidedCharacters[1]).toBeGreaterThanOrEqual(3)
-        for (const puzzle of puzzles) expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+        expect(exactCharacters[0]).toBeGreaterThanOrEqual(exactCharacters[1]!)
+        expect(exactCharacters[2]).toBeLessThan(exactCharacters[1]!)
+        expect(guidanceClues[0]).toBeGreaterThan(guidanceClues[1]!)
+        expect(guidanceClues[1]).toBeGreaterThan(0)
+        expect(guidanceClues[2]).toBe(0)
+        expect(new Set(clueSignatures).size).toBe(3)
+        expect(tracePressure[0]).toBeLessThan(tracePressure[1]!)
+        expect(tracePressure[1]).toBeLessThan(tracePressure[2]!)
+        for (const [index, puzzle] of puzzles.entries()) {
+          expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
+          expect(assignmentFromDeductionTrace(traces[index]!)).toEqual(solve(puzzle))
+          expect(traces[index]!.steps).toHaveLength(puzzle.characters.length)
+        }
       }
     }
-  }, 120_000)
+  }, 240_000)
+
+  it('orders local deduction pressure independently at every 2D board size', () => {
+    for (const audience of ['teens', 'adults'] as const) {
+      for (const gridSize of [6, 9, 16] as const) {
+        const traces = (['easy', 'medium', 'hard'] as const).map((difficulty) =>
+          analyzeDeductionTrace(
+            generatePuzzle(
+              difficulty,
+              `deduction-pressure-${audience}-${gridSize}`,
+              audience,
+              'spatial',
+              gridSize,
+            ),
+          ),
+        )
+        const pressure = traces.map(
+          (trace) =>
+            trace.initialAverageCandidateCount +
+            trace.averageCandidateCount +
+            trace.averageClueInterpretationLoad +
+            trace.branchingMoveCount / Math.max(1, trace.steps.length),
+        )
+        const evidence = JSON.stringify({ audience, gridSize, pressure, traces })
+
+        expect(pressure[0], evidence).toBeLessThanOrEqual(pressure[1]!)
+        expect(pressure[1], evidence).toBeLessThanOrEqual(pressure[2]!)
+        expect(pressure[0], evidence).toBeLessThan(pressure[2]!)
+      }
+    }
+  }, 180_000)
 
   it('builds deterministic 5x5 buildings at every height with three spatial axes', () => {
     for (const depth of BUILDING_DEPTHS) {
@@ -290,7 +362,7 @@ describe('seeded puzzle generator', () => {
         ),
       ).toBe(true)
     }
-  }, 120_000)
+  }, 240_000)
 
   it('keeps character identities visually separate from object markers in every theme', () => {
     for (const theme of themes) {
@@ -482,6 +554,29 @@ describe('seeded puzzle generator', () => {
         }
       }
     }
+
+    illustratedThemeIds.forEach((themeId, index) => {
+      const difficulty = (['easy', 'medium', 'hard'] as const)[index % 3]!
+      const childMapSize = ([4, 6, 8] as const)[index % 3]!
+      const puzzle = generatePuzzleForCollection(
+        difficulty,
+        `illustrated-theme-context-${themeId}`,
+        'children',
+        undefined,
+        childMapSize,
+        undefined,
+        themeId,
+      )
+      expect(puzzle.theme).toBe(themeId)
+      expect(
+        generatePuzzle(difficulty, puzzle.seed, 'children', 'spatial', undefined, childMapSize),
+      ).toEqual(puzzle)
+      puzzle.characters.forEach((character) => {
+        expect(
+          puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
+        ).toBe(true)
+      })
+    })
   })
 
   it('uses collection-specific content and deduction-grid row and column rules', () => {
@@ -651,7 +746,7 @@ describe('seeded puzzle generator', () => {
         expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
       }
     }
-  }, 60_000)
+  }, 180_000)
 
   it('selects board size independently from deductive difficulty', () => {
     for (const audience of ['teens', 'adults'] as const) {

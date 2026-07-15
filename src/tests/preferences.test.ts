@@ -98,15 +98,15 @@ describe('preference migration without profiles', () => {
     expect(del).not.toHaveBeenCalled()
   })
 
-  it('uses the first supported browser language on a new installation', async () => {
+  it('uses Catalan on a new installation regardless of browser language', async () => {
     vi.mocked(get).mockResolvedValue(undefined)
 
     await expect(loadPreferences(['pt-PT', 'gl-ES', 'es-ES'])).resolves.toMatchObject({
-      locale: 'gl',
+      locale: 'ca',
     })
   })
 
-  it('keeps a stored language ahead of the browser language', async () => {
+  it('migrates a stored inactive language to Catalan', async () => {
     vi.mocked(get).mockImplementation((storageKey) =>
       Promise.resolve(
         storageKey === 'logic-garden:preferences:v1'
@@ -126,7 +126,7 @@ describe('preference migration without profiles', () => {
       ),
     )
 
-    await expect(loadPreferences(['fr-FR'])).resolves.toMatchObject({ locale: 'de' })
+    await expect(loadPreferences(['fr-FR'])).resolves.toMatchObject({ locale: 'ca' })
   })
 
   it('sanitizes invalid fields from a current-looking stored record', async () => {
@@ -161,11 +161,12 @@ describe('preference migration without profiles', () => {
 
 describe('browser language detection', () => {
   it.each([
-    [['eu-ES'], 'eu'],
-    [['gl_ES'], 'gl'],
-    [['fr-CA'], 'fr'],
-    [['de-DE'], 'de'],
-    [['pt-BR', 'en-GB'], 'en'],
+    [['ca-ES'], 'ca'],
+    [['eu-ES'], 'ca'],
+    [['gl_ES'], 'ca'],
+    [['fr-CA'], 'ca'],
+    [['de-DE'], 'ca'],
+    [['pt-BR', 'en-GB'], 'ca'],
     [[], 'ca'],
   ] as const)('detects %j as %s', (languages, expected) => {
     expect(detectBrowserLocale(languages)).toBe(expected)

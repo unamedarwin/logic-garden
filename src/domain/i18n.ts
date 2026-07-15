@@ -1,9 +1,11 @@
 import type { Locale, PuzzleCollection, ThemeId } from './types'
 import type { CheckFeedback, GameFeedback } from '../game/feedback'
+import { buildIllustratedStoryCopy, isIllustratedTheme } from './illustratedStoryCopy'
+import { activeLocales } from './locales'
 
 // cspell:disable -- eu/gl/fr/de are reviewed through locale parity tests and independent agents.
 
-export const supportedLocales: readonly Locale[] = ['ca', 'es', 'en', 'eu', 'gl', 'fr', 'de']
+export const supportedLocales = activeLocales
 
 export const localeLabels: Record<Locale, string> = {
   ca: 'Català',
@@ -719,6 +721,19 @@ const ui: Record<Locale, Record<UiKey, string>> = {
 }
 
 export const t = (locale: Locale, key: UiKey) => ui[locale][key]
+
+const selectedCharacterPlacementTemplates: Readonly<Record<Locale, string>> = {
+  ca: 'Ara tria el lloc de {name}.',
+  es: 'Ahora elige el lugar de {name}.',
+  en: 'Now choose a place for {name}.',
+  eu: 'Orain, aukeratu non jarri {name}.',
+  gl: 'Agora escolle o lugar de {name}.',
+  fr: 'Choisis maintenant la place de {name}.',
+  de: 'Wähle jetzt den Platz für {name}.',
+}
+
+export const selectedCharacterPlacementCopy = (locale: Locale, name: string) =>
+  selectedCharacterPlacementTemplates[locale].replace('{name}', name)
 
 const gameFeedbackTemplates: Record<
   Locale,
@@ -1548,220 +1563,6 @@ interface IllustratedStoryCopy {
   readonly victory: string
 }
 
-const illustratedThemeIds = new Set<ThemeId>([
-  'forest-party',
-  'treasure-island',
-  'kind-magic-school',
-  'space-trip',
-  'fun-farm',
-  'sea-garden',
-  'dino-park',
-  'friendly-monster-town',
-  'color-fair',
-  'mountain-trip',
-])
-
-const illustratedStories: Record<
-  Locale,
-  readonly [IllustratedStoryCopy, ...IllustratedStoryCopy[]]
-> = {
-  ca: [
-    {
-      introduction:
-        'A «{title}», {hero} ha trobat el mapa desordenat. Cada amic recorda una part del misteri.',
-      objective: 'Escolta què recorda cadascú i reconstrueix el misteri.',
-      victory: 'Misteri resolt! Cada amic ha retrobat el seu lloc.',
-    },
-    {
-      introduction:
-        'A «{title}», {hero} ha trobat les targetes dels llocs barrejades. Els amics en guarden les pistes.',
-      objective: 'Uneix les petites històries i resol el misteri de cada lloc.',
-      victory: 'Ho has descobert! El mapa torna a explicar tota la història.',
-    },
-    {
-      introduction:
-        'A «{title}», {hero} ha descobert que falta una pàgina del mapa. Cada amic en recorda un tros.',
-      objective: 'Llegeix cada record i completa el petit misteri.',
-      victory: 'Misteri resolt! Tots els records encaixen.',
-    },
-  ],
-  es: [
-    {
-      introduction:
-        'En «{title}», {hero} ha encontrado el mapa desordenado. Cada amigo recuerda una parte del misterio.',
-      objective: 'Escucha lo que recuerda cada uno y reconstruye el misterio.',
-      victory: '¡Misterio resuelto! Cada amigo ha recuperado su lugar.',
-    },
-    {
-      introduction:
-        'En «{title}», {hero} ha encontrado mezcladas las tarjetas de los lugares. Los amigos guardan las pistas.',
-      objective: 'Une las pequeñas historias y resuelve el misterio de cada lugar.',
-      victory: '¡Lo has descubierto! El mapa vuelve a contar toda la historia.',
-    },
-    {
-      introduction:
-        'En «{title}», {hero} ha descubierto que falta una página del mapa. Cada amigo recuerda un fragmento.',
-      objective: 'Lee cada recuerdo y completa el pequeño misterio.',
-      victory: '¡Misterio resuelto! Todos los recuerdos encajan.',
-    },
-  ],
-  en: [
-    {
-      introduction:
-        'In “{title},” {hero} found the map out of order. Each friend remembers part of the mystery.',
-      objective: 'Listen to each memory and rebuild the mystery.',
-      victory: 'Mystery solved! Every friend has found their place again.',
-    },
-    {
-      introduction:
-        'In “{title},” {hero} found the place cards mixed up. The friends are keeping the clues.',
-      objective: 'Join the little stories and solve each place’s mystery.',
-      victory: 'You found it! The map tells the whole story again.',
-    },
-    {
-      introduction:
-        'In “{title},” {hero} discovered a missing map page. Each friend remembers a piece.',
-      objective: 'Read each memory and complete the little mystery.',
-      victory: 'Mystery solved! Every memory fits.',
-    },
-  ],
-  eu: [
-    {
-      introduction:
-        '«{title}» abenturan, mapa nahasia aurkitu duen laguna {hero} da. Lagun bakoitzak misterioaren zati bat gogoratzen du.',
-      objective: 'Entzun lagun bakoitzaren oroitzapena eta argitu misterioa.',
-      victory: 'Misterioa argitu da! Lagun bakoitza bere lekuan dago berriro.',
-    },
-    {
-      introduction:
-        '«{title}» abenturan, leku-txartelak nahasita aurkitu dituen laguna {hero} da. Lagunek pistak dituzte.',
-      objective: 'Lotu istorio laburrak eta argitu leku bakoitzaren misterioa.',
-      victory: 'Asmatu duzu! Mapak istorio osoa erakusten du berriro.',
-    },
-    {
-      introduction:
-        '«{title}» abenturan, mapako orri bat falta dela ikusi duen laguna {hero} da. Lagun bakoitzak zati bat gogoratzen du.',
-      objective: 'Irakurri oroitzapen bakoitza eta argitu misterio txikia.',
-      victory: 'Misterioa argitu da! Oroitzapen guztiak bat datoz.',
-    },
-  ],
-  gl: [
-    {
-      introduction:
-        'Na aventura «{title}», {hero} atopou o mapa desordenado. Cada amigo lembra unha parte do misterio.',
-      objective: 'Escoita o que lembra cada un e reconstrúe o misterio.',
-      victory: 'Misterio resolto! Cada amigo recuperou o seu lugar.',
-    },
-    {
-      introduction:
-        'Na aventura «{title}», {hero} atopou mesturadas as tarxetas dos lugares. Os amigos gardan as pistas.',
-      objective: 'Une as pequenas historias e resolve o misterio de cada lugar.',
-      victory: 'Descubríchelo! O mapa volve contar toda a historia.',
-    },
-    {
-      introduction:
-        'Na aventura «{title}», {hero} descubriu que falta unha páxina do mapa. Cada amigo lembra un anaco.',
-      objective: 'Le cada lembranza e completa o pequeno misterio.',
-      victory: 'Misterio resolto! Todas as lembranzas encaixan.',
-    },
-  ],
-  fr: [
-    {
-      introduction:
-        'Dans « {title} », {hero} a trouvé la carte en désordre. Chaque ami en garde un morceau.',
-      objective: 'Écoute chaque souvenir et reconstitue le mystère.',
-      victory: 'Mystère résolu ! Chaque ami a retrouvé sa place.',
-    },
-    {
-      introduction:
-        'Dans « {title} », {hero} a trouvé les cartes des lieux mélangées. Les amis gardent les indices.',
-      objective: 'Relie les petites histoires et résous le mystère de chaque lieu.',
-      victory: 'Tu as trouvé ! La carte raconte à nouveau toute l’histoire.',
-    },
-    {
-      introduction:
-        'Dans « {title} », {hero} a découvert une page manquante. Chaque ami se souvient d’un morceau.',
-      objective: 'Lis chaque souvenir et complète le petit mystère.',
-      victory: 'Mystère résolu ! Tous les souvenirs s’accordent.',
-    },
-  ],
-  de: [
-    {
-      introduction:
-        'Im Abenteuer „{title}“ fand {hero} die Karte durcheinander. Jeder Freund erinnert sich an einen Teil des Rätsels.',
-      objective: 'Höre dir jede Erinnerung an und löse das Rätsel.',
-      victory: 'Rätsel gelöst! Jeder Freund hat seinen Platz wiedergefunden.',
-    },
-    {
-      introduction:
-        'Im Abenteuer „{title}“ fand {hero} die Ortskarten vertauscht vor. Die Freunde kennen die Hinweise.',
-      objective: 'Verbinde die kleinen Geschichten und löse das Rätsel jedes Ortes.',
-      victory: 'Du hast es herausgefunden! Die Karte erzählt wieder die ganze Geschichte.',
-    },
-    {
-      introduction:
-        'Im Abenteuer „{title}“ entdeckte {hero} eine fehlende Kartenseite. Jeder Freund erinnert sich an ein Stück.',
-      objective: 'Lies jede Erinnerung und löse das kleine Rätsel.',
-      victory: 'Rätsel gelöst! Alle Erinnerungen passen zusammen.',
-    },
-  ],
-}
-
-const illustratedCharacterPrompts: Record<Locale, readonly [string, ...string[]]> = {
-  ca: ['Què recorda {name}?', 'Una pista de {name}', '{name} sap una part del misteri'],
-  es: ['¿Qué recuerda {name}?', 'Una pista de {name}', '{name} conoce una parte del misterio'],
-  en: ['What does {name} remember?', 'A clue from {name}', '{name} knows part of the mystery'],
-  eu: [
-    'Zer gogoratzen du {name} izeneko lagunak?',
-    '{name} izeneko lagunaren pista bat',
-    '{name} izeneko lagunak misterioaren zati bat daki',
-  ],
-  gl: ['Que lembra {name}?', 'Unha pista de {name}', '{name} coñece unha parte do misterio'],
-  fr: [
-    'Que se rappelle {name} ?',
-    'Un indice de {name}',
-    '{name} connaît une partie du mystère',
-  ],
-  de: [
-    'Woran erinnert sich {name}?',
-    'Ein Hinweis von {name}',
-    '{name} kennt einen Teil des Rätsels',
-  ],
-}
-
-const illustratedGroupNames: Record<Locale, string> = {
-  ca: 'El grup',
-  es: 'El grupo',
-  en: 'The group',
-  eu: 'Taldea',
-  gl: 'O grupo',
-  fr: 'Le groupe',
-  de: 'Die Gruppe',
-}
-
-const deterministicCopyIndex = (source: string, length: number) => {
-  let value = 2_166_136_261
-  for (const character of source) {
-    value ^= character.codePointAt(0) ?? 0
-    value = Math.imul(value, 16_777_619)
-  }
-  return (value >>> 0) % length
-}
-
-const renderCopyTemplate = (template: string, values: Readonly<Record<string, string>>) =>
-  Object.entries(values).reduce(
-    (rendered, [key, value]) => rendered.replaceAll(`{${key}}`, value),
-    template,
-  )
-
-export const characterStoryPrompt = (locale: Locale, name: string, storySeed: string) => {
-  const prompts = illustratedCharacterPrompts[locale]
-  return renderCopyTemplate(
-    prompts[deterministicCopyIndex(`${storySeed}:${name}`, prompts.length)] ?? prompts[0],
-    { name },
-  )
-}
-
 export const themeCopy = (
   locale: Locale,
   themeId: ThemeId,
@@ -1769,19 +1570,8 @@ export const themeCopy = (
   protagonist?: string,
 ) => {
   const title = titles[locale][themeId]
-  if (illustratedThemeIds.has(themeId)) {
-    const stories = illustratedStories[locale]
-    const story =
-      stories[deterministicCopyIndex(`${storySeed}:${themeId}`, stories.length)] ?? stories[0]
-    return {
-      title,
-      introduction: renderCopyTemplate(story.introduction, {
-        title,
-        hero: protagonist ?? illustratedGroupNames[locale],
-      }),
-      objective: story.objective,
-      victory: story.victory,
-    }
+  if (isIllustratedTheme(themeId)) {
+    return buildIllustratedStoryCopy(locale, themeId, storySeed, title, protagonist)
   }
 
   const messages: Record<Locale, IllustratedStoryCopy> = {

@@ -40,21 +40,26 @@ export const SettingsDialog = ({
             ×
           </button>
         </div>
-        <label>
-          {t(locale, 'language')}
-          <select
-            value={preferences.locale}
-            onChange={(event) =>
-              onChange({ ...preferences, locale: event.target.value as Preferences['locale'] })
-            }
-          >
-            {supportedLocales.map((locale) => (
-              <option key={locale} value={locale}>
-                {localeLabels[locale]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {supportedLocales.length > 1 && (
+          <label>
+            {t(locale, 'language')}
+            <select
+              value={preferences.locale}
+              onChange={(event) =>
+                onChange({
+                  ...preferences,
+                  locale: event.target.value as Preferences['locale'],
+                })
+              }
+            >
+              {supportedLocales.map((locale) => (
+                <option key={locale} value={locale}>
+                  {localeLabels[locale]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="toggle-label">
           <input
             type="checkbox"

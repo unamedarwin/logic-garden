@@ -1,6 +1,10 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { ChildNarrative } from '../domain/childNarrative'
+import {
+  childStoryProgressStage,
+  childStoryProgressStages,
+  type ChildNarrative,
+} from '../domain/childNarrative'
 import { clueReferencesCharacter } from '../domain/clueRelations'
 import type { Character, CharacterId, Clue, Locale, PositionId, Puzzle } from '../domain/types'
 import { ClueSentence } from './ClueSentence'
@@ -122,9 +126,16 @@ export const CharacterClueRail = ({
   if (!activeCharacter) return null
 
   const clueRegionId = `character-clues-${activeCharacter.id}`
-  const activeLabel =
-    narrative?.threads.find((thread) => thread.characterId === activeCharacter.id)?.prompt ??
-    activeCharacter.name
+  const placedCharacterCount = puzzle.characters.filter(
+    (character) => assignments[character.id] !== undefined,
+  ).length
+  const activeStoryStage = narrative
+    ? childStoryProgressStage(placedCharacterCount, puzzle.characters.length)
+    : undefined
+  const storyProgress = activeStoryStage ? narrative?.progress[activeStoryStage] : undefined
+  const storyProgressIndex = activeStoryStage
+    ? childStoryProgressStages.indexOf(activeStoryStage)
+    : -1
   const showClue = (nextIndex: number) => {
     const boundedIndex = Math.max(0, Math.min(clues.length - 1, nextIndex))
     setClueIndex(boundedIndex)
@@ -170,13 +181,34 @@ export const CharacterClueRail = ({
         className="character-clue-rail__context"
         aria-live="polite"
       >
-        <p className="character-clue-rail__active">
-          <SceneIcon
-            emoji={activeCharacter.emoji}
-            className="character-clue-rail__active-icon"
-          />
-          <strong>{activeLabel}</strong>
-        </p>
+        {storyProgress && (
+          <div
+            className="character-clue-rail__story-progress"
+            data-story-stage={activeStoryStage}
+          >
+            <p>
+              <strong>{storyProgress.label}</strong>
+              <span>{storyProgress.text}</span>
+            </p>
+            <div
+              className="character-clue-rail__story-meter"
+              role="progressbar"
+              aria-label={storyProgress.label}
+              aria-valuemin={1}
+              aria-valuemax={childStoryProgressStages.length}
+              aria-valuenow={storyProgressIndex + 1}
+              aria-valuetext={storyProgress.label}
+            >
+              {childStoryProgressStages.map((stage, index) => (
+                <span
+                  key={stage}
+                  className={index <= storyProgressIndex ? 'is-reached' : undefined}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          </div>
+        )}
         {clues.length > 0 ? (
           <>
             <div className="character-clue-rail__navigation">
@@ -212,11 +244,6 @@ export const CharacterClueRail = ({
                     data-source-clue-id={fragment?.sourceClueId}
                     data-story-beat={fragment?.beat}
                   >
-                    {fragment && (
-                      <strong className="character-clue-rail__story-beat">
-                        {fragment.lead}:{' '}
-                      </strong>
-                    )}
                     <ClueSentence puzzle={puzzle} clue={clue} locale={locale} />
                   </p>
                 )

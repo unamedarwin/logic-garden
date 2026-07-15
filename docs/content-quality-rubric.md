@@ -32,7 +32,7 @@ experience. Reviewers may award quarter points.
 | Narrative and clue quality           |                      5 |      5 |      5 |      15 | Facts are clear and natural, landmarks and icons match, objects appear only when relevant, roles and motivations fit the theme, and target players paraphrase at least 90% correctly.                  |
 | Moment-to-moment play and reward     |                      5 |      5 |      5 |      15 | Complete start-to-solve journeys succeed with touch, keyboard, and assistive technology; wrong guesses, hints, checking, progress, and completion feel clear, responsive, and rewarding.               |
 | Replayability and variety            |                      3 |      4 |      3 |      10 | Structural and perceptual novelty is measured across repeated seeds; near-duplicate exposure stays low and repeat players willingly start and complete more puzzles.                                   |
-| Inclusivity and audience fit         |                      4 |      3 |      3 |      10 | Reading level, age fit, physical-device accessibility, and all seven native-language reviews pass without material cohort or locale disadvantage.                                                      |
+| Inclusivity and audience fit         |                      4 |      3 |      3 |      10 | Reading level, age fit, physical-device accessibility, and native review of every active locale pass without material cohort or locale disadvantage.                                                   |
 | Real-user validation                 |                      5 |      5 |      5 |      15 | Same-build preregistered studies cover every collection, difficulty, and intended audience, followed by a repeat-session cohort with the thresholds below.                                             |
 | **Total**                            |                 **32** | **34** | **34** | **100** | No collection may borrow unused points from another collection.                                                                                                                                        |
 
@@ -47,7 +47,7 @@ experience. Reviewers may award quarter points.
   external consent process, the total is capped at 79.
 - Without an objective deduction trace and observed difficulty calibration, the total is capped at 84.
 - Without repeat-session evidence, the total is capped at 89.
-- Without physical-device accessibility and native review across all locales, the total is capped at 94.
+- Without physical-device accessibility and native review across every active locale, the total is capped at 94.
 - A representative seed sample earns at most half of an area that requires the complete content
   corpus. A locale without native editorial review earns at most half of its language contribution.
 - An unresolved report that a collection appears too difficult limits that collection's perceived

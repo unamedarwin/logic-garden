@@ -48,7 +48,13 @@ the deduction chain, not by assigning one grid size to each difficulty. Every `1
 uses eight people so row and column crossing remains meaningful across the full board.
 Keep child size independent from child difficulty too. At every 4/6/8 size, easy protects direct
 friendly placement clues, medium protects fewer, and hard prioritizes relational deductions before
-using direct placement clues.
+using direct placement clues. Every child level must still expose one locally forced first move;
+difficulty may deepen the later chain but must not make the opening opaque.
+Measure difficulty with the framework-independent deduction trace. For both internal advanced
+audiences, every `6 x 6`, `9 x 9`, and `16 x 16` size must satisfy easy pressure <= medium pressure
+<= hard pressure and easy pressure < hard pressure under a fixed seed. The trace may follow the
+solver's verified unique branch after no forced move remains, but it is evidence tooling rather
+than a player model and must never become a stored answer.
 Keep the structural catalog split at 84 spatial entries and 16 hard building entries covering
 every height from `5 x 5 x 3` through `5 x 5 x 10`, with one building entry per internal audience
 and height. Choose height uniformly before choosing a template so future uneven per-height quotas
@@ -58,7 +64,8 @@ templates. Easy deterministically ensures that at least six people have direct h
 guidance, medium ensures at least three, and hard uses the base clue set. Count existing direct facts
 toward those targets instead of repeating them. Derive guidance only after solving the unique
 materialized structure, persist clues rather than an answer, and rerun the solver with a limit of
-two on the guided puzzle.
+two on the guided puzzle. Across both internal audiences and every height, easy, medium, and hard
+must produce distinct clue signatures with strictly increasing deduction-trace pressure.
 
 ## TypeScript
 
@@ -66,6 +73,11 @@ Use strict TypeScript. Do not use `any`. Prefer discriminated unions, pure funct
 immutable transformations, and exhaustive checks.
 
 ## Localisation
+
+Catalan is the only active public locale while the narrative and clue voice is being refined.
+`supportedLocales` and browser detection must therefore resolve only to `ca`, and settings must not
+offer a redundant language selector. Dormant dictionaries may remain as non-release reference
+material, but they do not count as supported content and must not block the active editorial suite.
 
 Keep all player-facing wording in local template dictionaries. Sentences must be short,
 simple, and derived from structured clues so they can be reused in every supported language
@@ -75,6 +87,10 @@ Reducer, validation, and solver feedback must remain structured data and be loca
 interface; never persist a rendered feedback sentence in game state.
 Child clue copy must pair each precise fact with a short friendly action, object, or motivation in
 all supported languages. Do not reduce child clues to bare placement commands.
+The action and the logical relation must form one coherent scene. Do not prefix a directional clue
+with an unrelated generic action such as helping the group, and do not render decorative story-beat
+labels beside a clue when they add no deductive meaning. Mystery, objective, and victory ids must be
+selected from explicit compatibility tables rather than combined freely.
 After child clue reduction, every playable child must retain at least one contextual clue card that
 references that child directly, through a relationship, or through their structured carried item.
 Catalan clues must name a visible landmark directly; do not insert a repeated generic label such as
@@ -100,6 +116,8 @@ time and move backward and forward without
 discarding the current puzzle, timer, challenge, or placements. Starting a new game is the only
 path action that replaces a suspended game. Keep every journey, clue-navigation, and elevator
 control at least `44 x 44` CSS pixels.
+On narrow setup screens, keep the journey path sticky and fully visible while the current decision
+scrolls. Reserve scroll margin so focusing a setup group cannot place it underneath the path.
 Adventure must remain a real fourth selection screen. Do not start a game merely by navigating to
 the adventure step, and do not show the primary play action on the difficulty step.
 Show check feedback in an accessible dialog. The solver-derived `N/total` correct-placement score
@@ -121,7 +139,18 @@ story at render time from the local theme, seed, characters, and retained struct
 story fragment must preserve one source clue id, and no narrative copy may be persisted in a share
 payload, saved game, or solution. Do not protect carried-item tautologies merely to provide story
 context; every playable character needs a fragment that constrains map placement. Illustrated
-story clues must not use distance, step, row, or column wording.
+story clues must not use item, distance, step, row, column, or floor wording. Reject those families
+again at the narrative boundary rather than trusting only the generator filter. Select semantic
+story ids independently from locale copy, and keep the same story signature in every language.
+For every theme, a 100-seed copy audit must expose all three premises, all six mystery incidents,
+at least 17 of 18 premise/incident openings, at least 80 complete signatures, normalized incident
+entropy of at least 0.95, normalized premise entropy of at least 0.90, no incident above 25%, and no
+premise above 45%.
+Show the premise and objective in the compact mobile workspace, with the full introduction still
+available in the complete story panel. Progress the story through opening, gathering, connecting,
+and proposal from the number of player hypotheses. Static progress copy must use neutral story
+language, pair the objective with a semantically compatible ending, and never call a proposal
+correct or solved before an explicit successful check.
 Children must use the same horizontally scrollable people and contextual-clue rail as 2D and 3D.
 Selecting a child shows that child's related clue cards directly below the people row; the complete
 clue list remains a collapsed support panel and must never be the only practical clue path.

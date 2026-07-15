@@ -118,6 +118,36 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+test('Setup journey remains visible while the first collection step scrolls', async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 393, height: 852 })
+  await page.goto('./')
+  const journey = page.locator('.home-screen > .journey-path')
+  await page.getByRole('radio', { name: /^Puzzles 3D/u }).scrollIntoViewIfNeeded()
+  await page.evaluate(() => window.scrollBy({ top: 220, behavior: 'auto' }))
+
+  await expect(journey).toBeVisible()
+  await expect(journey.getByRole('button', { name: /Tipus/u })).toHaveAttribute(
+    'aria-current',
+    'step',
+  )
+  const geometry = await journey.evaluate((element) => {
+    const bounds = element.getBoundingClientRect()
+    return {
+      top: bounds.top,
+      bottom: bounds.bottom,
+      viewportHeight: window.innerHeight,
+      position: getComputedStyle(element).position,
+    }
+  })
+  expect(geometry.position).toBe('sticky')
+  expect(geometry.top).toBeGreaterThanOrEqual(0)
+  expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight)
+  await expectNoDocumentOverflow(page)
+  await saveEvidence(page, testInfo, 'setup-sticky-journey')
+})
+
 for (const size of [4, 6, 8] as const) {
   test(`Children ${size} rooms exposes contextual clues and textured places`, async ({
     page,
@@ -145,7 +175,9 @@ for (const size of [4, 6, 8] as const) {
     }
 
     await page.locator('.character-clue-rail__person').first().click()
-    await expect(page.locator('.objective-line')).toContainText(/misteri/u)
+    await expect(page.locator('.objective-line')).toContainText(
+      /records|versions|pista|història/u,
+    )
     await expect(page.locator('.character-clue-rail__clue').first()).toHaveAttribute(
       'data-source-clue-id',
       /.+/u,
@@ -180,13 +212,34 @@ test('Illustrated 8-person story stays clear at the iPhone 16e viewport', async 
 }, testInfo) => {
   await page.setViewportSize({ width: 393, height: 852 })
   await startGame(page, 'Aventures il·lustrades', /8 amics/u)
+  await expect(page.locator('.illustrated-story-premise')).toBeVisible()
+  await expect(page.locator('.illustrated-story-premise')).not.toBeEmpty()
   await page.locator('.character-clue-rail__people').scrollIntoViewIfNeeded()
   await expectContextAboveActions(page)
+  await expect(page.locator('.character-clue-rail__story-progress')).toHaveAttribute(
+    'data-story-stage',
+    'opening',
+  )
   await page.locator('.character-clue-rail__person').last().click()
-  await expect(page.locator('.character-clue-rail__story-beat').first()).toBeVisible()
+  await expect(page.locator('.character-clue-rail__clue').first()).toBeVisible()
+  await expect(page.locator('.character-clue-rail__story-beat')).toHaveCount(0)
   await expectContextAboveActions(page)
   await page.locator('.location-cell__target').first().click()
+  await expect(page.locator('.character-clue-rail__story-progress')).toHaveAttribute(
+    'data-story-stage',
+    'gathering',
+  )
   await expectContextAboveActions(page)
+  await page.locator('.clue-panel > summary').click()
+  const lastCompleteClue = page.locator('.clue-panel li').last()
+  await lastCompleteClue.scrollIntoViewIfNeeded()
+  const completeClueClearance = await page.evaluate(() => {
+    const clue = document.querySelector<HTMLElement>('.clue-panel li:last-child')
+    const actions = document.querySelector<HTMLElement>('.game-actions')
+    if (!clue || !actions) return Number.POSITIVE_INFINITY
+    return clue.getBoundingClientRect().bottom - actions.getBoundingClientRect().top
+  })
+  expect(completeClueClearance).toBeLessThanOrEqual(-8)
   await expectNoDocumentOverflow(page)
   await saveEvidence(page, testInfo, 'illustrated-8-iphone-16e')
 })

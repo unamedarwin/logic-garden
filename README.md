@@ -138,17 +138,31 @@ language and safe local themes:
 Illustrated Adventures choose 4, 6, or 8 friends independently from easy, medium, or hard
 deduction. Easy maps
 protect direct friendly clues for most friends, medium maps protect fewer direct clues, and hard
-maps prioritize relational deduction before direct placement clues. Seeded
+maps prioritize relational deduction before direct placement clues while retaining one locally
+forced opening move. Seeded
 rectangular boards alternate their orientation, so a `2 x 3` board can also appear as `3 x 2`.
-Each seed also chooses one of three short local mystery arcs. The introduction names a protagonist,
-the selected-person rail asks what that person remembers, and every story fragment retains its
-source structured clue. Decorative item facts cannot be retained as substitute placement clues.
+Each seed combines one of three theme-specific premises, six mystery incidents, four objectives,
+and four endings. Trails, friendly surprises, and shared events give every theme distinct story
+stakes instead of renaming one generic document. The introduction names a protagonist; each
+character retains a witness, connector, finder, or skeptic thread derived from real clues, while the
+visible selected-person rail avoids repeating that generic role beside the actual fact. A compact premise remains visible on mobile, and the selected-person rail moves through four
+honest stages as hypotheses fill the map without claiming they are correct before checking. Every
+story fragment retains its source structured clue. One hundred sampled seeds per
+theme expose at least 55 complete signatures with checked premise and incident distribution. Decorative item
+facts cannot be retained as substitute placement clues.
 The solved dialog closes the same mystery. See
 [`docs/illustrated-adventures.md`](docs/illustrated-adventures.md).
 Puzzles 3D similarly choose an exact height from 3 through 10 floors independently from their
 difficulty. Three floors is the recommended first game. Easy deterministically ensures direct home
 or landmark guidance for at least six people, medium ensures it for at least three, and hard keeps the complete structural deduction
 without extra guidance. Existing direct facts count toward those targets and are not repeated.
+The framework-independent deduction trace verifies ordered pressure for every 2D size and every 3D
+height while keeping size independent from difficulty. It records candidate counts, forced moves,
+branching, and clue-interpretation load without persisting or trusting a solution.
+The release corpus materializes all 100 structural templates plus all 288 public combinations of
+theme, difficulty, and selected dimension. Each case reruns uniqueness, reconstructs a satisfying
+trace, and composes every clue in the active Catalan locale. Other dictionaries remain dormant
+until the Catalan editorial voice is stable enough to translate as a reviewed source.
 
 Players can drag with a pointer or touch, or use the equivalent keyboard-friendly flow:
 focus and activate a character button, then activate a location button. Touching a placed
@@ -160,7 +174,9 @@ change individual grid lines. The 2D collection uses the same deduction rules ac
 teen and adult content catalogs.
 Setup follows one compact decision per journey step: collection, size, difficulty, and adventure.
 The fourth step is a real horizontally scrollable theme picker; starting or resuming a game is
-available only after that choice.
+available only after that choice. On narrow screens the journey path remains visible while the
+current setup decision scrolls, so a first-time player never loses the active step or available
+back/forward controls.
 The size step offers 4/6/8 friends for Illustrated Adventures, `6 x 6`/`9 x 9`/`16 x 16` for Puzzles 2D, and
 3-10 floors for Puzzles 3D. In the 2D and 3D collections the player chooses size independently from
 easy, medium, or hard deduction. Easy templates keep landmark choices narrow, while harder

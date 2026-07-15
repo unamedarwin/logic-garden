@@ -12,7 +12,7 @@ A high score here must never be presented as proof that the game is fun.
 
 - Logic: all 100 structural templates, every compatible theme application, and deterministic
   replay from fixed seeds. Uniqueness checks stop after two solutions.
-- Interface: 390 x 844 at DPR 3 and 1440 x 900 at DPR 1; all seven locales, collections,
+- Interface: 390 x 844 at DPR 3 and 1440 x 900 at DPR 1; every active locale, collection,
   difficulties, advanced grid sizes, representative 3-, 6-, and 10-floor buildings with every
   floor inspected, and empty, placed, incorrect, and
   completed states.
@@ -21,16 +21,16 @@ A high score here must never be presented as proof that the game is fun.
 
 ## Scoring
 
-| Area                                   | Points | Full-score observable evidence                                                                                                                                                                                                          |
-| -------------------------------------- | -----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Puzzle correctness and uniqueness      |     22 | Every published puzzle has exactly one solution; catalog identity, determinism, geometry, reducer, solver, hints, difficulty, and size-selection invariants pass over the full corpus and large seeded property samples.                |
-| Mobile usability and accessibility     |     18 | The complete mobile matrix has no hidden controls or unexpected fit-mode scrolling; tap, keyboard, and drag are equivalent; targets are at least 44 px; WCAG 2.2 AA manual and automated checks have no major findings.                 |
-| Visual quality and alignment           |     12 | Object, avatar, preview, artwork, and semantic-cell centers differ by at most 1 CSS px; walls, labels, doors, textures, ponds, icons, and obstacles pass collision and semantic consistency checks in every required board state.       |
-| Localisation                           |     14 | `ca`, `es`, `en`, `eu`, `gl`, `fr`, and `de` have complete key and template parity with no fallback; spelling and independent language composition review pass; structured clues preserve logic, social tone, and matching icon tokens. |
-| PWA, offline, sharing, and persistence |     12 | Android and iOS installation, foreground update, full offline play, validated challenge round-trips, Web Share fallback, corrupt-storage recovery, and state retention pass in all collections.                                         |
-| Performance                            |      8 | Mobile Lighthouse is at least 90, LCP at most 2.5 s, CLS at most 0.1, TBT at most 200 ms; generation p95 is at most 1.5 s and p99 at most 3 s; interaction p95 is at most 100 ms; cache and bundle budgets pass.                        |
-| Security, privacy, and content         |      6 | Static and runtime audits show no tracking, ads, personal data, remote scene assets, unsafe content, unvalidated payloads, high/critical production vulnerabilities, or unlicensed assets.                                              |
-| Automated regression and release       |      8 | A clean frozen install and `pnpm verify` pass; critical modules meet coverage and mutation thresholds; Chromium, Firefox, and WebKit mobile journeys and visual snapshots remain below 1% flakiness.                                    |
+| Area                                   | Points | Full-score observable evidence                                                                                                                                                                                                    |
+| -------------------------------------- | -----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Puzzle correctness and uniqueness      |     22 | Every published puzzle has exactly one solution; catalog identity, determinism, geometry, reducer, solver, hints, difficulty, and size-selection invariants pass over the full corpus and large seeded property samples.          |
+| Mobile usability and accessibility     |     18 | The complete mobile matrix has no hidden controls or unexpected fit-mode scrolling; tap, keyboard, and drag are equivalent; targets are at least 44 px; WCAG 2.2 AA manual and automated checks have no major findings.           |
+| Visual quality and alignment           |     12 | Object, avatar, preview, artwork, and semantic-cell centers differ by at most 1 CSS px; walls, labels, doors, textures, ponds, icons, and obstacles pass collision and semantic consistency checks in every required board state. |
+| Localisation                           |     14 | Every active locale has complete key and template parity with no fallback; spelling and independent language composition review pass; structured clues preserve logic, social tone, and matching icon tokens.                     |
+| PWA, offline, sharing, and persistence |     12 | Android and iOS installation, foreground update, full offline play, validated challenge round-trips, Web Share fallback, corrupt-storage recovery, and state retention pass in all collections.                                   |
+| Performance                            |      8 | Mobile Lighthouse is at least 90, LCP at most 2.5 s, CLS at most 0.1, TBT at most 200 ms; generation p95 is at most 1.5 s and p99 at most 3 s; interaction p95 is at most 100 ms; cache and bundle budgets pass.                  |
+| Security, privacy, and content         |      6 | Static and runtime audits show no tracking, ads, personal data, remote scene assets, unsafe content, unvalidated payloads, high/critical production vulnerabilities, or unlicensed assets.                                        |
+| Automated regression and release       |      8 | A clean frozen install and `pnpm verify` pass; critical modules meet coverage and mutation thresholds; Chromium, Firefox, and WebKit mobile journeys and visual snapshots remain below 1% flakiness.                              |
 
 ## Partial scoring rules
 

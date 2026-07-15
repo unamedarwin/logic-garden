@@ -53,6 +53,7 @@ import {
   checkResultCopy,
   gameFeedbackCopy,
   puzzleCollectionCopy,
+  selectedCharacterPlacementCopy,
   t,
   themeCopy,
 } from './domain/i18n'
@@ -914,6 +915,12 @@ export default function App() {
         </div>
       </section>
       <p className="objective-line">{copy.objective}</p>
+      {childNarrative && (
+        <section className="illustrated-story-premise" aria-label={copy.title}>
+          <strong>{copy.introduction}</strong>
+          <span>{copy.objective}</span>
+        </section>
+      )}
       <p className="sr-only" aria-live="polite">
         {localizedGameFeedback ?? notice}
       </p>
@@ -932,9 +939,12 @@ export default function App() {
                   <p className="eyebrow">{boardTitle}</p>
                   <h2>
                     {activeBoardCharacterId
-                      ? game.puzzle.characters.find(
-                          (character) => character.id === activeBoardCharacterId,
-                        )?.name
+                      ? selectedCharacterPlacementCopy(
+                          preferences.locale,
+                          game.puzzle.characters.find(
+                            (character) => character.id === activeBoardCharacterId,
+                          )?.name ?? '',
+                        )
                       : boardInstruction}
                   </h2>
                 </div>

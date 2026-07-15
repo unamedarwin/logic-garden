@@ -10,6 +10,7 @@ import type {
 } from './types'
 import { localizeThemeLabel } from './themeVocabulary'
 import { buildingUnitLabel } from './buildingPlan'
+import { activeLocales } from './locales'
 
 // cspell:disable -- eu/gl/fr/de are reviewed through rendered-clue tests and independent agents.
 
@@ -61,22 +62,28 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} i {b} ajuden des de columnes diferents.',
     ],
     'left-of': [
-      '{a} saluda {b} des del lloc de l’esquerra.',
-      '{a} ajuda el grup a l’esquerra de {b}.',
+      '{a} ha trobat una pista al lloc de l’esquerra de {b}.',
+      '{a} saluda {b} des del lloc que queda a l’esquerra.',
     ],
     'right-of': [
-      '{a} saluda {b} des del lloc de la dreta.',
-      '{a} ajuda el grup a la dreta de {b}.',
+      '{a} ha trobat una pista al lloc de la dreta de {b}.',
+      '{a} saluda {b} des del lloc que queda a la dreta.',
     ],
-    above: ['{a} saluda {b} des del lloc de sobre.', '{a} mira {b} des de sobre.'],
-    below: ['{a} saluda {b} des del lloc de sota.', '{a} mira {b} des de sota.'],
+    above: [
+      '{a} ha trobat una pista al lloc de sobre de {b}.',
+      '{a} saluda {b} des del lloc just a sobre seu.',
+    ],
+    below: [
+      '{a} ha trobat una pista al lloc de sota de {b}.',
+      '{a} saluda {b} des del lloc just a sota seu.',
+    ],
     distance: [
       '{a} camina {n} passos pel mapa per trobar {b}.',
       '{a} recorre {n} passos del mapa per trobar {b}.',
     ],
     between: [
-      '{a} comparteix el camí entre {b} i {c}.',
-      '{a} ajuda el grup al mig de {b} i {c}.',
+      '{a} ha trobat el punt de trobada entre {b} i {c}.',
+      '{a} espera al lloc que queda entre {b} i {c}.',
     ],
     'has-item': ['{a} ha triat {i} per a l’aventura.', '{a} porta {i} per compartir.'],
     'does-not-have-item': [
@@ -133,20 +140,29 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} y {b} ayudan desde columnas distintas.',
     ],
     'left-of': [
-      '{a} saluda a {b} desde el lugar de la izquierda.',
-      '{a} ayuda al grupo a la izquierda de {b}.',
+      '{a} ha encontrado una pista en el lugar a la izquierda de {b}.',
+      '{a} saluda a {b} desde el lugar que queda a la izquierda.',
     ],
     'right-of': [
-      '{a} saluda a {b} desde el lugar de la derecha.',
-      '{a} ayuda al grupo a la derecha de {b}.',
+      '{a} ha encontrado una pista en el lugar a la derecha de {b}.',
+      '{a} saluda a {b} desde el lugar que queda a la derecha.',
     ],
-    above: ['{a} saluda a {b} desde el lugar de arriba.', '{a} mira a {b} desde arriba.'],
-    below: ['{a} saluda a {b} desde el lugar de abajo.', '{a} mira a {b} desde abajo.'],
+    above: [
+      '{a} ha encontrado una pista en el lugar encima de {b}.',
+      '{a} saluda a {b} desde el lugar que queda arriba.',
+    ],
+    below: [
+      '{a} ha encontrado una pista en el lugar debajo de {b}.',
+      '{a} saluda a {b} desde el lugar que queda abajo.',
+    ],
     distance: [
       '{a} camina {n} pasos por el mapa para encontrar a {b}.',
       '{a} recorre {n} pasos del mapa para encontrar a {b}.',
     ],
-    between: ['{a} comparte el camino entre {b} y {c}.', '{a} ayuda al grupo entre {b} y {c}.'],
+    between: [
+      '{a} ha encontrado el punto de encuentro entre {b} y {c}.',
+      '{a} espera en el lugar que queda entre {b} y {c}.',
+    ],
     'has-item': ['{a} ha elegido {i} para la aventura.', '{a} lleva {i} para compartir.'],
     'does-not-have-item': [
       '{a} lleva otra cosa, no {i}.',
@@ -202,22 +218,28 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} and {b} help from different columns.',
     ],
     'left-of': [
+      '{a} found a clue in the place to the left of {b}.',
       '{a} waves to {b} from the place on the left.',
-      '{a} helps the group to the left of {b}.',
     ],
     'right-of': [
+      '{a} found a clue in the place to the right of {b}.',
       '{a} waves to {b} from the place on the right.',
-      '{a} helps the group to the right of {b}.',
     ],
-    above: ['{a} waves to {b} from the place above.', '{a} looks at {b} from above.'],
-    below: ['{a} waves to {b} from the place below.', '{a} looks at {b} from below.'],
+    above: [
+      '{a} found a clue in the place above {b}.',
+      '{a} waves to {b} from the place above.',
+    ],
+    below: [
+      '{a} found a clue in the place below {b}.',
+      '{a} waves to {b} from the place below.',
+    ],
     distance: [
       '{a} walks {n} map steps to find {b}.',
       '{a} travels {n} map steps to find {b}.',
     ],
     between: [
-      '{a} shares the path between {b} and {c}.',
-      '{a} helps the group between {b} and {c}.',
+      '{a} found the meeting point between {b} and {c}.',
+      '{a} waits in the place between {b} and {c}.',
     ],
     'has-item': ['{a} chose {i} for the adventure.', '{a} brings {i} to share.'],
     'does-not-have-item': [
@@ -359,20 +381,29 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} e {b} axudan desde columnas diferentes.',
     ],
     'left-of': [
-      '{a} saúda a {b} desde o lugar da esquerda.',
-      '{a} axuda o grupo á esquerda de {b}.',
+      '{a} atopou unha pista no lugar á esquerda de {b}.',
+      '{a} saúda a {b} desde o lugar que queda á esquerda.',
     ],
     'right-of': [
-      '{a} saúda a {b} desde o lugar da dereita.',
-      '{a} axuda o grupo á dereita de {b}.',
+      '{a} atopou unha pista no lugar á dereita de {b}.',
+      '{a} saúda a {b} desde o lugar que queda á dereita.',
     ],
-    above: ['{a} saúda a {b} desde o lugar de arriba.', '{a} mira a {b} desde arriba.'],
-    below: ['{a} saúda a {b} desde o lugar de abaixo.', '{a} mira a {b} desde abaixo.'],
+    above: [
+      '{a} atopou unha pista no lugar por riba de {b}.',
+      '{a} saúda a {b} desde o lugar que queda arriba.',
+    ],
+    below: [
+      '{a} atopou unha pista no lugar por baixo de {b}.',
+      '{a} saúda a {b} desde o lugar que queda abaixo.',
+    ],
     distance: [
       '{a} camiña {n} pasos polo mapa para atopar a {b}.',
       '{a} percorre {n} pasos do mapa para atopar a {b}.',
     ],
-    between: ['{a} comparte o camiño entre {b} e {c}.', '{a} axuda o grupo entre {b} e {c}.'],
+    between: [
+      '{a} atopou o punto de encontro entre {b} e {c}.',
+      '{a} espera no lugar que queda entre {b} e {c}.',
+    ],
     'has-item': ['{a} escolleu {i} para a aventura.', '{a} leva {i} para compartir.'],
     'does-not-have-item': [
       '{a} leva outra cousa, non {i}.',
@@ -430,28 +461,28 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} et {b} apportent leur aide depuis des colonnes différentes.',
     ],
     'left-of': [
-      '{a} salue {b} depuis la place à gauche.',
-      '{a} aide le groupe à gauche de {b}.',
+      '{a} a trouvé un indice à la place située à gauche de {b}.',
+      '{a} salue {b} depuis la place qui se trouve à gauche.',
     ],
     'right-of': [
-      '{a} salue {b} depuis la place à droite.',
-      '{a} aide le groupe à droite de {b}.',
+      '{a} a trouvé un indice à la place située à droite de {b}.',
+      '{a} salue {b} depuis la place qui se trouve à droite.',
     ],
     above: [
-      '{a} salue {b} depuis la place au-dessus.',
-      '{a} regarde {b} depuis la place au-dessus.',
+      '{a} a trouvé un indice à la place située au-dessus de {b}.',
+      '{a} salue {b} depuis la place qui se trouve au-dessus.',
     ],
     below: [
-      '{a} salue {b} depuis la place en dessous.',
-      '{a} regarde {b} depuis la place en dessous.',
+      '{a} a trouvé un indice à la place située en dessous de {b}.',
+      '{a} salue {b} depuis la place qui se trouve en dessous.',
     ],
     distance: [
       '{a} parcourt {n} pas sur la carte pour retrouver {b}.',
       '{a} avance de {n} pas sur la carte pour rejoindre {b}.',
     ],
     between: [
-      '{a} partage le chemin entre {b} et {c}.',
-      '{a} aide le groupe entre {b} et {c}.',
+      '{a} a trouvé le point de rencontre entre {b} et {c}.',
+      '{a} attend à la place située entre {b} et {c}.',
     ],
     'has-item': [
       '{a} choisit cet objet pour l’aventure : {i}.',
@@ -515,22 +546,28 @@ const mapTemplates: Record<Locale, Templates> = {
       '{a} und {b} helfen aus verschiedenen Spalten.',
     ],
     'left-of': [
+      '{a} hat am Platz links von {b} einen Hinweis gefunden.',
       '{a} grüßt {b} vom Platz auf der linken Seite.',
-      '{a} hilft der Gruppe links von {b}.',
     ],
     'right-of': [
+      '{a} hat am Platz rechts von {b} einen Hinweis gefunden.',
       '{a} grüßt {b} vom Platz auf der rechten Seite.',
-      '{a} hilft der Gruppe rechts von {b}.',
     ],
-    above: ['{a} grüßt {b} vom Platz darüber.', '{a} blickt vom Platz darüber zu {b}.'],
-    below: ['{a} grüßt {b} vom Platz darunter.', '{a} blickt vom Platz darunter zu {b}.'],
+    above: [
+      '{a} hat am Platz oberhalb von {b} einen Hinweis gefunden.',
+      '{a} grüßt {b} vom Platz darüber.',
+    ],
+    below: [
+      '{a} hat am Platz unterhalb von {b} einen Hinweis gefunden.',
+      '{a} grüßt {b} vom Platz darunter.',
+    ],
     distance: [
       '{a} geht {n} Schritte über die Karte, um {b} zu treffen.',
       '{a} legt {n} Kartenschritte zurück, um {b} zu erreichen.',
     ],
     between: [
-      '{a} teilt den Weg zwischen {b} und {c}.',
-      '{a} hilft der Gruppe zwischen {b} und {c}.',
+      '{a} hat den Treffpunkt zwischen {b} und {c} gefunden.',
+      '{a} wartet am Platz zwischen {b} und {c}.',
     ],
     'has-item': [
       '{a} wählt diesen Gegenstand für das Abenteuer: {i}.',
@@ -1240,7 +1277,7 @@ export const auditClueTemplatePlaceholders = (): readonly string[] => {
   const issues: string[] = []
 
   for (const family of families) {
-    for (const locale of Object.keys(family.templates) as Locale[]) {
+    for (const locale of activeLocales) {
       for (const clueType of Object.keys(requiredTemplatePlaceholders) as Clue['type'][]) {
         const required = [
           ...requiredTemplatePlaceholders[clueType],
@@ -1312,7 +1349,7 @@ export const auditClueObjectRelevance = (): readonly string[] => {
   const issues: string[] = []
 
   for (const family of families) {
-    for (const locale of Object.keys(family.templates) as Locale[]) {
+    for (const locale of activeLocales) {
       for (const clueType of Object.keys(family.templates[locale]) as Clue['type'][]) {
         if (logicalItemClues.has(clueType)) continue
         for (const [variant, template] of family.templates[locale][clueType].entries()) {

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CharacterClueRail } from '../components/CharacterClueRail'
-import { characterIds, createPuzzle, positionIds } from './fixtures'
+import { buildChildNarrative } from '../domain/childNarrative'
+import { characterIds, createPuzzle, fullAssignment, positionIds } from './fixtures'
 
 describe('character clue rail', () => {
   const originalScrollTo = HTMLDivElement.prototype.scrollTo
@@ -256,5 +257,65 @@ describe('character clue rail', () => {
     fireEvent.scroll(window)
 
     await waitFor(() => expect(scrollBy).toHaveBeenCalledWith({ top: 52, behavior: 'auto' }))
+  })
+
+  it('shows narrative progress without treating a complete proposal as solved', () => {
+    const puzzle = createPuzzle([
+      {
+        id: 'a-place',
+        type: 'character-at-position',
+        characterId: characterIds.a,
+        positionId: positionIds.p0,
+        phraseVariant: 0,
+      },
+      {
+        id: 'b-place',
+        type: 'character-at-position',
+        characterId: characterIds.b,
+        positionId: positionIds.p1,
+        phraseVariant: 0,
+      },
+      {
+        id: 'c-place',
+        type: 'character-at-position',
+        characterId: characterIds.c,
+        positionId: positionIds.p2,
+        phraseVariant: 0,
+      },
+      {
+        id: 'd-place',
+        type: 'character-at-position',
+        characterId: characterIds.d,
+        positionId: positionIds.p3,
+        phraseVariant: 0,
+      },
+    ])
+    const narrative = buildChildNarrative(puzzle, 'ca')
+    const rail = (assignments: typeof fullAssignment | Partial<typeof fullAssignment>) => (
+      <CharacterClueRail
+        puzzle={puzzle}
+        narrative={narrative}
+        assignments={assignments}
+        locale="ca"
+        selectedCharacterId={characterIds.a}
+        label="Amics"
+        emptyLabel="Sense pistes"
+        previousClueLabel="Pista anterior"
+        nextClueLabel="Pista següent"
+        onSelect={() => undefined}
+      />
+    )
+    const { container, rerender } = render(rail({}))
+    const progress = () => container.querySelector('.character-clue-rail__story-progress')
+
+    expect(progress()).toHaveAttribute('data-story-stage', 'opening')
+    rerender(rail({ [characterIds.a]: positionIds.p0 }))
+    expect(progress()).toHaveAttribute('data-story-stage', 'gathering')
+    rerender(rail({ [characterIds.a]: positionIds.p0, [characterIds.b]: positionIds.p1 }))
+    expect(progress()).toHaveAttribute('data-story-stage', 'connecting')
+    rerender(rail(fullAssignment))
+    expect(progress()).toHaveAttribute('data-story-stage', 'proposal')
+    expect(progress()).toHaveTextContent('Comprova si la història encaixa')
+    expect(progress()).not.toHaveTextContent(/resolt|correcte/iu)
   })
 })

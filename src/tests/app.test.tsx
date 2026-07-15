@@ -285,19 +285,21 @@ describe('game interface', () => {
     const people = container.querySelectorAll<HTMLButtonElement>('.character-clue-rail__person')
     expect(people).toHaveLength(4)
     await user.click(people[1]!)
-    expect(container.querySelector('.character-clue-rail__active strong')).toHaveTextContent(
+    expect(people[1]).toHaveAttribute('aria-pressed', 'true')
+    expect(container.querySelector('.character-clue-rail__clue--empty')).not.toBeInTheDocument()
+    expect(container.querySelector('.character-clue-rail__clue')).toHaveTextContent(
       people[1]!.textContent ?? '',
     )
-    expect(container.querySelector('.character-clue-rail__clue--empty')).not.toBeInTheDocument()
-    expect(container.querySelector('.character-clue-rail__clue')).toHaveTextContent(/\S/u)
     expect(container.querySelector('.character-clue-rail__clue')).toHaveAttribute(
       'data-source-clue-id',
     )
-    expect(container.querySelector('.objective-line')).toHaveTextContent(/misteri/u)
+    expect(container.querySelector('.objective-line')).toHaveTextContent(
+      /records|versions|pista|història/u,
+    )
     expect(container.querySelector('.clue-panel')).not.toHaveAttribute('open')
   })
 
-  it('switches the visible interface language without changing the puzzle logic', async () => {
+  it('keeps the settings and puzzle interface in Catalan', async () => {
     const user = userEvent.setup()
     render(<App />)
     await startDefaultGame(user)
@@ -308,14 +310,9 @@ describe('game interface', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Continua jugant' }))
     await user.click(screen.getByRole('button', { name: 'Configuració' }))
-    await user.selectOptions(screen.getByRole('combobox'), 'en')
-    await user.click(screen.getByRole('button', { name: 'Close' }))
-    expect(await screen.findByRole('button', { name: 'Check' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Check' }))
-    expect(await screen.findByRole('dialog', { name: 'Almost!' })).toHaveTextContent(
-      /Keep filling/u,
-    )
-    expect(screen.getByRole('dialog')).not.toHaveTextContent(/Continua completant/u)
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tancar' }))
+    expect(await screen.findByRole('button', { name: 'Comprovar' })).toBeInTheDocument()
   })
 
   it('can hide the exact check score without hiding the check dialog', async () => {

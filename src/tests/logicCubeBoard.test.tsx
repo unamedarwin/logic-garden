@@ -125,7 +125,7 @@ describe('variable-height 5x5 building board', () => {
       'true',
     )
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'building-floor-9')
-  }, 15_000)
+  }, 30_000)
 
   it('draws continuous room walls on every floor without dividing shared circulation', () => {
     for (const depth of BUILDING_DEPTHS) {

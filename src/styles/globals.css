@@ -1533,6 +1533,21 @@ summary:focus-visible {
   }
 }
 @media (max-width: 780px) {
+  .home-screen > .journey-path {
+    position: sticky;
+    z-index: 30;
+    top: max(0px, env(safe-area-inset-top));
+    margin-inline: -4px;
+    padding: 6px 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--cream) 96%, transparent);
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--ink) 15%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  .home-screen .setup-step {
+    scroll-margin-top: calc(68px + env(safe-area-inset-top));
+  }
   .home-hero {
     min-height: auto;
     grid-template-columns: 1fr;
@@ -1684,6 +1699,10 @@ summary:focus-visible {
   display: none;
 }
 
+.illustrated-story-premise {
+  display: none;
+}
+
 @media (max-width: 540px) {
   .game-screen .game-header {
     min-height: 44px;
@@ -1730,6 +1749,28 @@ summary:focus-visible {
   .game-screen .map-area__heading .eyebrow,
   .game-screen .map-area__prompt {
     display: none;
+  }
+  .game-screen .illustrated-story-premise {
+    display: grid;
+    margin: 0 2px 4px;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 9px 9px 0;
+    background: color-mix(in srgb, var(--paper) 88%, var(--accent) 12%);
+    padding: 4px 7px;
+    font:
+      700 0.72rem/1.18 'Trebuchet MS',
+      sans-serif;
+  }
+  .game-screen .illustrated-story-premise strong {
+    overflow: hidden;
+  }
+  .game-screen .illustrated-story-premise span {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .game-screen .illustrated-story-premise span {
+    color: var(--muted-ink);
+    font-weight: 600;
   }
   .game-screen .adventure-banner > .game-counter {
     flex: 0 0 auto;
@@ -2342,21 +2383,44 @@ summary:focus-visible {
 .character-clue-rail__context {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   border-top: 1px dashed var(--line);
   padding: 9px 2px 0;
 }
-.character-clue-rail__active {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 0.84rem;
+.character-clue-rail__story-progress {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  margin: 0 0 7px;
+  border-left: 3px solid var(--coral);
+  border-radius: 8px;
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--sun) 23%, var(--paper));
 }
-.character-clue-rail__active-icon {
-  width: 1.65rem;
-  height: 1.65rem;
+.character-clue-rail__story-progress p {
+  display: grid;
+  margin: 0;
+  line-height: 1.2;
+}
+.character-clue-rail__story-progress p span {
+  color: var(--ink-soft);
+  font-size: 0.7rem;
+}
+.character-clue-rail__story-meter {
+  display: flex;
+  gap: 3px;
+}
+.character-clue-rail__story-meter span {
+  width: 12px;
+  height: 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+}
+.character-clue-rail__story-meter .is-reached {
+  border-color: var(--coral);
+  background: var(--coral);
 }
 .character-clue-rail__navigation {
   display: flex;
@@ -2406,11 +2470,6 @@ summary:focus-visible {
   font-weight: 700;
   line-height: 1.35;
   scroll-snap-align: start;
-}
-.character-clue-rail__story-beat {
-  color: var(--ink-soft);
-  font-size: 0.82em;
-  letter-spacing: 0.01em;
 }
 .character-clue-rail__clue--empty {
   grid-column: 1 / -1;
@@ -2864,9 +2923,6 @@ summary:focus-visible {
   }
   .game-screen .character-clue-rail__context {
     padding-top: 5px;
-  }
-  .game-screen .character-clue-rail__active {
-    margin-bottom: 0;
   }
   .game-screen .character-clue-rail__navigation {
     min-height: 44px;

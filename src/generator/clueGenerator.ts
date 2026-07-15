@@ -43,6 +43,15 @@ export const generateCandidateClues = (
           Math.abs(candidate.column - position.column) ===
           1,
     )
+  const visibleLandmarkNextTo = (position: Position) =>
+    puzzle.positions.find(
+      (candidate) =>
+        candidate.blocked &&
+        candidate.obstacleEmoji !== undefined &&
+        candidate.obstacleLabel !== undefined &&
+        candidate.placeId === position.placeId &&
+        areAdjacent(position, candidate),
+    )
 
   for (const character of puzzle.characters) {
     const position = solutionPosition(puzzle, solution, character.id)
@@ -102,7 +111,18 @@ export const generateCandidateClues = (
         placeId: position.placeId,
       })
     } else if (puzzle.boardMode === 'logic-cube') {
-      if (hasVisibleLandmark(position)) {
+      const adjacentLandmark = visibleLandmarkNextTo(position)
+      if (adjacentLandmark) {
+        add({
+          ...clueBase(
+            random,
+            'character-next-to-obstacle',
+            `${character.id}:${adjacentLandmark.id}`,
+          ),
+          type: 'character-next-to-obstacle',
+          characterId: character.id,
+          obstaclePositionId: adjacentLandmark.id,
+        })
         add({
           ...clueBase(random, 'character-at-position', character.id),
           type: 'character-at-position',

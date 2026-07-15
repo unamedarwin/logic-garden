@@ -18,17 +18,28 @@
 - Child easy, medium, and hard modes now differ deductively at the same 4/6/8 size: easy protects
   direct friendly clues for most friends, medium protects fewer, and hard prioritizes relations.
 - The public child-facing label is now the age-neutral `Illustrated Adventures` equivalent in every
-  locale. Three deterministic mystery arcs wrap each local seed, each character exposes a short
-  story prompt, and every rendered fragment retains one structured source clue. The next content
-  pass should author theme-specific premises and validate them with the retained audience protocol
-  in [`content-quality-rubric.md`](content-quality-rubric.md).
+  locale. Three premises per theme combine with six deterministic mystery incidents, four
+  objectives, four endings, and four clue-derived character roles. Every rendered fragment retains
+  one structured source clue. Automated samples enforce at least 80 complete signatures per 100
+  seeds and theme, all three premises, at least 17 of 18 opening combinations, normalized incident
+  entropy of 0.95, normalized premise entropy of 0.90, and strict share caps. Eligible audience
+  validation remains open under [`content-quality-rubric.md`](content-quality-rubric.md).
+- On narrow setup screens the journey path is sticky below the safe area and above the scrolling
+  decision. The first-arrival browser journey scrolls the first selector and checks that the active
+  step, previous/next controls, and full path remain in the viewport without horizontal overflow.
 
-## Deduction grading
+## Deduction grading: implemented
 
-- Add a framework-independent deduction trace that measures forced placements, branching pressure,
-  and the longest dependency chain without reading a stored answer.
-- Regenerate and grade every advanced template with non-overlapping difficulty bands based on that
-  trace, while keeping `6 x 6`, `9 x 9`, and `16 x 16` available at every difficulty.
+- The framework-independent deduction trace measures initial candidate domains, forced placements,
+  branching pressure, clue interpretation load, and the longest reconstructed chain. It never reads
+  or persists a stored answer; after forced moves end, evidence generation may follow only the
+  solution already verified unique with a two-solution limit.
+- Runtime guidance now produces ordered pressure at every advanced size and height. Automated
+  matrices cover both internal audiences, all `6 x 6`, `9 x 9`, and `16 x 16` boards, and every
+  building height from 3 through 10. Child 4/6/8 modes retain a locally forced first deduction while
+  easy, medium, and hard vary the later chain.
+- Player calibration remains separate: automated traces prove structural ordering, not perceived
+  difficulty or enjoyment.
 
 ## Advanced three-dimensional puzzles: published foundation
 
@@ -62,8 +73,14 @@
   `docs/room-based-building-proposal.md`. Implementation starts with a shared pure candidate selector
   so the solver, reducer, persistence, and DOM cannot disagree about room targets.
 
-## Catalog verification
+## Catalog verification: implemented
 
-- Materialize all 100 structures across rotating compatible themes in scheduled verification,
-  checking uniqueness, node limits, localized clue rendering, and obstacle rejection without
-  making the normal deployment workflow unreasonably slow.
+- Scheduled verification materializes all 100 answer-free structures and independently checks a
+  second matrix of all 288 public theme, difficulty, and selected-dimension combinations.
+- Every case reruns uniqueness with a two-solution limit, reconstructs a complete satisfying
+  assignment from the deduction trace, and composes every clue in Catalan without empty
+  tokens or unresolved placeholders. The exhaustive test is retained in the normal release suite;
+  it currently completes in about two minutes inside the frozen Docker image.
+- V8 coverage runs serially and excludes only this exhaustive corpus file because it repeats already
+  instrumented branches hundreds of times. The release `verify` command still runs the corpus in
+  full, while coverage retains its independent statement, branch, function, and line thresholds.
