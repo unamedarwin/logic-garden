@@ -262,6 +262,70 @@ describe('variable-height 5x5 building board', () => {
     )
   }, 15_000)
 
+  it('keeps the current floor when the selected character is still waiting', () => {
+    const puzzle = generatePuzzle('hard', 'cube-waiting-selection-floor', 'teens', 'cube')
+    const first = puzzle.characters[0]!
+    const second = puzzle.characters[1]!
+    const placedPosition = puzzle.positions.find(
+      (candidate) => !candidate.blocked && candidate.layer === 2,
+    )!
+    const { rerender } = render(
+      <LogicCubeBoard
+        positions={puzzle.positions}
+        characters={puzzle.characters}
+        items={puzzle.items}
+        assignments={{ [first.id]: placedPosition.id }}
+        selectedCharacterId={first.id}
+        locale="ca"
+        themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
+        boardLabel="Edifici"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
+        returnLabel="Torna"
+        moveToPositionLabel={(label) => `Mou a ${label}`}
+        selectPositionLabel={(label) => `Tria ${label}`}
+        onMoveToPosition={vi.fn()}
+        onRemoveCharacter={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Tercer pis' }))
+    expect(screen.getByRole('tab', { name: 'Tercer pis' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+
+    rerender(
+      <LogicCubeBoard
+        positions={puzzle.positions}
+        characters={puzzle.characters}
+        items={puzzle.items}
+        assignments={{ [first.id]: placedPosition.id }}
+        selectedCharacterId={second.id}
+        locale="ca"
+        themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
+        boardLabel="Edifici"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
+        returnLabel="Torna"
+        moveToPositionLabel={(label) => `Mou a ${label}`}
+        selectPositionLabel={(label) => `Tria ${label}`}
+        onMoveToPosition={vi.fn()}
+        onRemoveCharacter={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('tab', { name: 'Tercer pis' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    expect(screen.queryByRole('tabpanel', { name: /Primer pis/u })).not.toBeInTheDocument()
+  }, 15_000)
+
   it('keeps a visually free non-solution cell interactive', () => {
     const puzzle = generatePuzzle(
       'hard',

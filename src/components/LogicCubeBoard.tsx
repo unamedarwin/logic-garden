@@ -362,14 +362,17 @@ export const LogicCubeBoard = ({
   const [spotlightCharacterId, setSpotlightCharacterId] = useState<CharacterId | undefined>()
 
   useEffect(() => {
+    setActiveLayer(Math.min(buildingDepth - 1, 1))
+  }, [buildingDepth, puzzleSeed])
+
+  useEffect(() => {
     if (!requestedCharacterId || !requestedPosition) {
       setSpotlightCharacterId(undefined)
-      setActiveLayer(Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1))
       return
     }
     setSpotlightCharacterId(requestedCharacterId)
     setActiveLayer(Math.min(buildingDepth - 1, requestedPosition.layer ?? 1))
-  }, [buildingDepth, puzzleSeed, requestedCharacterId, requestedPosition])
+  }, [buildingDepth, requestedCharacterId, requestedPosition])
 
   useEffect(() => {
     if (!spotlightCharacterId) return undefined
