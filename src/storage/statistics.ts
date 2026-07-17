@@ -3,6 +3,7 @@ import type { BuildingDepth } from '../domain/buildingPlan'
 import type {
   AdvancedGridSize,
   Audience,
+  BuildingPlacement,
   ChildMapSize,
   Difficulty,
   PuzzleVariant,
@@ -21,6 +22,7 @@ export interface CompletedGame {
   readonly difficulty: Difficulty
   readonly puzzleVariant?: PuzzleVariant
   readonly buildingDepth?: BuildingDepth
+  readonly buildingPlacement?: BuildingPlacement
   readonly gridSize?: AdvancedGridSize
   readonly childMapSize?: ChildMapSize
   readonly generatorVersion: number
@@ -46,6 +48,7 @@ export type CompletionInput = CompletionBase &
         readonly puzzleVariant: 'cube'
         readonly audience: Exclude<Audience, 'children'>
         readonly buildingDepth: BuildingDepth
+        readonly buildingPlacement: BuildingPlacement
         readonly gridSize?: never
       }
     | {
@@ -129,10 +132,58 @@ const isLegacyStatisticsV2 = (value: unknown): value is LegacyStatisticsV2 =>
   typeof value === 'object' &&
   (value as { readonly schemaVersion?: unknown }).schemaVersion === 2
 
+const isNonNegativeInteger = (value: unknown) =>
+  Number.isSafeInteger(value) && Number(value) >= 0
+
+const isBuildingDepth = (value: unknown): value is BuildingDepth =>
+  value === 3 ||
+  value === 4 ||
+  value === 5 ||
+  value === 6 ||
+  value === 7 ||
+  value === 8 ||
+  value === 9 ||
+  value === 10
+
+const isCompletedGame = (value: unknown): value is CompletedGame => {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  const variant = candidate.puzzleVariant
+  const placement = candidate.buildingPlacement
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.seed === 'string' &&
+    (candidate.audience === 'children' ||
+      candidate.audience === 'teens' ||
+      candidate.audience === 'adults') &&
+    (candidate.difficulty === 'easy' ||
+      candidate.difficulty === 'medium' ||
+      candidate.difficulty === 'hard') &&
+    (variant === undefined || variant === 'spatial' || variant === 'cube') &&
+    (placement === undefined || placement === 'rooms' || placement === 'cells') &&
+    (placement === undefined || variant === 'cube') &&
+    (candidate.buildingDepth === undefined || isBuildingDepth(candidate.buildingDepth)) &&
+    (candidate.buildingDepth === undefined || variant === 'cube') &&
+    isNonNegativeInteger(candidate.generatorVersion) &&
+    isNonNegativeInteger(candidate.completedAt) &&
+    isNonNegativeInteger(candidate.elapsedSeconds) &&
+    isNonNegativeInteger(candidate.moves) &&
+    isNonNegativeInteger(candidate.hintsUsed)
+  )
+}
+
 const isStatistics = (value: unknown): value is Statistics =>
   Boolean(value) &&
   typeof value === 'object' &&
-  (value as { readonly schemaVersion?: unknown }).schemaVersion === 4
+  (value as { readonly schemaVersion?: unknown }).schemaVersion === 4 &&
+  isNonNegativeInteger((value as Record<string, unknown>).completed) &&
+  isNonNegativeInteger((value as Record<string, unknown>).hintsUsed) &&
+  Array.isArray((value as Record<string, unknown>).recentSeeds) &&
+  ((value as Record<string, unknown>).recentSeeds as readonly unknown[]).every(
+    (seed) => typeof seed === 'string',
+  ) &&
+  Array.isArray((value as Record<string, unknown>).history) &&
+  ((value as Record<string, unknown>).history as readonly unknown[]).every(isCompletedGame)
 
 const isLegacyStatisticsV3 = (value: unknown): value is LegacyStatisticsV3 =>
   Boolean(value) &&

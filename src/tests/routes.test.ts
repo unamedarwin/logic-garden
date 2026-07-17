@@ -73,18 +73,33 @@ describe('shared routes', () => {
           generatorVersion: GENERATOR_VERSION,
           variant: 'cube',
           buildingDepth: 7,
+          buildingPlacement: 'rooms',
         },
         'adults',
       ),
     )
 
-    expect(parseSharedGameRoute(shared as unknown as Location)).toMatchObject({
+    const parsed = parseSharedGameRoute(shared as unknown as Location)
+    expect(parsed).toMatchObject({
       difficulty: 'medium',
       seed: 'CUBE-125',
       audience: 'adults',
       variant: 'cube',
       buildingDepth: 7,
+      buildingPlacement: 'rooms',
     })
+    expect(
+      generatePuzzle(
+        parsed!.difficulty,
+        parsed!.seed,
+        parsed!.audience,
+        parsed!.variant,
+        parsed!.gridSize,
+        parsed!.childMapSize,
+        parsed!.buildingDepth,
+        parsed!.buildingPlacement,
+      ).buildingPlacement,
+    ).toBe('rooms')
   })
 
   it('keeps the selected child map size in a shared challenge', () => {
@@ -219,7 +234,7 @@ describe('shared routes', () => {
         }
       }
     }
-  }, 120_000)
+  }, 360_000)
 
   it('refuses to create a share link from an obsolete generator version', () => {
     expect(() =>

@@ -127,8 +127,30 @@ describe('saved game compatibility', () => {
           generatorVersion: GENERATOR_VERSION,
           variant: 'cube' as const,
           buildingDepth: 10 as const,
+          buildingPlacement: 'cells' as const,
         },
         wrongSize: { buildingDepth: 9 as const },
+      },
+      {
+        puzzle: generatePuzzle(
+          'medium',
+          'saved-building-room-mode',
+          'teens',
+          'cube',
+          undefined,
+          undefined,
+          6,
+          'rooms',
+        ),
+        challenge: {
+          difficulty: 'medium' as const,
+          audience: 'teens' as const,
+          generatorVersion: GENERATOR_VERSION,
+          variant: 'cube' as const,
+          buildingDepth: 6 as const,
+          buildingPlacement: 'rooms' as const,
+        },
+        wrongSize: { buildingPlacement: 'cells' as const },
       },
     ]
 
@@ -251,6 +273,30 @@ describe('saved game compatibility', () => {
       schemaVersion: 4,
       generatorVersion: GENERATOR_VERSION,
       state: corruptedState,
+    })
+
+    await expect(loadSavedGame()).resolves.toBeNull()
+  })
+
+  it('rejects a current building with a corrupt placement mode', async () => {
+    const puzzle = generatePuzzle(
+      'easy',
+      'saved-corrupt-building-mode',
+      'adults',
+      'cube',
+      undefined,
+      undefined,
+      3,
+      'rooms',
+    )
+    const corruptState = {
+      ...createGameState(puzzle),
+      puzzle: { ...puzzle, buildingPlacement: 'unknown' },
+    }
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      generatorVersion: GENERATOR_VERSION,
+      state: corruptState,
     })
 
     await expect(loadSavedGame()).resolves.toBeNull()

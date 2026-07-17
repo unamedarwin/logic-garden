@@ -12,6 +12,7 @@ import {
   type BuildingDepth,
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
+import { buildingRoomDestinationsForPositions } from '../domain/placements'
 import {
   type Audience,
   characterId,
@@ -19,6 +20,7 @@ import {
   placeId,
   positionId,
   type Assignment,
+  type BuildingPlacement,
   type Character,
   type Difficulty,
   type Item,
@@ -41,6 +43,7 @@ import { SeededRandom } from './seededRandom'
 export interface GeneratedWorld {
   readonly theme: Theme
   readonly boardMode: 'map' | 'logic-grid' | 'logic-cube'
+  readonly buildingPlacement?: BuildingPlacement
   readonly spatialPlanId?: SpatialPlanId
   readonly characters: readonly Character[]
   readonly items: readonly Item[]
@@ -60,6 +63,7 @@ export interface CubeWorldStructure {
   readonly gridSize: 5
   readonly depth: BuildingDepth
   readonly characterCount: 8
+  readonly buildingPlacement?: BuildingPlacement
 }
 
 export interface MapWorldStructure {
@@ -195,6 +199,34 @@ const selectBuildingPositions = (
   throw new Error('No s’ha pogut construir una comunitat de veïns coherent.')
 }
 
+const selectBuildingRooms = (
+  positions: readonly Position[],
+  random: SeededRandom,
+): readonly Position[] => {
+  const destinations = buildingRoomDestinationsForPositions(positions)
+  const shops = destinations.filter((position) => position.buildingKind === 'shop')
+  const homes = destinations.filter((position) => position.buildingKind === 'home')
+  if (shops.length !== 2 || homes.length < 6) {
+    throw new Error('No s’han pogut preparar les estances de l’edifici.')
+  }
+
+  for (let attempt = 0; attempt < 500; attempt += 1) {
+    const selectedHomes = random.shuffle(homes).slice(0, 6)
+    const hasVerticalRelation = selectedHomes.some((first, index) =>
+      selectedHomes
+        .slice(index + 1)
+        .some((second) => isBuildingAbove(first, second) || isBuildingAbove(second, first)),
+    )
+    const hasNeighborRelation = selectedHomes.some((first, index) =>
+      selectedHomes.slice(index + 1).some((second) => buildingUnitsAreNeighbors(first, second)),
+    )
+    if (hasVerticalRelation && hasNeighborRelation) {
+      return random.shuffle([...shops, ...selectedHomes])
+    }
+  }
+  throw new Error('No s’ha pogut construir una comunitat d’estances coherent.')
+}
+
 const waterObstacleCount = (size: number) => {
   if (size <= 6) return 1
   if (size <= 9) return 2
@@ -315,6 +347,8 @@ export const generateWorld = (
         : 'logic-grid'
   const spatialAudience = audience === 'children' ? 'teens' : audience
   const buildingDepth = structure?.boardMode === 'logic-cube' ? structure.depth : undefined
+  const buildingPlacement =
+    structure?.boardMode === 'logic-cube' ? (structure.buildingPlacement ?? 'cells') : undefined
   const mapCharacterCount =
     structure?.boardMode === 'map' ? structure.characterCount : undefined
   const characterCount =
@@ -518,7 +552,10 @@ export const generateWorld = (
             ) {
               throw new Error(`No s’ha pogut construir l’edifici lògic 5×5×${buildingDepth}.`)
             }
-            const selected = selectBuildingPositions(positions, random)
+            const selected =
+              buildingPlacement === 'rooms'
+                ? selectBuildingRooms(positions, random)
+                : selectBuildingPositions(positions, random)
             return Object.fromEntries(
               characters.map((character, index) => [character.id, selected[index]!.id]),
             ) as Assignment
@@ -533,6 +570,7 @@ export const generateWorld = (
   return {
     theme: theme as Theme,
     boardMode,
+    buildingPlacement,
     spatialPlanId,
     characters,
     items,

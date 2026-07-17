@@ -13,6 +13,7 @@ import {
   extractAdvancedPuzzleTemplate,
   materializeAdvancedPuzzleTemplate,
   templateBucketKey,
+  withRoomTemplateClues,
   type AdvancedPuzzleTemplate,
 } from '../src/generator/puzzleTemplates'
 import {
@@ -98,7 +99,11 @@ const catalogQuotaForBucket = (bucket: TemplateBucket) => {
 
 const difficultyMetricsMatch = (template: AdvancedPuzzleTemplate) => {
   if (template.boardMode === 'logic-cube') {
-    return template.characterCount === 8 && BUILDING_DEPTHS.includes(template.depth)
+    return (
+      template.characterCount === 8 &&
+      BUILDING_DEPTHS.includes(template.depth) &&
+      template.roomClues.length > 0
+    )
   }
   const counts = template.landmarkCandidateCounts
   if (counts.length !== template.characterCount) return false
@@ -156,7 +161,8 @@ const assertCatalogDistribution = (templates: readonly AdvancedPuzzleTemplate[])
       (template) =>
         !BUILDING_DEPTHS.includes(template.depth) ||
         template.characterCount !== 8 ||
-        template.gridSize !== 5,
+        template.gridSize !== 5 ||
+        template.roomClues.length === 0,
     )
   ) {
     throw new Error('El catàleg 3D conté una geometria que no és 5×5×3-10 amb vuit persones.')
@@ -185,8 +191,18 @@ const checkCatalog = async () => {
     (candidate) => candidate.boardMode === 'logic-cube',
   )) {
     materializeAdvancedPuzzleTemplate(template, `catalog-check-${template.id}`)
+    materializeAdvancedPuzzleTemplate(template, `catalog-check-room-${template.id}`, 'rooms')
   }
 }
+
+const roomPuzzleFor = (audience: 'teens' | 'adults', depth: BuildingDepth, source: string) =>
+  generatePuzzleDirect('hard', source, audience, {
+    boardMode: 'logic-cube',
+    gridSize: 5,
+    depth,
+    characterCount: 8,
+    buildingPlacement: 'rooms',
+  })
 
 const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: string) => {
   const puzzle =
@@ -219,7 +235,17 @@ const generateCandidate = (bucket: TemplateBucket, candidateIndex: number, id: s
             },
           )
         })()
-  return extractAdvancedPuzzleTemplate(puzzle, bucket.audience, id)
+  const template = extractAdvancedPuzzleTemplate(puzzle, bucket.audience, id)
+  return bucket.boardMode === 'logic-cube'
+    ? withRoomTemplateClues(
+        template,
+        roomPuzzleFor(
+          bucket.audience,
+          bucket.depth,
+          `catalog-room-${GENERATOR_VERSION}-${candidateIndex}`,
+        ),
+      )
+    : template
 }
 
 const generateTemplates = async () => {
@@ -322,7 +348,27 @@ const repairCatalog = async () => {
     bucketCounts.set(bucketKey, (bucketCounts.get(bucketKey) ?? 0) + 1)
   }
   for (const template of advancedPuzzleTemplates as readonly AdvancedPuzzleTemplate[]) {
-    addCandidate(template)
+    if (
+      template.boardMode === 'logic-cube' &&
+      !(template as { readonly roomClues?: readonly unknown[] }).roomClues?.length
+    ) {
+      try {
+        addCandidate(
+          withRoomTemplateClues(
+            template,
+            roomPuzzleFor(
+              template.audience,
+              template.depth,
+              `catalog-room-repair-${GENERATOR_VERSION}-${template.id}`,
+            ),
+          ),
+        )
+      } catch {
+        // A missing room structure is regenerated in the bucket-filling pass below.
+      }
+    } else {
+      addCandidate(template)
+    }
   }
   const buckets = templateBuckets()
   const firstCandidate = seedOffset || 20_000
@@ -406,7 +452,14 @@ const migrateCatalogWithCubes = async () => {
         audience,
         { boardMode: 'logic-cube', gridSize: 5, depth, characterCount: 8 },
       )
-      const template = extractAdvancedPuzzleTemplate(puzzle, audience, `cube-${candidateIndex}`)
+      const template = withRoomTemplateClues(
+        extractAdvancedPuzzleTemplate(puzzle, audience, `cube-${candidateIndex}`),
+        roomPuzzleFor(
+          audience,
+          depth,
+          `cube-room-catalog-${GENERATOR_VERSION}-${candidateIndex}`,
+        ),
+      )
       const signature = canonicalTemplateSignature(template)
       if (signatures.has(signature)) continue
       signatures.add(signature)

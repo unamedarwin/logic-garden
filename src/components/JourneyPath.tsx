@@ -1,12 +1,13 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
-export type JourneyStep = 'collection' | 'size' | 'difficulty' | 'adventure'
+export type JourneyStep = 'collection' | 'mode' | 'size' | 'difficulty' | 'adventure'
 
 interface JourneyPathProps {
   readonly label: string
   readonly currentStep: JourneyStep
   readonly furthestStep: JourneyStep
   readonly steps: Readonly<Record<JourneyStep, string>>
+  readonly stepOrder: readonly JourneyStep[]
   readonly previousLabel: string
   readonly nextLabel: string
   readonly canGoPrevious: boolean
@@ -16,13 +17,12 @@ interface JourneyPathProps {
   readonly onStepChange: (step: JourneyStep) => void
 }
 
-const journeySteps: readonly JourneyStep[] = ['collection', 'size', 'difficulty', 'adventure']
-
 export const JourneyPath = ({
   label,
   currentStep,
   furthestStep,
   steps,
+  stepOrder,
   previousLabel,
   nextLabel,
   canGoPrevious,
@@ -31,7 +31,7 @@ export const JourneyPath = ({
   onNext,
   onStepChange,
 }: JourneyPathProps) => {
-  const furthestIndex = journeySteps.indexOf(furthestStep)
+  const furthestIndex = stepOrder.indexOf(furthestStep)
 
   return (
     <nav className="journey-path" aria-label={label}>
@@ -45,7 +45,7 @@ export const JourneyPath = ({
         <ChevronLeft aria-hidden="true" />
       </button>
       <ol>
-        {journeySteps.map((step, index) => (
+        {stepOrder.map((step, index) => (
           <li key={step}>
             <button
               type="button"

@@ -137,4 +137,26 @@ describe('local clue templates', () => {
       expect(sentence).not.toMatch(/\d+[.,:]\d+/u)
     }
   })
+
+  it('elides the Catalan preposition before a person name that starts with a vowel', () => {
+    const clue: Clue = {
+      id: 'above-person',
+      type: 'above',
+      phraseVariant: 0,
+      firstCharacterId: characterIds.b,
+      secondCharacterId: characterIds.a,
+    }
+    const basePuzzle = createPuzzle([clue])
+    const puzzle = {
+      ...basePuzzle,
+      boardMode: 'logic-cube' as const,
+      buildingPlacement: 'rooms' as const,
+      characters: basePuzzle.characters.map((character) =>
+        character.id === characterIds.a ? { ...character, name: 'Àlex' } : character,
+      ),
+    }
+
+    expect(renderClue(puzzle, clue, 'ca')).toContain('d’Àlex')
+    expect(renderClue(puzzle, clue, 'ca')).not.toContain('de Àlex')
+  })
 })

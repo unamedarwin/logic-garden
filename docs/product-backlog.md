@@ -47,8 +47,9 @@
   slice at a time, `4(d-1)` semantic homes, two shops, `14(d-1) + 10` playable room cells, eight
   people, and crossing on horizontal, vertical, and adjacent-height axes.
 - The answer-free catalog reserves 16 hard building templates, one per internal audience and height.
-  Runtime materialization is still checked with a two-solution limit, and height is selected
-  uniformly before a template so the unequal per-height quotas do not bias play.
+  Each stores separate generic clue tuples for cell mode and room mode. Runtime materialization is
+  still checked with a two-solution limit, and height is selected uniformly before a template so the
+  unequal per-height quotas do not bias play.
 - The level step is now real for every height: easy ensures direct home or landmark guidance for at
   least six people, medium ensures it for at least three, and hard uses the unassisted structural
   clue set. Existing direct facts count toward those targets instead of being repeated. Every
@@ -62,16 +63,18 @@
   blocked-cell semantics are implemented. Keep expanding building-specific social clue combinations
   only after the published mobile interaction checks remain stable. See `docs/building-system.md`.
 
-## Room-based 3D entry mode: analyzed
+## Room-based 3D entry mode: implemented
 
-- A whole-room placement mode is viable and should remain explicit rather than silently replacing
-  Easy rules. It keeps the current visual `5 x 5 x d` building but exposes only one semantic target
+- A whole-room placement mode is the recommended explicit setup choice rather than a hidden Easy
+  rule. It keeps the current visual `5 x 5 x d` building but exposes one semantic target
   per home or shop, hides only the cell-grid interaction layer, and removes cross-room row and column
   conflicts. The existing walls, doors, materials, furniture, elevator, labels, and avatars are
   reused.
-- The recommended design, compatibility plan, generator changes, and regression matrix are in
-  `docs/room-based-building-proposal.md`. Implementation starts with a shared pure candidate selector
-  so the solver, reducer, persistence, and DOM cannot disagree about room targets.
+- The solver, reducer, evaluator, hints, persistence, and DOM share the same pure canonical target
+  selector. The 48 audience/height/difficulty combinations remain uniquely solvable with ordered
+  deduction pressure; wrong room hypotheses persist until an explicit hint changes one. The
+  compatible advanced cell mode remains available. Details and regression gates are in
+  `docs/room-based-building-proposal.md`.
 
 ## Catalog verification: implemented
 

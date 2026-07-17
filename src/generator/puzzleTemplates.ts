@@ -1,7 +1,8 @@
-import {
+﻿import {
   puzzleId,
   seed,
   type Audience,
+  type BuildingPlacement,
   type Clue,
   type Difficulty,
   type Puzzle,
@@ -50,6 +51,7 @@ export type AdvancedPuzzleTemplate =
       readonly boardMode: 'logic-cube'
       readonly gridSize: 5
       readonly depth: BuildingDepth
+      readonly roomClues: readonly TemplateClue[]
     })
 
 export const templateBucketKey = (template: AdvancedPuzzleTemplate) =>
@@ -59,12 +61,19 @@ export const canonicalTemplateSignature = (template: AdvancedPuzzleTemplate) =>
   JSON.stringify({
     audience: template.audience,
     boardMode: template.boardMode,
+    buildingPlacement: template.boardMode === 'logic-cube' ? 'cells' : undefined,
     gridSize: template.gridSize,
     depth: template.boardMode === 'logic-cube' ? template.depth : undefined,
     spatialPlanId: template.boardMode === 'logic-grid' ? template.spatialPlanId : undefined,
     clues: [...template.clues].sort((first, second) =>
       JSON.stringify(first).localeCompare(JSON.stringify(second)),
     ),
+    roomClues:
+      template.boardMode === 'logic-cube'
+        ? [...template.roomClues].sort((first, second) =>
+            JSON.stringify(first).localeCompare(JSON.stringify(second)),
+          )
+        : undefined,
   })
 
 const numericSuffix = (value: string) => {
@@ -75,7 +84,7 @@ const numericSuffix = (value: string) => {
 
 const positionCoordinates = (puzzle: Puzzle, positionId: string) => {
   const position = puzzle.positions.find((candidate) => candidate.id === positionId)
-  if (!position) throw new Error(`Posició estructural desconeguda: ${positionId}`)
+  if (!position) throw new Error(`Unknown structural position: ${positionId}`)
   return [position.row, position.column] as const
 }
 
@@ -87,7 +96,7 @@ const serializeClue = (puzzle: Puzzle, clue: Clue): TemplateClue => {
         const layer = puzzle.positions.find(
           (position) => position.id === clue.positionId,
         )?.layer
-        if (layer === undefined) throw new Error('La casella de l’edifici no té pis.')
+        if (layer === undefined) throw new Error('La casella de lâ€™edifici no tÃ© pis.')
         return ['c', numericSuffix(clue.characterId), layer, row, column]
       }
       return ['p', numericSuffix(clue.characterId), row, column]
@@ -98,7 +107,7 @@ const serializeClue = (puzzle: Puzzle, clue: Clue): TemplateClue => {
         const layer = puzzle.positions.find(
           (position) => position.id === clue.positionId,
         )?.layer
-        if (layer === undefined) throw new Error('La casella de l’edifici no té pis.')
+        if (layer === undefined) throw new Error('La casella de lâ€™edifici no tÃ© pis.')
         return ['C', numericSuffix(clue.characterId), layer, row, column]
       }
       return ['P', numericSuffix(clue.characterId), row, column]
@@ -151,7 +160,7 @@ const serializeClue = (puzzle: Puzzle, clue: Clue): TemplateClue => {
     case 'same-column':
     case 'different-column':
     case 'distance':
-      throw new Error(`Pista no admesa en una plantilla avançada: ${clue.type}`)
+      throw new Error(`Unsupported advanced template clue: ${clue.type}`)
   }
 }
 
@@ -164,7 +173,7 @@ export const extractAdvancedPuzzleTemplate = (
     (puzzle.boardMode !== 'logic-grid' && puzzle.boardMode !== 'logic-cube') ||
     (puzzle.boardMode === 'logic-grid' && !puzzle.spatialPlanId)
   ) {
-    throw new Error('Només es poden catalogar puzzles espacials o cúbics.')
+    throw new Error('Only spatial and building puzzles can be cataloged.')
   }
 
   const gridSize =
@@ -203,6 +212,7 @@ export const extractAdvancedPuzzleTemplate = (
         boardMode: 'logic-cube',
         gridSize: 5,
         depth: buildingDepthForPositions(puzzle.positions),
+        roomClues: [],
       }
     : {
         ...base,
@@ -210,6 +220,45 @@ export const extractAdvancedPuzzleTemplate = (
         gridSize: gridSize as 6 | 9 | 16,
         spatialPlanId: puzzle.spatialPlanId!,
       }
+}
+
+export const withRoomTemplateClues = (
+  template: AdvancedPuzzleTemplate,
+  roomPuzzle: Puzzle,
+): AdvancedPuzzleTemplate => {
+  if (
+    template.boardMode !== 'logic-cube' ||
+    roomPuzzle.boardMode !== 'logic-cube' ||
+    roomPuzzle.buildingPlacement !== 'rooms' ||
+    buildingDepthForPositions(roomPuzzle.positions) !== template.depth ||
+    roomPuzzle.characters.length !== template.characterCount
+  ) {
+    throw new Error('Les pistes per estances no corresponen a la plantilla 3D.')
+  }
+  const validation = analyzeSolutions(roomPuzzle, { limit: 2 })
+  if (validation.count !== 1 || validation.reachedNodeLimit) {
+    throw new Error('Room clues do not preserve a unique solution.')
+  }
+  const roomClues = roomPuzzle.clues.map((clue) => serializeClue(roomPuzzle, clue))
+  const allowedCodes = new Set(['z', 'Z', 'a', 'A', 'u', 'd', 's', 'S'])
+  if (
+    roomClues.length === 0 ||
+    roomClues.some(
+      (clue) =>
+        !allowedCodes.has(clue[0]) ||
+        clue.slice(1).some((value, index) => {
+          if (typeof value !== 'number' || value < 0) return true
+          const isPlaceIndex = (clue[0] === 'z' || clue[0] === 'Z') && index === 1
+          return !isPlaceIndex && value >= template.characterCount
+        }),
+    )
+  ) {
+    throw new Error('Room clues contain an unsupported relation.')
+  }
+  return {
+    ...template,
+    roomClues,
+  }
 }
 
 const pairTypes: Record<
@@ -380,7 +429,18 @@ const materializeClue = (
 export const materializeAdvancedPuzzleTemplate = (
   template: AdvancedPuzzleTemplate,
   source: string,
+  buildingPlacement: BuildingPlacement = 'cells',
 ): Puzzle => {
+  if (template.boardMode !== 'logic-cube' && buildingPlacement !== 'cells') {
+    throw new Error('El mode per estances nomÃƒÂ©s ÃƒÂ©s compatible amb edificis 3D.')
+  }
+  const templateClues =
+    template.boardMode === 'logic-cube' && buildingPlacement === 'rooms'
+      ? template.roomClues
+      : template.clues
+  if (!templateClues?.length) {
+    throw new Error(`La plantilla ${template.id} no contÃƒÂ© pistes per al mode demanat.`)
+  }
   const puzzleSeed = seed(source)
   const random = new SeededRandom(deriveSeed(puzzleSeed, 41))
   const world = generateWorld(
@@ -388,7 +448,13 @@ export const materializeAdvancedPuzzleTemplate = (
     random,
     template.audience,
     template.boardMode === 'logic-cube'
-      ? { boardMode: 'logic-cube', gridSize: 5, depth: template.depth, characterCount: 8 }
+      ? {
+          boardMode: 'logic-cube',
+          gridSize: 5,
+          depth: template.depth,
+          characterCount: 8,
+          buildingPlacement,
+        }
       : {
           boardMode: 'logic-grid',
           gridSize: template.gridSize,
@@ -401,11 +467,23 @@ export const materializeAdvancedPuzzleTemplate = (
     seed: puzzleSeed,
     difficulty: template.difficulty,
     boardMode: template.boardMode,
+    buildingPlacement: template.boardMode === 'logic-cube' ? buildingPlacement : undefined,
     spatialPlanId: template.boardMode === 'logic-grid' ? template.spatialPlanId : undefined,
     theme: world.theme.id,
-    title: world.theme.title,
-    introduction: random.pick(world.theme.introductions),
-    objective: random.pick(world.theme.objectives),
+    title:
+      world.boardMode === 'logic-cube'
+        ? (world.theme.buildingTitle ?? world.theme.title)
+        : world.theme.title,
+    introduction: random.pick(
+      world.boardMode === 'logic-cube'
+        ? (world.theme.buildingIntroductions ?? world.theme.introductions)
+        : world.theme.introductions,
+    ),
+    objective: random.pick(
+      world.boardMode === 'logic-cube'
+        ? (world.theme.buildingObjectives ?? world.theme.objectives)
+        : world.theme.objectives,
+    ),
     characters: world.characters,
     items: world.items,
     positions: world.positions,
@@ -414,7 +492,7 @@ export const materializeAdvancedPuzzleTemplate = (
       generatorVersion: template.generatorVersion,
       solutionCount: 1,
       difficultyScore:
-        template.clues.length * 2 +
+        templateClues.length * 2 +
         template.characterCount * 5 +
         template.landmarkCandidateCounts.reduce((total, count) => total + count, 0),
       exploredNodes: 0,
@@ -422,11 +500,11 @@ export const materializeAdvancedPuzzleTemplate = (
   }
   const puzzle = {
     ...shell,
-    clues: template.clues.map((clue, index) => materializeClue(shell, clue, index, random)),
+    clues: templateClues.map((clue, index) => materializeClue(shell, clue, index, random)),
   }
   const validation = analyzeSolutions(puzzle, { limit: 2 })
   if (validation.count !== 1 || validation.reachedNodeLimit) {
-    throw new Error(`La plantilla ${template.id} no conserva una solució única.`)
+    throw new Error(`Template ${template.id} does not preserve a unique solution.`)
   }
   return {
     ...puzzle,

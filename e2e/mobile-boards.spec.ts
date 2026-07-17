@@ -2,19 +2,37 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 
 type Collection = 'Aventures il·lustrades' | 'Puzzles 2D' | 'Puzzles 3D'
 
+interface StartGameOptions {
+  readonly difficulty?: RegExp
+  readonly buildingPlacement?: RegExp
+}
+
 const chooseRadio = async (radio: Locator) => {
   await radio.focus()
   await radio.press('Space')
   await expect(radio).toBeChecked()
 }
 
-const startGame = async (page: Page, collection: Collection, sizeLabel: RegExp) => {
+const startGame = async (
+  page: Page,
+  collection: Collection,
+  sizeLabel: RegExp,
+  options: StartGameOptions = {},
+) => {
   await page.goto('./')
   await chooseRadio(page.getByRole('radio', { name: new RegExp(`^${collection}`, 'u') }))
   await page.getByRole('button', { name: 'Pas següent' }).click()
+  if (collection === 'Puzzles 3D') {
+    await chooseRadio(
+      page.getByRole('radio', {
+        name: options.buildingPlacement ?? /^Per estances/u,
+      }),
+    )
+    await page.getByRole('button', { name: 'Pas següent' }).click()
+  }
   await chooseRadio(page.getByRole('radio', { name: sizeLabel }))
   await page.getByRole('button', { name: 'Pas següent' }).click()
-  await chooseRadio(page.getByRole('radio', { name: /^Difícil/u }))
+  await chooseRadio(page.getByRole('radio', { name: options.difficulty ?? /^Difícil/u }))
   await page.getByRole('button', { name: 'Pas següent' }).click()
   await chooseRadio(page.locator('.adventure-selector input[type="radio"]').first())
   await page.getByRole('button', { name: 'Juga' }).click()
@@ -105,6 +123,41 @@ const expectCentered = async (token: Locator, cell: Locator) => {
     1,
   )
   expect(Math.abs(tokenCenter.y - cellCenter.y)).toBeLessThanOrEqual(1)
+}
+
+const expectElementCentered = async (element: Locator, container: Locator) => {
+  await expect(element).toBeVisible()
+  const [elementBox, containerBox] = await Promise.all([
+    element.boundingBox(),
+    container.boundingBox(),
+  ])
+  expect(elementBox).not.toBeNull()
+  expect(containerBox).not.toBeNull()
+  if (!elementBox || !containerBox) return
+  expect(
+    Math.abs(elementBox.x + elementBox.width / 2 - (containerBox.x + containerBox.width / 2)),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(elementBox.y + elementBox.height / 2 - (containerBox.y + containerBox.height / 2)),
+  ).toBeLessThanOrEqual(1)
+}
+
+const dragWithPointer = async (page: Page, source: Locator, target: Locator) => {
+  const sourceBox = await source.boundingBox()
+  const targetBox = await target.boundingBox()
+  if (!sourceBox || !targetBox) throw new Error('Expected visible drag source and target')
+  const sourceCenter = {
+    x: sourceBox.x + sourceBox.width / 2,
+    y: sourceBox.y + sourceBox.height / 2,
+  }
+  const targetCenter = {
+    x: targetBox.x + targetBox.width / 2,
+    y: targetBox.y + targetBox.height / 2,
+  }
+  await page.mouse.move(sourceCenter.x, sourceCenter.y)
+  await page.mouse.down()
+  await page.mouse.move(sourceCenter.x + 12, sourceCenter.y - 12, { steps: 3 })
+  await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 12 })
 }
 
 const saveEvidence = async (page: Page, testInfo: TestInfo, name: string) => {
@@ -265,6 +318,63 @@ for (const size of [6, 9, 16] as const) {
   })
 }
 
+test('3D easy entry supports room drag, check feedback, and an explicit hint', async ({
+  page,
+}, testInfo) => {
+  await startGame(page, 'Puzzles 3D', /^3 plantes · recomanat$/u, {
+    difficulty: /^Per començar/u,
+  })
+  const cube = page.locator('.logic-cube')
+  await expect(page.locator('.adventure-banner__title div > p:not(.eyebrow)')).toContainText(
+    /Residents i botiguers/u,
+  )
+  await expect(page.locator('.objective-line')).toContainText(/llar o botiga/u)
+  await expect(cube.getByRole('group', { name: /Primer pis/u })).toBeVisible()
+  await expect(cube.getByRole('grid')).toHaveCount(0)
+  await expect(page.locator('.character-clue-rail__clue').first()).toContainText('«')
+
+  const person = page.locator('.character-clue-rail__person').first()
+  const room = cube.locator('[data-room-target]').first()
+  await dragWithPointer(page, person, room)
+  await expect(room.locator('.logic-cube__room-preview')).toBeVisible()
+  await page.mouse.up()
+  await expect(room.locator('.character-token')).toBeVisible()
+  await expectElementCentered(room.locator('.character-token'), room)
+
+  await page.getByRole('button', { name: 'Comprovar' }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.getByRole('dialog')).toContainText(/Encara|Gairebé/u)
+  await page.getByRole('button', { name: 'Continua jugant' }).click()
+  const placedBeforeHint = await page.locator('.character-clue-rail__person--placed').count()
+  await page.getByRole('button', { name: 'Pista', exact: true }).click()
+  await expect(page.locator('.character-clue-rail__person--placed')).toHaveCount(
+    placedBeforeHint + 1,
+  )
+  await expectNoDocumentOverflow(page)
+  await saveEvidence(page, testInfo, 'logic-cube-3-easy-hint')
+})
+
+test('3D advanced cell mode remains playable and persists a free-cell hypothesis', async ({
+  page,
+}, testInfo) => {
+  await startGame(page, 'Puzzles 3D', /^3 plantes · recomanat$/u, {
+    difficulty: /^Per començar/u,
+    buildingPlacement: /^Per caselles/u,
+  })
+  const cube = page.locator('.logic-cube')
+  await expect(cube.getByRole('grid', { name: /Primer pis/u })).toBeVisible()
+  await expect(cube.getByRole('gridcell')).toHaveCount(25)
+  await page.locator('.character-clue-rail__person').first().click()
+  const destination = cube.locator('.location-cell__target:not(:disabled)').first()
+  await destination.click()
+  await expect(cube.locator('.character-token')).toHaveCount(1)
+  await page.reload()
+  await expect(page.locator('.game-screen')).toBeVisible()
+  await expect(page.locator('.logic-cube .character-token')).toHaveCount(1)
+  await expectNoDocumentOverflow(page)
+  await saveEvidence(page, testInfo, 'logic-cube-3-cell-mode-restored')
+})
+
 for (const depth of [3, 6, 10] as const) {
   test(`3D ${depth} floors exposes walls and every fitted floor`, async ({
     page,
@@ -280,6 +390,7 @@ for (const depth of [3, 6, 10] as const) {
       await expect(floors.nth(layer)).toHaveAttribute('aria-selected', 'true')
       await expect(cube.locator('.logic-cube__surface .location-cell')).toHaveCount(25)
       await expect(cube.locator('.logic-cube__wall')).toHaveCount(4)
+      await expect(cube.locator('[data-room-target]')).toHaveCount(layer === 0 ? 2 : 4)
       const walls = await cube.locator('.logic-cube__wall').evaluateAll((elements) =>
         elements.map((element) => {
           const box = element.getBoundingClientRect()
@@ -287,6 +398,132 @@ for (const depth of [3, 6, 10] as const) {
         }),
       )
       expect(walls.every((wall) => wall.width >= 2 || wall.height >= 2)).toBe(true)
+      const geometry = await cube.locator('.logic-cube__surface').evaluate((surface) => {
+        const box = (element: Element) => {
+          const bounds = element.getBoundingClientRect()
+          return {
+            left: bounds.left,
+            top: bounds.top,
+            right: bounds.right,
+            bottom: bounds.bottom,
+            width: bounds.width,
+            height: bounds.height,
+          }
+        }
+        const surfaceBox = box(surface)
+        const cellLayer = surface.querySelector('.game-board__cells')
+        const targetLayer = surface.querySelector('.logic-cube__room-targets')
+        const targets = Array.from(
+          surface.querySelectorAll<HTMLElement>('[data-room-target]'),
+        ).map((target) => ({
+          id: target.dataset.roomTarget,
+          box: box(target),
+          button: box(target.querySelector('.logic-cube__room-button')!),
+        }))
+        const furniture = Array.from(
+          surface.querySelectorAll<HTMLElement>('.logic-cube__furniture'),
+        ).map((item) => ({
+          item: box(item),
+          cell: box(item.closest('.logic-cube__cell')!),
+        }))
+        const doors = Array.from(
+          surface.querySelectorAll<HTMLElement>('.logic-cube__door'),
+        ).map((door) => ({ box: box(door), transform: getComputedStyle(door).transform }))
+        const labels = Array.from(
+          surface.querySelectorAll<HTMLElement>('.logic-cube__zone-label'),
+        ).map((label) => ({
+          box: box(label),
+          fontSize: Number.parseFloat(getComputedStyle(label).fontSize),
+          text: label.textContent,
+          horizontalClip: label.scrollWidth - label.clientWidth,
+          verticalClip: label.scrollHeight - label.clientHeight,
+        }))
+        return {
+          surface: surfaceBox,
+          cellLayer: cellLayer ? box(cellLayer) : null,
+          targetLayer: targetLayer ? box(targetLayer) : null,
+          targets,
+          furniture,
+          doors,
+          labels,
+        }
+      })
+      expect(geometry.targetLayer).toEqual(geometry.cellLayer)
+      if (!geometry.cellLayer) throw new Error('Expected the interior cell layer')
+      for (const target of geometry.targets) {
+        expect(target.box.left).toBeGreaterThanOrEqual(geometry.cellLayer.left - 1)
+        expect(target.box.top).toBeGreaterThanOrEqual(geometry.cellLayer.top - 1)
+        expect(target.box.right).toBeLessThanOrEqual(geometry.cellLayer.right + 1)
+        expect(target.box.bottom).toBeLessThanOrEqual(geometry.cellLayer.bottom + 1)
+        expect(
+          Math.abs(
+            target.button.left +
+              target.button.width / 2 -
+              (target.box.left + target.box.width / 2),
+          ),
+        ).toBeLessThanOrEqual(1)
+        expect(
+          Math.abs(
+            target.button.top +
+              target.button.height / 2 -
+              (target.box.top + target.box.height / 2),
+          ),
+        ).toBeLessThanOrEqual(1)
+        expect(target.button.left - target.box.left).toBeLessThanOrEqual(3.5)
+      }
+      for (let first = 0; first < geometry.targets.length; first += 1) {
+        for (let second = first + 1; second < geometry.targets.length; second += 1) {
+          const a = geometry.targets[first]!.box
+          const b = geometry.targets[second]!.box
+          const overlap =
+            Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 &&
+            Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1
+          expect(
+            overlap,
+            `${geometry.targets[first]!.id}/${geometry.targets[second]!.id}`,
+          ).toBe(false)
+        }
+      }
+      for (const { item, cell } of geometry.furniture) {
+        expect(
+          Math.abs(item.left + item.width / 2 - (cell.left + cell.width / 2)),
+        ).toBeLessThanOrEqual(1)
+        expect(
+          Math.abs(item.top + item.height / 2 - (cell.top + cell.height / 2)),
+        ).toBeLessThanOrEqual(1)
+      }
+      for (const door of geometry.doors) {
+        expect(door.box.left).toBeGreaterThanOrEqual(geometry.surface.left - door.box.width / 2)
+        expect(door.box.top).toBeGreaterThanOrEqual(geometry.surface.top - door.box.height / 2)
+        expect(door.box.right).toBeLessThanOrEqual(geometry.surface.right + door.box.width / 2)
+        expect(door.box.bottom).toBeLessThanOrEqual(
+          geometry.surface.bottom + door.box.height / 2,
+        )
+        expect(door.transform).toMatch(/^matrix\(1, 0, 0, 1,/u)
+      }
+      for (const label of geometry.labels) {
+        expect(label.fontSize, label.text ?? undefined).toBeGreaterThanOrEqual(8.5)
+        expect(label.horizontalClip, label.text ?? undefined).toBeLessThanOrEqual(1)
+        expect(label.verticalClip, label.text ?? undefined).toBeLessThanOrEqual(1)
+        expect(label.box.left, label.text ?? undefined).toBeGreaterThanOrEqual(
+          geometry.surface.left - 1,
+        )
+        expect(label.box.right, label.text ?? undefined).toBeLessThanOrEqual(
+          geometry.surface.right + 1,
+        )
+        for (const { item } of geometry.furniture) {
+          const overlapsFurniture =
+            Math.min(label.box.right, item.right) - Math.max(label.box.left, item.left) > 1 &&
+            Math.min(label.box.bottom, item.bottom) - Math.max(label.box.top, item.top) > 1
+          expect(overlapsFurniture, label.text ?? undefined).toBe(false)
+        }
+        for (const { box: door } of geometry.doors) {
+          const overlapsDoor =
+            Math.min(label.box.right, door.right) - Math.max(label.box.left, door.left) > 1 &&
+            Math.min(label.box.bottom, door.bottom) - Math.max(label.box.top, door.top) > 1
+          expect(overlapsDoor, label.text ?? undefined).toBe(false)
+        }
+      }
     }
 
     const targetSize = await floors.first().boundingBox()
@@ -306,11 +543,11 @@ for (const depth of [3, 6, 10] as const) {
     await saveEvidence(page, testInfo, `logic-cube-${depth}-empty`)
 
     await page.locator('.character-clue-rail__person').first().click()
-    const destination = cube.locator('.location-cell:not(.location-cell--blocked)').first()
-    await destination.locator('.location-cell__target').click()
+    const destination = cube.locator('[data-room-target]').first()
+    await destination.locator('.logic-cube__room-button').click()
     const token = destination.locator('.character-token')
     await expect(token).toBeVisible()
-    await expectCentered(token, destination)
+    await expectElementCentered(token, destination)
     await expectNoDocumentOverflow(page)
     await saveEvidence(page, testInfo, `logic-cube-${depth}-placed`)
   })

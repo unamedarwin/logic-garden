@@ -160,7 +160,7 @@ describe('game reducer', () => {
   })
 
   it('limits automatic person placement to every person except the last one', () => {
-    const puzzle = generatePuzzle('easy', 'hint-limit', 'adults')
+    const puzzle = generatePuzzle('easy', 'hint-limit', 'adults', 'spatial', 6)
     let state = createGameState(puzzle)
 
     for (const character of puzzle.characters.slice(0, -1)) {
@@ -184,7 +184,7 @@ describe('game reducer', () => {
   })
 
   it('selects the next waiting person after a valid placement', () => {
-    const puzzle = generatePuzzle('easy', 'select-next-person', 'adults')
+    const puzzle = generatePuzzle('easy', 'select-next-person', 'adults', 'spatial', 6)
     const [first, second] = puzzle.characters
     const position = puzzle.positions.find((candidate) => !candidate.blocked)
     if (!first || !second || !position) throw new Error('Expected people and a free position')

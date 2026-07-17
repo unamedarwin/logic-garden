@@ -1,3 +1,4 @@
+import { useDraggable } from '@dnd-kit/core'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
@@ -21,6 +22,47 @@ interface CharacterClueRailProps {
   readonly previousClueLabel: string
   readonly nextClueLabel: string
   readonly onSelect: (character: Character) => void
+}
+
+interface RailPersonProps {
+  readonly character: Character
+  readonly selected: boolean
+  readonly placed: boolean
+  readonly clueRegionId: string
+  readonly registerRef: (node: HTMLButtonElement | null) => void
+  readonly onSelect: (character: Character) => void
+}
+
+const RailPerson = ({
+  character,
+  selected,
+  placed,
+  clueRegionId,
+  registerRef,
+  onSelect,
+}: RailPersonProps) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: character.id })
+  return (
+    <button
+      ref={(node) => {
+        setNodeRef(node)
+        registerRef(node)
+      }}
+      type="button"
+      data-character-id={character.id}
+      className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${placed ? 'character-clue-rail__person--placed' : ''} ${isDragging ? 'character-clue-rail__person--dragging' : ''}`}
+      {...listeners}
+      {...attributes}
+      aria-pressed={selected}
+      aria-controls={clueRegionId}
+      onClick={() => onSelect(character)}
+    >
+      <span className="character-clue-rail__emoji" aria-hidden="true">
+        <SceneIcon emoji={character.emoji} />
+      </span>
+      <span>{character.name}</span>
+    </button>
+  )
 }
 
 const cluePrecision = (clue: Clue) => {
@@ -63,8 +105,19 @@ export const CharacterClueRail = ({
   const firstCharacterWithClue = puzzle.characters.find((character) =>
     puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
   )
+  const guidedBuildingCharacter =
+    puzzle.boardMode === 'logic-cube' &&
+    puzzle.buildingPlacement === 'rooms' &&
+    puzzle.difficulty === 'easy'
+      ? puzzle.characters.find((character) =>
+          puzzle.clues.some(
+            (clue) => clue.type === 'character-in-place' && clue.characterId === character.id,
+          ),
+        )
+      : undefined
   const activeCharacter =
     puzzle.characters.find((character) => character.id === selectedCharacterId) ??
+    guidedBuildingCharacter ??
     firstCharacterWithClue ??
     puzzle.characters[0]
   const activeCharacterId = activeCharacter?.id
@@ -154,23 +207,17 @@ export const CharacterClueRail = ({
           const placed = assignments[character.id] !== undefined
           return (
             <div key={character.id} role="listitem">
-              <button
-                ref={(node) => {
+              <RailPerson
+                character={character}
+                selected={selected}
+                placed={placed}
+                clueRegionId={clueRegionId}
+                registerRef={(node) => {
                   if (node) peopleRefs.current.set(character.id, node)
                   else peopleRefs.current.delete(character.id)
                 }}
-                type="button"
-                data-character-id={character.id}
-                className={`character-clue-rail__person ${selected ? 'character-clue-rail__person--selected' : ''} ${placed ? 'character-clue-rail__person--placed' : ''}`}
-                aria-pressed={selected}
-                aria-controls={clueRegionId}
-                onClick={() => onSelect(character)}
-              >
-                <span className="character-clue-rail__emoji" aria-hidden="true">
-                  <SceneIcon emoji={character.emoji} />
-                </span>
-                <span>{character.name}</span>
-              </button>
+                onSelect={onSelect}
+              />
             </div>
           )
         })}

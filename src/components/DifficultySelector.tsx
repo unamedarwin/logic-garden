@@ -90,7 +90,7 @@ const logicGridLabels: Record<Locale, Record<Difficulty, string>> = {
 const buildingLabels: Record<Locale, Record<Difficulty, string>> = {
   ca: {
     easy: 'Per començar · 6 veïns guiats',
-    medium: 'Repte mitjà · 3 veïns guiats',
+    medium: 'Repte mitjà · 4 veïns guiats',
     hard: 'Difícil · deducció completa',
   },
   es: {

@@ -1,5 +1,6 @@
 import type { Assignment, CharacterId, PartialAssignment, Puzzle } from '../domain/types'
 import { isPartialAssignmentValid, isPuzzleDefinitionValid } from './constraintEvaluator'
+import { placementDestinations } from '../domain/placements'
 
 export interface SolverOptions {
   readonly limit?: number
@@ -23,8 +24,7 @@ const candidatePositions = (
   characterId: CharacterId,
 ) => {
   const used = new Set(Object.values(assignment))
-  return puzzle.positions
-    .filter((position) => !position.blocked)
+  return placementDestinations(puzzle)
     .map((position) => position.id)
     .filter((positionId) => !used.has(positionId))
     .filter((positionId) =>

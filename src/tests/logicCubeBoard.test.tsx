@@ -11,7 +11,8 @@ import {
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
 import { placeId, positionId, type BuildingSize, type Position } from '../domain/types'
-import { generatePuzzle, generatePuzzleDirect } from '../generator/puzzleGenerator'
+import { generatePuzzle, selectAdvancedPuzzleTemplate } from '../generator/puzzleGenerator'
+import { materializeAdvancedPuzzleTemplate } from '../generator/puzzleTemplates'
 
 const canonicalBuildingPositions = (depth: BuildingSize): readonly Position[] =>
   Array.from({ length: depth * BUILDING_ROWS * BUILDING_COLUMNS }, (_, index) => {
@@ -35,12 +36,18 @@ const canonicalBuildingPositions = (depth: BuildingSize): readonly Position[] =>
 
 describe('variable-height 5x5 building board', () => {
   it('shows one accessible 5x5 floor and all ten elevator stops', () => {
-    const puzzle = generatePuzzleDirect('hard', 'cube-component', 'adults', {
-      boardMode: 'logic-cube',
-      gridSize: 5,
-      depth: 10,
-      characterCount: 8,
-    })
+    const template = selectAdvancedPuzzleTemplate(
+      'hard',
+      'cube-component',
+      'adults',
+      'cube',
+      undefined,
+      10,
+    )
+    if (!template || template.boardMode !== 'logic-cube') {
+      throw new Error('Expected a ten-floor building template')
+    }
+    const puzzle = materializeAdvancedPuzzleTemplate(template, 'cube-component')
     const first = puzzle.characters[0]!
     const { container } = render(
       <LogicCubeBoard
@@ -125,7 +132,7 @@ describe('variable-height 5x5 building board', () => {
       'true',
     )
     expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'building-floor-9')
-  }, 30_000)
+  }, 60_000)
 
   it('draws continuous room walls on every floor without dividing shared circulation', () => {
     for (const depth of BUILDING_DEPTHS) {

@@ -4,6 +4,7 @@ import {
   type Audience,
   type AdvancedGridSize,
   type BuildingSize,
+  type BuildingPlacement,
   type ChildMapSize,
   type Difficulty,
   type Puzzle,
@@ -17,6 +18,7 @@ import { BUILDING_DEPTHS } from '../domain/buildingPlan'
 import { clueReferencesCharacter } from '../domain/clueRelations'
 import { spatialPlanIdsForAudience } from '../domain/spatialPlan'
 import { getTheme, themesForAudience } from '../domain/themes'
+import { buildingUsesRoomPlacement } from '../domain/placements'
 import { analyzeSolutions, solve } from '../solver/solver'
 import { analyzeDeductionTrace } from '../solver/deductionTrace'
 import { selectMinimalUniqueClues } from './clueReducer'
@@ -198,6 +200,54 @@ const withBuildingGuidance = (puzzle: Puzzle, difficulty: Difficulty): Puzzle =>
   const random = new SeededRandom(deriveSeed(puzzle.seed, 313))
   const shell: Puzzle = { ...puzzle, difficulty, clues: [] }
   const generatedCandidates = random.shuffle(generateCandidateClues(shell, solution, random))
+  if (buildingUsesRoomPlacement(puzzle)) {
+    const baseClues = [...puzzle.clues]
+    const directCharacters = new Set(
+      baseClues
+        .filter((clue) => clue.type === 'character-in-place')
+        .map((clue) => clue.characterId),
+    )
+    const mediumTarget = Math.min(7, Math.max(4, directCharacters.size + 1))
+    const easyTarget = Math.min(8, Math.max(6, mediumTarget + 1))
+    const directTarget =
+      difficulty === 'easy'
+        ? easyTarget
+        : difficulty === 'medium'
+          ? mediumTarget
+          : directCharacters.size
+    const guidanceClues: Puzzle['clues'][number][] = []
+    for (const clue of generatedCandidates) {
+      if (directCharacters.size >= directTarget) break
+      if (clue.type !== 'character-in-place' || directCharacters.has(clue.characterId)) continue
+      directCharacters.add(clue.characterId)
+      guidanceClues.push({
+        ...clue,
+        id: `building-room-guidance:${difficulty}:${clue.characterId}`,
+      })
+    }
+    if (directCharacters.size < directTarget) {
+      throw new Error('No s’ha pogut preparar prou orientació per estances.')
+    }
+    const candidate: Puzzle = {
+      ...shell,
+      clues: [...baseClues, ...guidanceClues],
+      metadata: {
+        ...puzzle.metadata,
+        difficultyScore: difficultyScore({
+          ...shell,
+          clues: [...baseClues, ...guidanceClues],
+        }),
+      },
+    }
+    const validation = analyzeSolutions(candidate, { limit: 2 })
+    if (validation.count !== 1 || validation.reachedNodeLimit) {
+      throw new Error('La guia per estances no conserva una solució única.')
+    }
+    return {
+      ...candidate,
+      metadata: { ...candidate.metadata, exploredNodes: validation.exploredNodes },
+    }
+  }
   let baseClues = [...puzzle.clues]
   const exactBaseClues = random.shuffle(puzzle.clues.filter(isExactPositionClue))
   const weakerClueFor = (exactClue: (typeof exactBaseClues)[number]) =>
@@ -385,11 +435,23 @@ export const generatePuzzleDirect = (
         seed: originalSeed,
         difficulty,
         boardMode: world.boardMode,
+        buildingPlacement: world.buildingPlacement,
         spatialPlanId: world.spatialPlanId,
         theme: world.theme.id,
-        title: world.theme.title,
-        introduction: random.pick(world.theme.introductions),
-        objective: random.pick(world.theme.objectives),
+        title:
+          world.boardMode === 'logic-cube'
+            ? (world.theme.buildingTitle ?? world.theme.title)
+            : world.theme.title,
+        introduction: random.pick(
+          world.boardMode === 'logic-cube'
+            ? (world.theme.buildingIntroductions ?? world.theme.introductions)
+            : world.theme.introductions,
+        ),
+        objective: random.pick(
+          world.boardMode === 'logic-cube'
+            ? (world.theme.buildingObjectives ?? world.theme.objectives)
+            : world.theme.objectives,
+        ),
         characters: world.characters,
         items: world.items,
         positions: world.positions,
@@ -476,7 +538,7 @@ export const generatePuzzleDirect = (
               .slice(0, difficulty === 'easy' ? 1 : 2)
           : []
       const cornerAnchors =
-        world.boardMode !== 'map' && random.next() < 0.4
+        world.boardMode !== 'map' && world.buildingPlacement !== 'rooms' && random.next() < 0.4
           ? orderedCandidates
               .filter((clue) => clue.type === 'in-corner' || clue.type === 'not-in-corner')
               .slice(0, 1)
@@ -625,6 +687,7 @@ export const generatePuzzle = (
   preferredGridSize?: AdvancedGridSize,
   preferredChildMapSize?: ChildMapSize,
   preferredBuildingDepth?: BuildingSize,
+  buildingPlacement: BuildingPlacement = 'cells',
 ): Puzzle => {
   if (audience === 'children') {
     return generatePuzzleDirect(
@@ -638,6 +701,26 @@ export const generatePuzzle = (
   }
 
   const puzzleSeed = seed(source)
+  if (variant === 'cube' && buildingPlacement === 'rooms') {
+    const structuralTemplate = advancedTemplateCandidates(
+      'hard',
+      puzzleSeed,
+      audience,
+      variant,
+      undefined,
+      preferredBuildingDepth,
+    )[0]
+    if (!structuralTemplate || structuralTemplate.boardMode !== 'logic-cube') {
+      throw new Error('No s’ha pogut seleccionar una estructura d’edifici validada.')
+    }
+    return withBuildingGuidance(
+      {
+        ...materializeAdvancedPuzzleTemplate(structuralTemplate, puzzleSeed, 'rooms'),
+        difficulty,
+      },
+      difficulty,
+    )
+  }
   const templates = advancedTemplateCandidates(
     variant === 'cube' ? 'hard' : difficulty,
     puzzleSeed,
@@ -741,6 +824,7 @@ export const generatePuzzleForCollection = (
   preferredChildMapSize: ChildMapSize = 4,
   preferredBuildingDepth: BuildingSize = 3,
   preferredThemeId?: ThemeId,
+  buildingPlacement: BuildingPlacement = 'rooms',
 ) => {
   const selectedTheme = preferredThemeId ? getTheme(preferredThemeId) : undefined
   const selectedAudience = selectedTheme?.audience ?? 'children'
@@ -763,6 +847,7 @@ export const generatePuzzleForCollection = (
       collection === 'two-dimensional' ? preferredGridSize : undefined,
       collection === 'children' ? preferredChildMapSize : undefined,
       collection === 'three-dimensional' ? preferredBuildingDepth : undefined,
+      collection === 'three-dimensional' ? buildingPlacement : 'cells',
     )
 
   if (!preferredThemeId) return generateSelectedPuzzle(source)

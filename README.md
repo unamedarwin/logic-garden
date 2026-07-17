@@ -94,11 +94,13 @@ The 2D and 3D collections select one of 100 pre-generated structural templates. 
 contains 84 spatial templates across the internal teen and adult content catalogs, all three
 difficulties, and `6 x 6`, `9 x 9`, and `16 x 16` plans, plus 16 hard variable-height
 `5 x 5 x 3` through `5 x 5 x 10` building templates: one for every internal content catalog and
-height combination. A template
-contains compact generic clue tuples, geometry references, and difficulty metrics, but never an
-answer, name, avatar, localized phrase, concrete object, or personal value. The public seed then
-selects new people, room names, objects, and phrase variants. The solver always validates the
-themed puzzle again with a limit of two before it is shown.
+height combination. A template contains compact generic clue tuples, geometry references, and
+difficulty metrics, but never an answer, name, avatar, localized phrase, concrete object, or
+personal value. Building templates store two answer-free clue sets: exact cell-mode tuples and
+whole-room-mode tuples. Canonical catalog identity sorts both clue sets before comparison, so
+order-only differences cannot create duplicate structures. The public seed then selects new people,
+room names, objects, and phrase variants. The solver always validates the themed puzzle again with
+a limit of two before it is shown.
 
 The offline catalog builder makes a temporary internal assignment, creates only true structured
 clues, and uses counterexample-guided clue selection until `countSolutions(puzzle, { limit: 2 })`
@@ -109,8 +111,11 @@ The solver uses backtracking with partial-constraint pruning, unique positions, 
 minimum-remaining-values variable order. It stops when it reaches the requested solution
 limit, normally two for uniqueness checking.
 
-For a selected height `d`, the 3D collection presents `25d` visual cells as accessible floor
-slices. Its `4(d-1)` semantic homes expose `14(d-1)` genuinely playable cells, while two
+For a selected height `d`, the 3D collection presents `25d` visual cells one floor at a time. The
+recommended room mode exposes `2 + 4(d - 1)` accessible whole-room targets, while the explicit
+advanced cell mode exposes the free cells and axis-crossing rules. Both modes use the same visual
+slices, walls, doors, textures, and furniture. In cell mode, its `4(d-1)` semantic homes expose
+`14(d-1)` genuinely playable cells, while two
 ground-floor shops expose 10 more. Every game still uses only two shopkeepers and six residents;
 at most five residential floors are occupied, so taller buildings keep meaningful empty levels.
 Entrances, landings, stairs, and `6d` visible room fixtures remain blocked throughout generation,
@@ -302,9 +307,9 @@ reset document position and board zoom rather than inheriting a previous view.
 
 ## Languages and wording
 
-Catalan, Spanish, English, Basque, Galician, French, and German are available from the collection
-picker and in settings. A new installation chooses the first supported language reported by the
-browser; an explicit saved choice always takes priority. Every clue is a discriminated union value;
+Catalan is the only active release language while the narrative voice is refined, so the interface
+does not show a redundant language selector. Dormant Spanish, English, Basque, Galician, French,
+and German dictionaries remain reference material but are not public supported content. Every clue is a discriminated union value;
 `renderClue` converts it into a short local template for the selected language.
 This makes phrases simple, reusable, and logically identical across languages.
 Child clues use the same narrative pattern as advanced clues: each precise fact is paired with a
@@ -340,7 +345,7 @@ duplicate precache entries, missing offline assets, source maps, source files, b
 and credential-like strings.
 
 Share links are available during play and after completion, and never contain the answer or
-personal data. Payload schema 5 stores a generator version,
+personal data. Payload schema 6 stores a generator version,
 variant, difficulty, the collection-specific selected size, seed, audience, and an optional bounded completion-time benchmark
 as JSON compressed with GZIP and then encoded as URL-safe Base64. New payloads use the `gz_`
 prefix, while the reader remains compatible with validated legacy uncompressed Base64 links:
@@ -361,7 +366,7 @@ copy, creating a safe back-and-forth challenge without transmitting a player nam
 
 Preferences, first-visit state, statistics, and the in-progress game are stored in IndexedDB
 through small safe wrappers. The preferences migration deletes the retired local profile record.
-The schemas are versioned; preferences use schema 5 and in-progress games use schema 4. An in-progress game is restored only
+The schemas are versioned; preferences use schema 6 and in-progress games use schema 4. An in-progress game is restored only
 when its persistence schema and generator version are current, preventing old clues or geometry
 from leaking into a new release. If browser storage is unavailable, play still works without
 persistence.
@@ -378,14 +383,14 @@ Fluent SVG data. See `THIRD_PARTY_NOTICES.md` for artwork attribution.
 
 When generation rules change, bump `GENERATOR_VERSION` and run `pnpm templates:build`. Use
 `pnpm templates:repair` when a canonical integrity check finds duplicate clue sets whose only
-difference is clue order. The catalog
-builder may generate extra candidates and discard impossible geometry or duplicates, but it must
-stop at exactly 100 valid structures and retain all 18 spatial audience/difficulty/size buckets
-plus the two hard structural building audience buckets. Runtime 3D guidance derives easy and medium
-variants from those unique structures without storing an answer.
+difference is clue order. The catalog builder may generate extra candidates and discard impossible
+geometry or duplicates, but it must stop at exactly 100 valid structures and retain all 18 spatial
+audience/difficulty/size buckets plus the two hard structural building audience buckets. Runtime 3D
+guidance derives easy and medium variants from those unique cell and room clue sets without storing
+an answer.
 
 Planned product work is tracked in [`docs/product-backlog.md`](docs/product-backlog.md).
-The analyzed, not-yet-implemented whole-room 3D entry mode is documented in
+The implemented whole-room 3D entry mode is documented in
 [`docs/room-based-building-proposal.md`](docs/room-based-building-proposal.md).
 
 Technical release evidence uses [`docs/quality-scorecard.md`](docs/quality-scorecard.md). Content,

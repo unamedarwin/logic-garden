@@ -3,6 +3,7 @@ import {
   isAudience,
   type AdvancedGridSize,
   type BuildingSize,
+  type BuildingPlacement,
   type ChildMapSize,
   type Difficulty,
   type Locale,
@@ -14,12 +15,13 @@ const key = 'logic-garden:preferences:v1'
 const legacyProfileKey = 'logic-garden:profile:v1'
 
 export interface Preferences {
-  readonly schemaVersion: 5
+  readonly schemaVersion: 6
   readonly difficulty: Difficulty
   readonly collection: PuzzleCollection
   readonly advancedGridSize: AdvancedGridSize
   readonly childMapSize: ChildMapSize
   readonly buildingDepth: BuildingSize
+  readonly buildingPlacement: BuildingPlacement
   readonly locale: Locale
   readonly soundEnabled: boolean
   readonly reducedMotion: boolean
@@ -27,12 +29,13 @@ export interface Preferences {
 }
 
 export const defaultPreferences: Preferences = {
-  schemaVersion: 5,
+  schemaVersion: 6,
   difficulty: 'easy',
   collection: 'children',
   advancedGridSize: 6,
   childMapSize: 4,
   buildingDepth: 3,
+  buildingPlacement: 'rooms',
   locale: 'ca',
   soundEnabled: false,
   reducedMotion: false,
@@ -61,6 +64,9 @@ const isBuildingSize = (value: unknown): value is BuildingSize =>
 const isDifficulty = (value: unknown): value is Difficulty =>
   value === 'easy' || value === 'medium' || value === 'hard'
 
+const isBuildingPlacement = (value: unknown): value is BuildingPlacement =>
+  value === 'rooms' || value === 'cells'
+
 const legacyAudience = (profile: unknown) =>
   profile && typeof profile === 'object'
     ? (profile as Record<string, unknown>).audience
@@ -88,7 +94,8 @@ const migratePreferences = (
     candidate.schemaVersion !== 2 &&
     candidate.schemaVersion !== 3 &&
     candidate.schemaVersion !== 4 &&
-    candidate.schemaVersion !== 5
+    candidate.schemaVersion !== 5 &&
+    candidate.schemaVersion !== 6
   ) {
     return { ...defaultPreferences, locale: initialLocale }
   }
@@ -99,7 +106,7 @@ const migratePreferences = (
         ? 'two-dimensional'
         : 'children'
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     difficulty: isDifficulty(candidate.difficulty)
       ? candidate.difficulty
       : defaultPreferences.difficulty,
@@ -109,6 +116,9 @@ const migratePreferences = (
       : 6,
     childMapSize: isChildMapSize(candidate.childMapSize) ? candidate.childMapSize : 4,
     buildingDepth: isBuildingSize(candidate.buildingDepth) ? candidate.buildingDepth : 3,
+    buildingPlacement: isBuildingPlacement(candidate.buildingPlacement)
+      ? candidate.buildingPlacement
+      : 'rooms',
     locale: isLocale(candidate.locale) ? candidate.locale : initialLocale,
     soundEnabled:
       typeof candidate.soundEnabled === 'boolean'
@@ -138,11 +148,12 @@ export const loadPreferences = async (
     const storedPreferencesAreCurrent =
       stored !== null &&
       typeof stored === 'object' &&
-      (stored as Record<string, unknown>).schemaVersion === 5 &&
+      (stored as Record<string, unknown>).schemaVersion === 6 &&
       isCollection((stored as Record<string, unknown>).collection) &&
       isAdvancedGridSize((stored as Record<string, unknown>).advancedGridSize) &&
       isChildMapSize((stored as Record<string, unknown>).childMapSize) &&
       isBuildingSize((stored as Record<string, unknown>).buildingDepth) &&
+      isBuildingPlacement((stored as Record<string, unknown>).buildingPlacement) &&
       isDifficulty((stored as Record<string, unknown>).difficulty) &&
       isLocale((stored as Record<string, unknown>).locale) &&
       typeof (stored as Record<string, unknown>).soundEnabled === 'boolean' &&

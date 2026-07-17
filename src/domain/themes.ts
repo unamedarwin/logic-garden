@@ -18,6 +18,9 @@ export interface Theme {
   readonly title: string
   readonly introductions: readonly string[]
   readonly objectives: readonly string[]
+  readonly buildingTitle?: string
+  readonly buildingIntroductions?: readonly string[]
+  readonly buildingObjectives?: readonly string[]
   readonly places: readonly string[]
   readonly characters: readonly ThemeCharacter[]
   readonly items: readonly ThemeItem[]
@@ -713,6 +716,11 @@ export const themes: readonly Theme[] = [
     title: 'L’estudi de música',
     introductions: ['L’estudi té llums, ritmes i idees per ordenar.'],
     objectives: ['Troba l’espai de cada persona abans de la sessió.'],
+    buildingTitle: 'El bloc de la música',
+    buildingIntroductions: [
+      'Residents i botiguers preparen una tarda de música per a tot el veïnat.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'La cabina 1',
       'La cabina 2',
@@ -753,6 +761,11 @@ export const themes: readonly Theme[] = [
     title: 'El festival d’esports',
     introductions: ['El recinte obre amb proves, equips i molt bon ambient.'],
     objectives: ['Organitza les persones als espais del festival.'],
+    buildingTitle: 'La vila esportiva',
+    buildingIntroductions: [
+      'Residents i botiguers organitzen activitats esportives per a tot el veïnat.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'La pista verda',
       'La pista blava',
@@ -793,6 +806,11 @@ export const themes: readonly Theme[] = [
     title: 'El laboratori creatiu',
     introductions: ['Al laboratori, cada idea troba una forma nova.'],
     objectives: ['Relaciona cada creador amb el seu espai.'],
+    buildingTitle: 'La casa creativa',
+    buildingIntroductions: [
+      'Residents i botiguers omplen l’edifici de tallers, colors i idees compartides.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'La taula de disseny',
       'La paret d’idees',
@@ -833,6 +851,11 @@ export const themes: readonly Theme[] = [
     title: 'El club de lectures',
     introductions: ['El club prepara una trobada amb llibres i converses.'],
     objectives: ['Troba la cadira de cada participant.'],
+    buildingTitle: 'La casa dels llibres',
+    buildingIntroductions: [
+      'Residents i botiguers preparen lectures i converses per a tot el veïnat.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'La taula rodona',
       'La butaca verda',
@@ -873,6 +896,11 @@ export const themes: readonly Theme[] = [
     title: 'El jardí de barri',
     introductions: ['El jardí compartit s’omple de mans i de colors.'],
     objectives: ['Situa cada veí al seu espai de feina.'],
+    buildingTitle: 'La comunitat del jardí',
+    buildingIntroductions: [
+      'Residents i botiguers cuiden plegats els racons verds de l’edifici.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'L’hort alt',
       'La taula de llavors',
@@ -914,6 +942,11 @@ export const themes: readonly Theme[] = [
     title: 'El mercat de dissabte',
     introductions: ['El mercat obre amb parades, receptes i aromes.'],
     objectives: ['Organitza les persones a cada parada.'],
+    buildingTitle: 'El veïnat del mercat',
+    buildingIntroductions: [
+      'Residents i botiguers preparen el mercat de la planta baixa abans d’obrir.',
+    ],
+    buildingObjectives: ['Descobreix a quina llar o botiga és cadascú.'],
     places: [
       'La parada de pa',
       'La parada de fruita',

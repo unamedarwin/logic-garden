@@ -5,6 +5,12 @@ from 3 through 10. It presents one accessible floor slice at a time, so every de
 a normal DOM control for touch, mouse, and keyboard players. A compact elevator changes floors
 without turning the board into a perspective-only canvas.
 
+Before height, the player independently chooses `Per estances` or `Per caselles`. Room mode is the
+recommended entry: every whole home or shop is one destination and the visual cell grid is hidden.
+Cell mode is advanced and retains exact-cell deduction plus row, column, and adjacent-height
+crossing. Both modes keep the same walls, upright doors, materials, furniture, elevator, click,
+keyboard, drag, undo, hints, checking, sharing, and timer.
+
 ## Geometry
 
 - The building contains `25d` visual cells: 25 cells on each of 3 to 10 floors.
@@ -19,7 +25,7 @@ without turning the board into a perspective-only canvas.
 - Each floor is a complete orthogonal partition. Units touch along shared walls and never overlap
   or leave a gap.
 
-The logical axes are column (`x`), row (`y`), and floor (`z`). On one floor, occupied anchors
+In cell mode, the logical axes are column (`x`), row (`y`), and floor (`z`). On one floor, occupied anchors
 conflict across the complete row and column. At the same row and column, the height conflict reaches
 only the immediately adjacent floor above and below. Non-adjacent floors remain independent, which
 keeps the deduction load bounded if the model grows taller.
@@ -27,6 +33,12 @@ keeps the deduction load bounded if the model grows taller.
 Crossed anchors communicate that an existing placement conflicts with that destination; they do not
 form a dead end. Choosing one gives the new placement priority, returns every conflicting person to
 the waiting rail, announces the change, and records the whole operation as one reversible move.
+
+Room mode instead exposes `2 + 4(d - 1)` canonical destinations. It permits one person per room,
+does not cross unrelated rooms that share a visual row or column, and accepts taps or drops anywhere
+inside a room as the same assignment. The active floor is an accessible group of room buttons rather
+than a falsely announced empty grid. A free but clue-incorrect room remains a legal, persistent
+player hypothesis.
 
 ## Elevator and scenery
 
@@ -70,10 +82,14 @@ vertical; only its center position changes, because rotating the pictogram makes
 recognize. When a shared boundary offers multiple valid positions, the seeded layout first avoids
 room titles and then prefers cells without gameplay objects or placed people. A room title retains
 visual priority on a short boundary where the two fixtures cannot be separated.
+Room labels prefer a free cell in the same home or shop that does not touch the landing, stairs, or
+entrance when such a cell exists, so labels do not compete with route-facing doors.
 
 ## Clues
 
-Building clues are structured facts localized only by the interface. The current families cover:
+Building clues are structured facts localized only by the interface. Room mode excludes exact-cell,
+landmark, item, and corner wording; cell mode retains those additional advanced facts. The shared
+families cover:
 
 - exact homes, shops, and floors;
 - shop opening, neighborhood service, and window-display details;
@@ -85,21 +101,23 @@ Building clues are structured facts localized only by the interface. The current
 
 Corner clues are supporting variety, not the main deduction vocabulary. Copy pairs the precise
 fact with a short positive action or motivation and avoids steps, distances, rows, columns, and
-bare coordinates. Catalan, Spanish, English, Basque, Galician, French, and German use the same
-structured clue data.
+bare coordinates. Catalan is the only active release locale while its clue voice is refined.
+Dormant dictionaries do not count as supported content.
 
 ## Generation and persistence
 
-Generator version 21 combines the player-selected height with a seeded plan, structural template,
-people, objects, furniture, and wording. The answer-free template catalog contains 84 spatial structures and
-16 building structures. The building subset contains one structure for every internal teen/adult
-content catalog and height combination while the player sees one unified 3D collection. Runtime materialization always
-reruns the solver with a two-solution limit before a puzzle is shown.
-Every 3-10-floor height supports three independent play levels over those same hard structural
-templates. Easy deterministically ensures direct home or landmark guidance for at least six
-people, medium ensures it for at least three, and hard adds none. Existing direct facts count toward
-the target and are not repeated. These are ordinary structured clues rather than a stored answer,
-and the guided puzzle is rerun with a two-solution limit before display or sharing.
+Generator version 24 combines the player-selected placement mode and height with a seeded plan,
+structural template, people, objects, furniture, and wording. The answer-free template catalog
+contains 84 spatial structures and 16 building structures. Each building template carries a
+cell-mode clue set and a room-mode clue set, both stored as generic tuples with no names, objects,
+localized text, answer, or player data. The building subset contains one structure for every
+internal teen/adult content catalog and height combination while the player sees one unified 3D
+collection. Runtime materialization always reruns the solver with a two-solution limit before a
+puzzle is shown.
+Every 3-10-floor height supports three independent play levels. In room mode, easy exposes direct
+room guidance for at least six people, medium at least four, and hard keeps the reduced relational
+set. Cell mode derives its three levels over the hard structural templates. Existing direct facts
+count toward targets and are never repeated. Every guided result is rerun with a two-solution limit.
 
 The three-floor building is the recommended entry point. The collection card and home illustration
 show this minimum experience instead of advertising a tall building before the player understands
@@ -107,8 +125,8 @@ that only one floor is active at a time. Perceived difficulty remains a content-
 must be rechecked with first-time players; additional direct clues do not by themselves prove that
 the entry experience is understandable.
 
-Share payload schema 5 records the `cube` variant and selected height so a challenge reproduces
-the exact building. New JSON payloads are GZIP-compressed before URL-safe
+Share payload schema 6 records the `cube` variant, placement mode, and selected height so a challenge
+reproduces the exact building. New JSON payloads are GZIP-compressed before URL-safe
 Base64 encoding and retain legacy uncompressed read compatibility. Saved-game schema 4 validates
 all `25d` canonical coordinates, room kinds, blocked fixtures, playable counts, eight people,
 generator version, partial placements, and uniqueness before restoration. Neither format stores a

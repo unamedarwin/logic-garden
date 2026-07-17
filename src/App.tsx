@@ -27,6 +27,7 @@ import { ChallengeIntroDialog } from './components/ChallengeIntroDialog'
 import { AdventureSelector } from './components/AdventureSelector'
 import { BoardSizeSelector } from './components/BoardSizeSelector'
 import { BuildingSizeSelector } from './components/BuildingSizeSelector'
+import { BuildingPlacementSelector } from './components/BuildingPlacementSelector'
 import { CheckResultDialog } from './components/CheckResultDialog'
 import { ChildMapSizeSelector } from './components/ChildMapSizeSelector'
 import { CharacterClueRail } from './components/CharacterClueRail'
@@ -47,6 +48,7 @@ import { SceneIcon } from './components/SceneIcon'
 import { SettingsDialog } from './components/SettingsDialog'
 import {
   boardActionCopy,
+  buildingPlacementCopy,
   challengeInviteCopy,
   challengeResultCopy,
   challengeShareCopy,
@@ -178,7 +180,8 @@ const gameMatchesSetup = (
   if (collection === 'three-dimensional') {
     return (
       game.puzzle.difficulty === preferences.difficulty &&
-      buildingDepthForPositions(game.puzzle.positions) === preferences.buildingDepth
+      buildingDepthForPositions(game.puzzle.positions) === preferences.buildingDepth &&
+      (game.puzzle.buildingPlacement ?? 'cells') === preferences.buildingPlacement
     )
   }
   if (game.puzzle.difficulty !== preferences.difficulty) return false
@@ -330,6 +333,7 @@ export default function App() {
           preferences.childMapSize,
           preferences.buildingDepth,
           themeId,
+          preferences.buildingPlacement,
         ),
       )
       setGame(nextGame)
@@ -395,6 +399,9 @@ export default function App() {
         ...(sharedChallenge.buildingDepth
           ? { buildingDepth: sharedChallenge.buildingDepth }
           : {}),
+        ...(sharedChallenge.buildingPlacement
+          ? { buildingPlacement: sharedChallenge.buildingPlacement }
+          : {}),
       }))
       const acceptedGame = createGameState(
         generatePuzzle(
@@ -405,6 +412,7 @@ export default function App() {
           sharedChallenge.gridSize,
           sharedChallenge.childMapSize,
           sharedChallenge.buildingDepth,
+          sharedChallenge.buildingPlacement ?? 'cells',
         ),
       )
       setGame(acceptedGame)
@@ -459,6 +467,7 @@ export default function App() {
               puzzleVariant: 'cube',
               audience: activeAudience === 'children' ? 'adults' : activeAudience,
               buildingDepth: buildingDepthForPositions(nextGame.puzzle.positions),
+              buildingPlacement: nextGame.puzzle.buildingPlacement ?? 'cells',
             }
           : nextGame.puzzle.boardMode === 'logic-grid'
             ? {
@@ -540,6 +549,9 @@ export default function App() {
             : game.puzzle.boardMode === 'map'
               ? { childMapSize: game.puzzle.characters.length as 4 | 6 | 8 }
               : { buildingDepth: buildingDepthForPositions(game.puzzle.positions) }),
+          ...(game.puzzle.boardMode === 'logic-cube'
+            ? { buildingPlacement: game.puzzle.buildingPlacement ?? 'cells' }
+            : {}),
         },
         activeAudience,
         completedSeconds,
@@ -571,6 +583,7 @@ export default function App() {
           gridSize: completedGame.gridSize,
           childMapSize: completedGame.childMapSize,
           buildingDepth: completedGame.buildingDepth,
+          buildingPlacement: completedGame.buildingPlacement,
         },
         completedGame.audience,
         completedGame.elapsedSeconds,
@@ -609,6 +622,7 @@ export default function App() {
 
   const journeySteps: Readonly<Record<JourneyStep, string>> = {
     collection: t(preferences.locale, 'collectionStep'),
+    mode: buildingPlacementCopy(preferences.locale).step,
     size: t(preferences.locale, 'sizeStep'),
     difficulty: t(preferences.locale, 'difficultyStep'),
     adventure: t(preferences.locale, 'adventureStep'),
@@ -625,6 +639,17 @@ export default function App() {
     const canResumeCurrentSetup = game
       ? gameMatchesSetup(game, preferences, selectedThemeId)
       : false
+    const homeJourneyOrder: readonly JourneyStep[] =
+      preferences.collection === 'three-dimensional'
+        ? ['collection', 'mode', 'size', 'difficulty', 'adventure']
+        : ['collection', 'size', 'difficulty', 'adventure']
+    const currentJourneyIndex = homeJourneyOrder.indexOf(homeJourneyStep)
+    const normalizedJourneyStep =
+      currentJourneyIndex >= 0 ? homeJourneyStep : homeJourneyOrder[0]!
+    const normalizedJourneyIndex = homeJourneyOrder.indexOf(normalizedJourneyStep)
+    const furthestJourneyStep = canResumeCurrentSetup
+      ? homeJourneyOrder.at(-1)!
+      : homeJourneyOrder[Math.min(homeJourneyOrder.length - 1, normalizedJourneyIndex + 1)]!
     return (
       <main
         className={`app-shell home-screen audience--${homeAudience} collection--${preferences.collection}`}
@@ -639,37 +664,26 @@ export default function App() {
         />
         <JourneyPath
           label={t(preferences.locale, 'journeyPath')}
-          currentStep={homeJourneyStep}
-          furthestStep={
-            canResumeCurrentSetup
-              ? 'adventure'
-              : homeJourneyStep === 'collection'
-                ? 'size'
-                : homeJourneyStep === 'size'
-                  ? 'difficulty'
-                  : 'adventure'
-          }
+          currentStep={normalizedJourneyStep}
+          furthestStep={furthestJourneyStep}
           steps={journeySteps}
+          stepOrder={homeJourneyOrder}
           previousLabel={t(preferences.locale, 'previousStep')}
           nextLabel={t(preferences.locale, 'nextStep')}
-          canGoPrevious={homeJourneyStep !== 'collection'}
-          canGoNext={homeJourneyStep !== 'adventure'}
+          canGoPrevious={normalizedJourneyIndex > 0}
+          canGoNext={normalizedJourneyIndex < homeJourneyOrder.length - 1}
           onPrevious={() => {
-            if (homeJourneyStep === 'adventure') openHomeJourneyStep('difficulty')
-            else if (homeJourneyStep === 'difficulty') openHomeJourneyStep('size')
-            else openHomeJourneyStep('collection')
+            const previous = homeJourneyOrder[normalizedJourneyIndex - 1]
+            if (previous) openHomeJourneyStep(previous)
           }}
           onNext={() => {
-            if (homeJourneyStep === 'collection') openHomeJourneyStep('size')
-            else if (homeJourneyStep === 'size') openHomeJourneyStep('difficulty')
-            else if (homeJourneyStep === 'difficulty') openHomeJourneyStep('adventure')
-            else if (canResumeCurrentSetup) resumeGame()
-            else startGame()
+            const next = homeJourneyOrder[normalizedJourneyIndex + 1]
+            if (next) openHomeJourneyStep(next)
           }}
           onStepChange={openJourneyStep}
         />
         <section
-          className={`home-hero ${homeJourneyStep === 'collection' ? '' : 'home-hero--setup'}`}
+          className={`home-hero ${normalizedJourneyStep === 'collection' ? '' : 'home-hero--setup'}`}
         >
           <div className="home-hero__copy">
             <p className="eyebrow">{heroCopy.eyebrow}</p>
@@ -680,9 +694,9 @@ export default function App() {
               className="setup-step"
               tabIndex={-1}
               role="group"
-              aria-label={journeySteps[homeJourneyStep]}
+              aria-label={journeySteps[normalizedJourneyStep]}
             >
-              {homeJourneyStep === 'collection' && (
+              {normalizedJourneyStep === 'collection' && (
                 <PuzzleCollectionSelector
                   value={preferences.collection}
                   locale={preferences.locale}
@@ -693,7 +707,16 @@ export default function App() {
                   }}
                 />
               )}
-              {homeJourneyStep === 'size' &&
+              {normalizedJourneyStep === 'mode' && (
+                <BuildingPlacementSelector
+                  value={preferences.buildingPlacement}
+                  locale={preferences.locale}
+                  onChange={(buildingPlacement) =>
+                    setPreferences({ ...preferences, buildingPlacement })
+                  }
+                />
+              )}
+              {normalizedJourneyStep === 'size' &&
                 (preferences.collection === 'children' ? (
                   <ChildMapSizeSelector
                     value={preferences.childMapSize}
@@ -722,7 +745,7 @@ export default function App() {
                     }
                   />
                 ))}
-              {homeJourneyStep === 'difficulty' && (
+              {normalizedJourneyStep === 'difficulty' && (
                 <DifficultySelector
                   value={preferences.difficulty}
                   locale={preferences.locale}
@@ -731,7 +754,7 @@ export default function App() {
                   onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
                 />
               )}
-              {homeJourneyStep === 'adventure' && (
+              {normalizedJourneyStep === 'adventure' && (
                 <>
                   <AdventureSelector
                     value={selectedThemeId}
@@ -806,7 +829,17 @@ export default function App() {
     game.puzzle.boardMode === 'map'
       ? buildChildNarrative(game.puzzle, preferences.locale)
       : undefined
-  const copy = childNarrative ?? themeCopy(preferences.locale, game.puzzle.theme)
+  const localizedTheme = themeCopy(preferences.locale, game.puzzle.theme)
+  const copy =
+    childNarrative ??
+    (game.puzzle.boardMode === 'logic-cube'
+      ? {
+          ...localizedTheme,
+          title: game.puzzle.title,
+          introduction: game.puzzle.introduction,
+          objective: game.puzzle.objective,
+        }
+      : localizedTheme)
   const boardActions = boardActionCopy(preferences.locale)
   const boardTitle = t(
     preferences.locale,
@@ -816,14 +849,17 @@ export default function App() {
         ? 'logicGrid'
         : 'map',
   )
-  const boardInstruction = t(
-    preferences.locale,
-    game.puzzle.boardMode === 'logic-cube'
-      ? 'logicCubeInstruction'
-      : game.puzzle.boardMode === 'logic-grid'
-        ? 'logicGridInstruction'
-        : 'mapInstruction',
-  )
+  const boardInstruction =
+    game.puzzle.boardMode === 'logic-cube' && game.puzzle.buildingPlacement === 'rooms'
+      ? buildingPlacementCopy(preferences.locale).roomInstruction
+      : t(
+          preferences.locale,
+          game.puzzle.boardMode === 'logic-cube'
+            ? 'logicCubeInstruction'
+            : game.puzzle.boardMode === 'logic-grid'
+              ? 'logicGridInstruction'
+              : 'mapInstruction',
+        )
   const currentPuzzleCollection: PuzzleCollection =
     game.puzzle.boardMode === 'logic-cube'
       ? 'three-dimensional'
@@ -872,6 +908,11 @@ export default function App() {
         currentStep="adventure"
         furthestStep="adventure"
         steps={journeySteps}
+        stepOrder={
+          currentPuzzleCollection === 'three-dimensional'
+            ? ['collection', 'mode', 'size', 'difficulty', 'adventure']
+            : ['collection', 'size', 'difficulty', 'adventure']
+        }
         previousLabel={t(preferences.locale, 'previousStep')}
         nextLabel={t(preferences.locale, 'nextStep')}
         canGoPrevious
@@ -994,6 +1035,7 @@ export default function App() {
               {game.puzzle.boardMode === 'logic-cube' ? (
                 <LogicCubeBoard
                   positions={game.puzzle.positions}
+                  buildingPlacement={game.puzzle.buildingPlacement ?? 'cells'}
                   characters={game.puzzle.characters}
                   items={game.puzzle.items}
                   assignments={game.assignments}

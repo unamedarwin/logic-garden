@@ -1,11 +1,11 @@
-# Room-based 3D building proposal
+# Room-based 3D building mode
 
-## Verdict
+## Status
 
-The proposal is viable and is a strong candidate for a more approachable 3D entry mode. Keep the
-existing floor plan, elevator, walls, doors, textures, and furniture, but separate visual cells from
-logical destinations. In room mode, one whole home or shop is one destination, no matter where the
-player taps or drops inside it.
+Implemented in generator version 24. The recommended 3D entry mode keeps the existing floor plan,
+elevator, walls, doors, textures, and furniture, but separates visual cells from logical
+destinations. One whole home or shop is one destination, no matter where the player taps or drops
+inside it. The advanced cell mode remains available as an explicit independent choice.
 
 This should be an explicit `Rooms` submode marked as recommended, while the current `Cells` submode
 remains advanced. Do not silently change the rules only because the player selected Easy: size,
@@ -71,10 +71,12 @@ verify uniqueness with a solver limit of two. Room-mode clues must not be produc
 removing coordinates from an existing sentence: projection can make a previously unique cell puzzle
 ambiguous.
 
-The 100-entry catalog does not need to grow. Each of the existing 16 audience/height building
-structures can carry a second answer-free room-clue set derived during offline generation. It still
-stores no answer, names, localized phrases, concrete objects, or personal data. Canonical identity
-must include both clue sets, and runtime theme application reruns the appropriate solver.
+The 100-entry catalog does not grow. Its 16 answer-free building entries provide validated audience
+and height coverage. Each building entry stores one cell-mode clue tuple set and one room-mode clue
+tuple set, both generated offline from independent assignments and both included in the canonical
+structure signature. They store no answer, names, localized phrases, concrete objects, or personal
+data, and the fully themed room puzzle is rerun through the solver with a limit of two before
+display.
 
 Easy, Medium, and Hard remain available at every height inside each submode. Difficulty should be
 graded from forced room placements, branching pressure, and dependency-chain length, not from the
@@ -87,22 +89,23 @@ Add one conditional journey decision after selecting Puzzles 3D:
 - `Per estances · recomanat` / `Rooms · recommended`
 - `Per caselles · avançat` / `Cells · advanced`
 
-Then retain the independent height, difficulty, and adventure steps. A future implementation needs
-a new generator version, share payload schema, saved-game schema, preference field, and history
-field. Legacy `cube` links without `buildingPlacement` resolve explicitly to `cells`; new room links
-declare `buildingPlacement: 'rooms'` and still contain no answer.
+Then retain the independent height, difficulty, and adventure steps. Generator version 24,
+preference schema 6, share payload schema 6, saved-game schema 4, and statistics schema 4 persist
+the mode without storing an answer. Legacy `cube` links without `buildingPlacement` resolve
+explicitly to `cells`; new room links declare `buildingPlacement: 'rooms'`.
 
-## Implementation slices
+## Implemented slices
 
-1. Add the placement discriminant, canonical room targets, shared candidate selector, and pure
+1. Added the placement discriminant, canonical room targets, shared candidate selector, and pure
    solver/reducer tests without changing the interface.
-2. Generate answer-free room clue sets for every audience and height, add deduction traces, and
+2. Generated answer-free room clue sets for every audience and height, added deduction traces, and
    rerun uniqueness checks for all difficulties.
-3. Add room overlays, whole-room drag previews, accessible keyboard targets, and the conditional
+3. Added room overlays, whole-room drag previews, accessible keyboard targets, and the conditional
    setup step.
-4. Version sharing, persistence, history, and challenge restoration; retain legacy cell links.
-5. Run the complete Docker and three-engine mobile matrix, then first-time player tests before
-   awarding perceived-difficulty or enjoyment points.
+4. Versioned sharing, persistence, history, and challenge restoration while retaining legacy cell
+   links.
+5. The Docker and three-engine mobile matrix is a release gate. First-time player tests remain
+   external and are required before awarding perceived-difficulty or enjoyment points.
 
 ## Required regression tests
 

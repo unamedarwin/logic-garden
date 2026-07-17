@@ -67,12 +67,13 @@ vi.mock('../pwa/registerServiceWorker', () => ({
 
 vi.mock('../storage/preferences', () => ({
   defaultPreferences: {
-    schemaVersion: 5,
+    schemaVersion: 6,
     difficulty: 'easy',
     collection: 'children',
     advancedGridSize: 6,
     childMapSize: 4,
     buildingDepth: 3,
+    buildingPlacement: 'rooms',
     locale: 'ca',
     soundEnabled: false,
     reducedMotion: false,
@@ -80,12 +81,13 @@ vi.mock('../storage/preferences', () => ({
   },
   loadPreferences: () =>
     Promise.resolve({
-      schemaVersion: 5,
+      schemaVersion: 6,
       difficulty: 'easy',
       collection: 'children',
       advancedGridSize: 6,
       childMapSize: 4,
       buildingDepth: 3,
+      buildingPlacement: 'rooms',
       locale: 'ca',
       soundEnabled: false,
       reducedMotion: false,
@@ -389,6 +391,7 @@ describe('game interface', () => {
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     expect(screen.getByRole('button', { name: 'Juga' })).toBeInTheDocument()
   })
 
@@ -481,32 +484,57 @@ describe('game interface', () => {
 
   it('starts the separate variable-height building collection without a profile', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    const { container } = render(<App />)
 
     expect(await screen.findByRole('radio', { name: /^Aventures il·lustrades/u })).toBeChecked()
     expect(screen.getByRole('radio', { name: /^Puzzles 2D/u })).toBeInTheDocument()
     await user.click(screen.getByRole('radio', { name: /^Puzzles 3D/u }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
+    expect(screen.getByRole('radio', { name: /^Per estances/u })).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     expect(screen.getByRole('radio', { name: '3 plantes · recomanat' })).toBeChecked()
     await user.click(screen.getByRole('radio', { name: '10 plantes' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     expect(screen.getByRole('radio', { name: 'Per començar · 6 veïns guiats' })).toBeChecked()
-    await user.click(screen.getByRole('radio', { name: 'Repte mitjà · 3 veïns guiats' }))
+    await user.click(screen.getByRole('radio', { name: 'Repte mitjà · 4 veïns guiats' }))
     await user.click(screen.getByRole('button', { name: 'Pas següent' }))
     await user.click(screen.getByRole('button', { name: 'Juga' }))
 
     expect(
-      await screen.findByRole('grid', { name: /Edifici de deducció en 3D:/u }),
+      await screen.findByRole('group', { name: /Edifici de deducció en 3D:/u }),
     ).toBeInTheDocument()
     expect(screen.getByRole('group', { name: "Ascensor de l'edifici" })).toBeInTheDocument()
     expect(screen.getAllByRole('tab')).toHaveLength(10)
-    expect(screen.getAllByRole('gridcell')).toHaveLength(25)
+    expect(screen.queryAllByRole('gridcell')).toHaveLength(0)
+    expect(container.querySelectorAll('[data-room-target]')).toHaveLength(4)
+    expect(screen.getByText(/Residents i botiguers/u)).toBeVisible()
+    expect(screen.getByText('Descobreix a quina llar o botiga és cadascú.')).toBeVisible()
     expect(
       screen.getByRole('heading', {
-        name: "Tria una persona i un espai lliure de l'edifici.",
+        name: 'Tria una persona i una estança de l’edifici.',
       }),
     ).toBeInTheDocument()
-  })
+
+    await user.click(
+      container.querySelector<HTMLButtonElement>('.character-clue-rail__person')!,
+    )
+    const rooms = Array.from(container.querySelectorAll<HTMLElement>('[data-room-target]'))
+    await user.click(rooms[0]!.querySelector<HTMLButtonElement>('.logic-cube__room-button')!)
+    const placedToken = screen.getByRole('button', { name: /^Torna a la safata:/u })
+    const characterId = placedToken.dataset.characterId
+    const destinationId = rooms[1]!.dataset.gridPosition
+    if (!characterId || !destinationId) throw new Error('Expected a movable room placement')
+    dndMock.overId = `position:${destinationId}`
+    act(() => dndMock.onDragStart?.({ active: { id: characterId } }))
+    expect(rooms[1]!.querySelector('.logic-cube__room-preview')).toBeInTheDocument()
+    act(() =>
+      dndMock.onDragEnd?.({
+        active: { id: characterId },
+        over: { id: `position:${destinationId}` },
+      }),
+    )
+    expect(rooms[1]!.querySelector('.character-token')).toBeInTheDocument()
+  }, 30_000)
 
   it('preserves the chosen 2D difficulty while visiting the 3D collection', async () => {
     const user = userEvent.setup()

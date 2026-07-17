@@ -5,6 +5,7 @@ import {
   manhattanDistance,
 } from '../domain/constraints'
 import { buildingUnitsAreNeighbors, isBuildingAbove } from '../domain/buildingPlan'
+import { buildingUsesRoomPlacement, placementDestinations } from '../domain/placements'
 import type { Assignment, CharacterId, Clue, Position, Puzzle } from '../domain/types'
 import { preferredLandmark } from './landmarkDomains'
 import { SeededRandom } from './seededRandom'
@@ -31,6 +32,7 @@ export const generateCandidateClues = (
   random: SeededRandom,
 ): Clue[] => {
   const candidates: Clue[] = []
+  const roomPlacement = buildingUsesRoomPlacement(puzzle)
   const add = (clue: Clue) => candidates.push(clue)
   const hasVisibleLandmark = (position: Position) =>
     puzzle.positions.some(
@@ -55,7 +57,7 @@ export const generateCandidateClues = (
 
   for (const character of puzzle.characters) {
     const position = solutionPosition(puzzle, solution, character.id)
-    const otherPosition = puzzle.positions.find(
+    const otherPosition = placementDestinations(puzzle).find(
       (candidate) =>
         candidate.id !== position.id &&
         !candidate.blocked &&
@@ -72,7 +74,7 @@ export const generateCandidateClues = (
     )
     const otherItem = puzzle.items.find((item) => item.id !== character.itemId)
 
-    if (position.buildingKind !== 'shop') {
+    if (position.buildingKind !== 'shop' && !roomPlacement) {
       add({
         ...clueBase(
           random,
@@ -112,7 +114,7 @@ export const generateCandidateClues = (
       })
     } else if (puzzle.boardMode === 'logic-cube') {
       const adjacentLandmark = visibleLandmarkNextTo(position)
-      if (adjacentLandmark) {
+      if (adjacentLandmark && !roomPlacement) {
         add({
           ...clueBase(
             random,
@@ -136,12 +138,14 @@ export const generateCandidateClues = (
         characterId: character.id,
         placeId: position.placeId,
       })
-      add({
-        ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
-        type: 'has-item',
-        characterId: character.id,
-        itemId: character.itemId!,
-      })
+      if (!roomPlacement) {
+        add({
+          ...clueBase(random, 'has-item', `${character.id}:${character.itemId}`),
+          type: 'has-item',
+          characterId: character.id,
+          itemId: character.itemId!,
+        })
+      }
     } else if (random.next() < 0.5) {
       add({
         ...clueBase(random, 'character-at-position', character.id),
@@ -159,7 +163,7 @@ export const generateCandidateClues = (
     }
 
     if (otherPosition) {
-      if (random.next() < 0.5) {
+      if (!roomPlacement && random.next() < 0.5) {
         add({
           ...clueBase(
             random,
@@ -184,7 +188,7 @@ export const generateCandidateClues = (
       }
     }
 
-    if (puzzle.boardMode === 'logic-cube' && character.itemId) {
+    if (puzzle.boardMode === 'logic-cube' && character.itemId && !roomPlacement) {
       const otherCubeItem = puzzle.items.find((item) => item.id !== character.itemId)
       if (otherCubeItem) {
         add({

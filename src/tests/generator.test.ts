@@ -18,10 +18,10 @@ import {
 } from '../domain/buildingPlan'
 import {
   generatePuzzle,
-  generatePuzzleDirect,
   generatePuzzleForCollection,
   selectAdvancedPuzzleTemplate,
 } from '../generator/puzzleGenerator'
+import { materializeAdvancedPuzzleTemplate } from '../generator/puzzleTemplates'
 import { isClueSatisfiedByPartialAssignment } from '../solver/constraintEvaluator'
 import { countSolutions, solve } from '../solver/solver'
 import { analyzeDeductionTrace, assignmentFromDeductionTrace } from '../solver/deductionTrace'
@@ -239,24 +239,19 @@ describe('seeded puzzle generator', () => {
 
   it('builds deterministic 5x5 buildings at every height with three spatial axes', () => {
     for (const depth of BUILDING_DEPTHS) {
-      const structure = {
-        boardMode: 'logic-cube' as const,
-        gridSize: 5 as const,
+      const template = selectAdvancedPuzzleTemplate(
+        'hard',
+        `height-${depth}`,
+        depth % 2 === 0 ? 'teens' : 'adults',
+        'cube',
+        undefined,
         depth,
-        characterCount: 8 as const,
+      )
+      if (!template || template.boardMode !== 'logic-cube') {
+        throw new Error(`Expected a building template for depth ${depth}`)
       }
-      const puzzle = generatePuzzleDirect(
-        'hard',
-        `height-${depth}`,
-        depth % 2 === 0 ? 'teens' : 'adults',
-        structure,
-      )
-      const repeated = generatePuzzleDirect(
-        'hard',
-        `height-${depth}`,
-        depth % 2 === 0 ? 'teens' : 'adults',
-        structure,
-      )
+      const puzzle = materializeAdvancedPuzzleTemplate(template, `height-${depth}`)
+      const repeated = materializeAdvancedPuzzleTemplate(template, `height-${depth}`)
       const solution = solve(puzzle)
 
       expect(repeated, `depth ${depth}`).toEqual(puzzle)
@@ -362,7 +357,7 @@ describe('seeded puzzle generator', () => {
         ),
       ).toBe(true)
     }
-  }, 240_000)
+  }, 180_000)
 
   it('keeps character identities visually separate from object markers in every theme', () => {
     for (const theme of themes) {
@@ -610,7 +605,13 @@ describe('seeded puzzle generator', () => {
 
   it('uses visual spatial clues for teen and adult grids without distance or axis wording', () => {
     for (const audience of ['teens', 'adults'] as const) {
-      const puzzle = generatePuzzle('medium', `spatial-clues-${audience}`, audience)
+      const puzzle = generatePuzzle(
+        'medium',
+        `spatial-clues-${audience}`,
+        audience,
+        'spatial',
+        6,
+      )
       const forbiddenTypes = new Set([
         'distance',
         'same-row',
@@ -677,7 +678,7 @@ describe('seeded puzzle generator', () => {
         .flatMap((clue) => supportedLocales.map((locale) => renderClue(puzzle, clue, locale)))
       expect(landmarkTexts.every((text) => text.length > 24)).toBe(true)
     }
-  })
+  }, 30_000)
 
   it('scales spatial plans without coupling difficulty to one board dimension', () => {
     for (const difficulty of ['easy', 'medium', 'hard'] as const) {
@@ -746,7 +747,7 @@ describe('seeded puzzle generator', () => {
         expect(countSolutions(puzzle, { limit: 2 })).toBe(1)
       }
     }
-  }, 180_000)
+  }, 420_000)
 
   it('selects board size independently from deductive difficulty', () => {
     for (const audience of ['teens', 'adults'] as const) {

@@ -69,6 +69,7 @@ describe('local completion statistics', () => {
       difficulty: 'hard',
       puzzleVariant: 'cube',
       buildingDepth: 10,
+      buildingPlacement: 'cells',
       generatorVersion: GENERATOR_VERSION,
       elapsedSeconds: 180,
       moves: 16,
@@ -77,5 +78,38 @@ describe('local completion statistics', () => {
 
     expect(statistics.history[0]?.buildingDepth).toBe(10)
     expect(JSON.stringify(statistics.history[0])).not.toContain('solution')
+  })
+
+  it('rejects a current history payload with an invalid building mode', async () => {
+    vi.mocked(get).mockResolvedValue({
+      schemaVersion: 4,
+      completed: 1,
+      hintsUsed: 0,
+      recentSeeds: ['bad'],
+      history: [
+        {
+          id: 'bad:1',
+          seed: 'bad',
+          audience: 'adults',
+          difficulty: 'easy',
+          puzzleVariant: 'cube',
+          buildingDepth: 3,
+          buildingPlacement: 'unknown',
+          generatorVersion: GENERATOR_VERSION,
+          completedAt: 1,
+          elapsedSeconds: 10,
+          moves: 1,
+          hintsUsed: 0,
+        },
+      ],
+    })
+
+    await expect(loadStatistics()).resolves.toEqual({
+      schemaVersion: 4,
+      completed: 0,
+      hintsUsed: 0,
+      recentSeeds: [],
+      history: [],
+    })
   })
 })

@@ -7,6 +7,7 @@ import type {
 } from '../domain/types'
 import { isPartialAssignmentValid } from './constraintEvaluator'
 import { solve } from './solver'
+import { placementDestinations } from '../domain/placements'
 
 export interface DeductionTraceStep {
   readonly index: number
@@ -36,8 +37,8 @@ const locallyValidCandidates = (
   characterId: CharacterId,
 ) => {
   const usedPositions = new Set(Object.values(assignment))
-  return puzzle.positions
-    .filter((position) => !position.blocked && !usedPositions.has(position.id))
+  return placementDestinations(puzzle)
+    .filter((position) => !usedPositions.has(position.id))
     .filter((position) =>
       isPartialAssignmentValid(puzzle, {
         ...assignment,

@@ -892,21 +892,49 @@ const cubeTemplates: Record<Locale, Templates> = {
       '{a} ajuda des d’una altra casella; no és a la casella {d} de «{o}» a «{p}».',
     ],
     'character-in-place': [
-      'La porta de la llar de {a} s’obre a l’espai «{p}», on sempre saluda el veïnat.',
+      'La llar de {a} és «{p}»; al replà sempre saluda el veïnat.',
+      '{a} torna cada vespre a «{p}» i coincideix amb el veïnat al replà.',
+      'Quan acaba el dia, {a} entra a «{p}» i comparteix una estona amb el veïnat.',
     ],
     'character-not-in-place': [
       '{a} viu en una altra zona de l’edifici, fora de l’espai «{p}».',
+      '{a} passa sovint per «{p}», però la seva llar és en una altra zona.',
+      'El replà de «{p}» no és el de {a}; cal buscar en una altra zona.',
     ],
     'in-corner': ['La llar de {a} fa cantonada i rep llum per dos costats.'],
     'not-in-corner': ['L’espai de {a} no fa cantonada; al replà saluda el veïnat.'],
     'has-item': ['{a} guarda {i} amb cura a casa.'],
     'does-not-have-item': ['{a} ha triat un altre objecte, no {i}.'],
-    adjacent: ['{a} i {b} obren portes veïnes al mateix replà.'],
-    'not-adjacent': ['Les portes de {a} i {b} no són veïnes.'],
-    above: ['{a} viu al pis de sobre de {b}, a la mateixa ala.'],
-    below: ['{a} viu al pis de sota de {b}, a la mateixa ala.'],
-    'same-floor': ['{a} i {b} comparteixen el mateix replà i sempre es saluden.'],
-    'different-floor': ['{a} i {b} viuen en pisos diferents i es troben a l’entrada.'],
+    adjacent: [
+      '{a} i {b} obren portes veïnes al mateix replà.',
+      '{a} i {b} són veïns de porta i sovint coincideixen al replà.',
+      'Les llars de {a} i {b} comparteixen replà i tenen les portes de costat.',
+    ],
+    'not-adjacent': [
+      'Les portes de {a} i {b} no són veïnes.',
+      '{a} i {b} es troben a l’edifici, però no viuen porta per porta.',
+      'Al replà, la porta de {a} no queda al costat de la de {b}.',
+    ],
+    above: [
+      '{a} viu al pis de sobre de {b}, a la mateixa ala.',
+      '{a} saluda {b} des del pis immediatament superior de la mateixa ala.',
+      'A la mateixa ala, la llar de {a} queda just damunt de la de {b}.',
+    ],
+    below: [
+      '{a} viu al pis de sota de {b}, a la mateixa ala.',
+      '{a} saluda {b} des del pis immediatament inferior de la mateixa ala.',
+      'A la mateixa ala, la llar de {a} queda just sota la de {b}.',
+    ],
+    'same-floor': [
+      '{a} i {b} comparteixen el mateix replà i sempre es saluden.',
+      '{a} i {b} viuen al mateix pis i coincideixen sovint al replà.',
+      'Les portes de {a} i {b} s’obren al mateix pis de l’edifici.',
+    ],
+    'different-floor': [
+      '{a} i {b} viuen en pisos diferents i es troben a l’entrada.',
+      '{a} i {b} no comparteixen pis, tot i que sovint coincideixen a l’ascensor.',
+      'Per visitar-se, {a} i {b} han de canviar de pis.',
+    ],
   },
   es: {
     ...gridTemplates.es,
@@ -1080,15 +1108,33 @@ const cubeShopTemplates: Record<Locale, Templates> = {
     'character-not-at-position': [
       '{a} ajuda des d’una altra casella; no és a la casella {d} de «{o}» a «{p}».',
     ],
-    'character-in-place': ['{a} prepara l’aparador de l’espai «{p}» abans d’obrir.'],
+    'character-in-place': [
+      '{a} prepara l’aparador de «{p}» abans d’obrir.',
+      'Cada matí, {a} aixeca la persiana de «{p}» i dona la benvinguda al barri.',
+      '{a} atén el veïnat a «{p}» i té cura de la botiga.',
+    ],
     'character-not-in-place': [
       '{a} treballa en una altra botiga de l’edifici, diferent de l’espai «{p}».',
+      '{a} visita «{p}», però obre una altra botiga de la planta baixa.',
+      'La botiga de {a} és a la planta baixa, però no és «{p}».',
     ],
     'has-item': ['{a} prepara {i} per a l’aparador de la botiga.'],
     'does-not-have-item': ['Avui, {a} mostra un altre objecte a l’aparador, no {i}.'],
-    adjacent: ['{a} i {b} atenen dos espais veïns i es donen un cop de mà.'],
-    'not-adjacent': ['{a} i {b} col·laboren, però els seus espais no tenen portes veïnes.'],
-    'same-floor': ['{a} i {b} obren les dues botigues de la planta baixa i s’ajuden.'],
+    adjacent: [
+      '{a} i {b} atenen dos espais veïns i es donen un cop de mà.',
+      'Les botigues de {a} i {b} són de costat i comparteixen el moviment del matí.',
+      '{a} i {b} obren portes veïnes a la planta baixa.',
+    ],
+    'not-adjacent': [
+      '{a} i {b} col·laboren, però els seus espais no tenen portes veïnes.',
+      'Les botigues de {a} i {b} són a la planta baixa, però no són de costat.',
+      '{a} i {b} comparteixen barri, no pas una paret entre botigues.',
+    ],
+    'same-floor': [
+      '{a} i {b} obren les dues botigues de la planta baixa i s’ajuden.',
+      '{a} i {b} treballen a la planta baixa i coincideixen abans d’obrir.',
+      'Les botigues de {a} i {b} comparteixen la planta baixa de l’edifici.',
+    ],
     'different-floor': [
       'Una persona treballa a la planta baixa i l’altra és en un altre pis; {a} i {b} es troben a l’entrada.',
     ],
@@ -1709,10 +1755,9 @@ export const renderClueParts = (
     const key = match[1] ?? ''
     const value = values[key] ?? textValue(key)
     const precedingText = template.slice(cursor, index)
+    const needsElision = /^[aeiouhàâäéèêëíïîóòôöúùûü]/iu.test(value.text)
     const localizedPrecedingText =
-      locale === 'fr' &&
-      /de $/u.test(precedingText) &&
-      /^[aeiouyhàâäéèêëîïôöùûü]/iu.test(value.text)
+      (locale === 'fr' || locale === 'ca') && /de $/u.test(precedingText) && needsElision
         ? precedingText.replace(/de $/u, 'd’')
         : precedingText
     if (localizedPrecedingText) parts.push({ type: 'text', text: localizedPrecedingText })

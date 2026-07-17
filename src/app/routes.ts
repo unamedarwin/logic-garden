@@ -7,6 +7,7 @@ import {
   type AdvancedGridSize,
   type Audience,
   type BuildingSize,
+  type BuildingPlacement,
   type ChildMapSize,
   type ChallengeMetadata,
   type Difficulty,
@@ -30,7 +31,7 @@ const maximumDecodedPayloadLength = 2_048
 const isSharedPayload = (
   value: unknown,
 ): value is {
-  readonly v: 2 | 3 | 4 | 5
+  readonly v: 2 | 3 | 4 | 5 | 6
   readonly difficulty: Difficulty
   readonly seed: string
   readonly audience: Audience
@@ -39,18 +40,27 @@ const isSharedPayload = (
   readonly gridSize?: AdvancedGridSize
   readonly childMapSize?: ChildMapSize
   readonly buildingDepth?: BuildingSize
+  readonly buildingPlacement?: BuildingPlacement
   readonly benchmarkSeconds?: number
 } => {
   if (!value || typeof value !== 'object') return false
   const payload = value as Record<string, unknown>
   return (
-    (payload.v === 2 || payload.v === 3 || payload.v === 4 || payload.v === 5) &&
+    (payload.v === 2 ||
+      payload.v === 3 ||
+      payload.v === 4 ||
+      payload.v === 5 ||
+      payload.v === 6) &&
     isChallengeMetadata(payload) &&
     payload.generatorVersion === GENERATOR_VERSION &&
-    (payload.v === 4 || payload.v === 5
+    (payload.v === 4 || payload.v === 5 || payload.v === 6
       ? payload.variant === 'spatial' || payload.variant === 'cube'
       : payload.variant === undefined) &&
-    (payload.v !== 5 ||
+    (payload.v < 5 ||
+      (payload.v === 6 && payload.variant === 'cube'
+        ? payload.buildingPlacement === 'rooms' || payload.buildingPlacement === 'cells'
+        : payload.buildingPlacement === undefined)) &&
+    (payload.v < 5 ||
       (payload.variant === 'cube'
         ? payload.buildingDepth === 3 ||
           payload.buildingDepth === 4 ||
@@ -95,7 +105,7 @@ const declaredGzipSize = (bytes: Uint8Array) => {
 }
 
 const encodePayload = (payload: {
-  readonly v: 5
+  readonly v: 6
   readonly difficulty: Difficulty
   readonly seed: Seed
   readonly audience: Audience
@@ -104,6 +114,7 @@ const encodePayload = (payload: {
   readonly gridSize?: AdvancedGridSize
   readonly childMapSize?: ChildMapSize
   readonly buildingDepth?: BuildingSize
+  readonly buildingPlacement?: BuildingPlacement
   readonly benchmarkSeconds?: number
 }) =>
   `${compressedPayloadPrefix}${toUrlSafeBase64(
@@ -142,6 +153,9 @@ export const parseSharedGameRoute = (location: Location): SharedGameRoute | null
       ...(decoded.gridSize ? { gridSize: decoded.gridSize } : {}),
       ...(decoded.childMapSize ? { childMapSize: decoded.childMapSize } : {}),
       ...(decoded.buildingDepth ? { buildingDepth: decoded.buildingDepth } : {}),
+      ...(decoded.variant === 'cube'
+        ? { buildingPlacement: decoded.buildingPlacement ?? 'cells' }
+        : {}),
       benchmarkSeconds: decoded.benchmarkSeconds,
     }
   }
@@ -173,6 +187,7 @@ export const shareUrl = (
     readonly gridSize?: AdvancedGridSize
     readonly childMapSize?: ChildMapSize
     readonly buildingDepth?: BuildingSize
+    readonly buildingPlacement?: BuildingPlacement
   },
   audience: Audience,
   benchmarkSeconds?: number,
@@ -221,7 +236,7 @@ export const shareUrl = (
   url.searchParams.set(
     'p',
     encodePayload({
-      v: 5,
+      v: 6,
       difficulty: puzzle.difficulty,
       seed: puzzle.seed,
       audience,
@@ -235,6 +250,9 @@ export const shareUrl = (
         : {}),
       ...(puzzle.variant === 'cube' && puzzle.buildingDepth
         ? { buildingDepth: puzzle.buildingDepth }
+        : {}),
+      ...(puzzle.variant === 'cube'
+        ? { buildingPlacement: puzzle.buildingPlacement ?? 'cells' }
         : {}),
       ...(isBenchmarkSeconds(benchmarkSeconds) ? { benchmarkSeconds } : {}),
     }),

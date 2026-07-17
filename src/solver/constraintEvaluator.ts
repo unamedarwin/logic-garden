@@ -3,9 +3,9 @@ import {
   isStrictlyBetween,
   manhattanDistance,
   isCornerPosition,
-  shareCubeAxisLine,
 } from '../domain/constraints'
 import { buildingUnitsAreNeighbors, isBuildingAbove } from '../domain/buildingPlan'
+import { placementDestinations, placementsConflict } from '../domain/placements'
 import type { CharacterId, Clue, PartialAssignment, Position, Puzzle } from '../domain/types'
 
 const positionFor = (
@@ -267,32 +267,23 @@ export const isClueSatisfiedByPartialAssignment = (
 export const isAssignmentGeometryValid = (puzzle: Puzzle, assignment: PartialAssignment) => {
   const assignedPositions = Object.values(assignment)
   if (new Set(assignedPositions).size !== assignedPositions.length) return false
-
-  if (puzzle.boardMode === 'logic-grid') {
-    const occupied = assignedPositions
-      .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
-      .filter((position): position is Position => Boolean(position))
-    if (new Set(occupied.map((position) => position.row)).size !== occupied.length) return false
-    if (new Set(occupied.map((position) => position.column)).size !== occupied.length)
-      return false
-  }
-
-  if (puzzle.boardMode === 'logic-cube') {
-    const occupied = assignedPositions
-      .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
-      .filter((position): position is Position => Boolean(position))
-    if (
-      occupied.some((position, index) =>
-        occupied.slice(index + 1).some((other) => shareCubeAxisLine(position, other)),
-      )
+  const destinations = new Set(placementDestinations(puzzle).map((position) => position.id))
+  const occupied = assignedPositions
+    .map((positionId) => puzzle.positions.find((position) => position.id === positionId))
+    .filter((position): position is Position => Boolean(position))
+  if (occupied.length !== assignedPositions.length) return false
+  if (occupied.some((position) => !destinations.has(position.id))) return false
+  if (
+    occupied.some((position, index) =>
+      occupied.slice(index + 1).some((other) => placementsConflict(puzzle, position, other)),
     )
-      return false
-  }
+  )
+    return false
 
   for (const [characterId, assignedPositionId] of Object.entries(assignment)) {
     const knownCharacter = puzzle.characters.some((character) => character.id === characterId)
     const position = puzzle.positions.find((candidate) => candidate.id === assignedPositionId)
-    if (!knownCharacter || !position || position.blocked) return false
+    if (!knownCharacter || !position || !destinations.has(position.id)) return false
   }
 
   return true

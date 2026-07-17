@@ -7,6 +7,19 @@ import { activeLocales } from './locales'
 
 export const supportedLocales = activeLocales
 
+export const buildingPlacementCopy = (locale: Locale) => {
+  void locale
+  return {
+    step: 'Mode',
+    legend: 'Com vols explorar l’edifici?',
+    rooms: 'Per estances',
+    roomsDescription: 'Recomanat. Cada llar o botiga és un únic lloc.',
+    cells: 'Per caselles',
+    cellsDescription: 'Avançat. Cal deduir la casella exacta dins de cada estança.',
+    roomInstruction: 'Tria una persona i una estança de l’edifici.',
+  }
+}
+
 export const localeLabels: Record<Locale, string> = {
   ca: 'Català',
   es: 'Castellano',

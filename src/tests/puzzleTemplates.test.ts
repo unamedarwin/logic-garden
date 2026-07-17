@@ -9,6 +9,8 @@ import {
   canonicalTemplateSignature,
   materializeAdvancedPuzzleTemplate,
   templateBucketKey,
+  type AdvancedPuzzleTemplate,
+  type TemplateClue,
 } from '../generator/puzzleTemplates'
 import { countSolutions } from '../solver/solver'
 import { BUILDING_DEPTHS, buildingDepthForPositions } from '../domain/buildingPlan'
@@ -42,6 +44,14 @@ describe('validated advanced puzzle templates', () => {
       }
     }
     expect(buildingTemplates.every((template) => template.characterCount === 8)).toBe(true)
+    expect(buildingTemplates.every((template) => template.roomClues.length > 0)).toBe(true)
+    expect(
+      buildingTemplates.every((template) =>
+        template.roomClues.every((clue) =>
+          ['z', 'Z', 'a', 'A', 'u', 'd', 's', 'S'].includes(clue[0]),
+        ),
+      ),
+    ).toBe(true)
     expect(
       advancedPuzzleTemplates
         .filter((template) => template.boardMode === 'logic-grid' && template.gridSize === 16)
@@ -68,18 +78,50 @@ describe('validated advanced puzzle templates', () => {
         puzzle.characters.map((character) => character.name),
         key,
       ).not.toContain('character-0')
+      if (template.boardMode === 'logic-cube') {
+        const roomPuzzle = materializeAdvancedPuzzleTemplate(
+          template,
+          `template-room-test-${key}`,
+          'rooms',
+        )
+        expect(roomPuzzle.buildingPlacement, key).toBe('rooms')
+        expect(countSolutions(roomPuzzle, { limit: 2 }), key).toBe(1)
+      }
     }
   }, 20_000)
 
+  it('canonical identity ignores clue ordering but includes room-mode clue facts', () => {
+    const template = advancedPuzzleTemplates.find(
+      (candidate) => candidate.boardMode === 'logic-cube' && candidate.roomClues.length > 0,
+    )
+    if (!template || template.boardMode !== 'logic-cube') {
+      throw new Error('Expected a building template with room clues')
+    }
+
+    const reversed: AdvancedPuzzleTemplate = {
+      ...template,
+      clues: [...template.clues].reverse(),
+      roomClues: [...template.roomClues].reverse(),
+    }
+    expect(canonicalTemplateSignature(reversed)).toBe(canonicalTemplateSignature(template))
+
+    const changedRoomClue: TemplateClue = ['z', 0, 0]
+    const changed: AdvancedPuzzleTemplate = {
+      ...template,
+      roomClues: [changedRoomClue, ...template.roomClues],
+    }
+    expect(canonicalTemplateSignature(changed)).not.toBe(canonicalTemplateSignature(template))
+  })
+
   it('selects and decorates catalog entries deterministically from the public seed', () => {
-    const first = generatePuzzle('hard', 'catalog-selection', 'adults')
-    const repeated = generatePuzzle('hard', 'catalog-selection', 'adults')
-    const other = generatePuzzle('hard', 'catalog-selection-other', 'adults')
+    const first = generatePuzzle('hard', 'catalog-selection', 'adults', 'spatial', 6)
+    const repeated = generatePuzzle('hard', 'catalog-selection', 'adults', 'spatial', 6)
+    const other = generatePuzzle('hard', 'catalog-selection-other', 'adults', 'spatial', 6)
 
     expect(repeated).toEqual(first)
     expect(other.id).not.toBe(first.id)
     expect(countSolutions(first, { limit: 2 })).toBe(1)
-    expect([6, 9, 16]).toContain(Math.sqrt(first.positions.length))
+    expect(Math.sqrt(first.positions.length)).toBe(6)
   })
 
   it('selects a solver-verified variable-height structure for the advanced building', () => {
@@ -95,6 +137,37 @@ describe('validated advanced puzzle templates', () => {
     expect(new Set(first.positions.map((position) => position.layer))).toEqual(
       new Set(Array.from({ length: depth }, (_, layer) => layer)),
     )
+    expect(countSolutions(first, { limit: 2 })).toBe(1)
+  })
+
+  it('materializes room-placement building templates deterministically', () => {
+    const template = selectAdvancedPuzzleTemplate(
+      'hard',
+      'room-materialization',
+      'adults',
+      'cube',
+      undefined,
+      6,
+    )
+    if (!template || template.boardMode !== 'logic-cube') {
+      throw new Error('Expected a building template')
+    }
+
+    const first = materializeAdvancedPuzzleTemplate(template, 'room-materialization', 'rooms')
+    const repeated = materializeAdvancedPuzzleTemplate(
+      template,
+      'room-materialization',
+      'rooms',
+    )
+    const other = materializeAdvancedPuzzleTemplate(
+      template,
+      'room-materialization-other',
+      'rooms',
+    )
+
+    expect(repeated).toEqual(first)
+    expect(other.id).not.toBe(first.id)
+    expect(first.buildingPlacement).toBe('rooms')
     expect(countSolutions(first, { limit: 2 })).toBe(1)
   })
 

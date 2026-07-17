@@ -245,6 +245,15 @@ solution. Placed people conflict across the
 complete row and column of their current floor. A height conflict at the same row and column reaches
 only the immediately adjacent floor above and below, so adding more floors does not create an
 unbounded full-height exclusion.
+Expose room and cell placement as independent setup modes before height. Room mode is the
+recommended entry and must derive exactly `2 + 4(d-1)` canonical home/shop destinations from the
+same visual geometry. It allows one person per room, ignores visual row/column/height conflicts
+between different rooms, and never emits exact-cell, landmark, item, or corner clues. Cell mode
+retains the three-axis crossing rules. Both modes must accept and persist structurally valid wrong
+hypotheses, share their explicit mode, and remain uniquely solvable with a limit-two solver check.
+Present an active room-mode floor as a labelled group of room buttons, not as a semantic grid with
+no grid cells. Waiting-rail and placed characters must both support real pointer drag in addition to
+click and keyboard placement, with an exact whole-room preview before drop.
 Render each floor as semantic DOM controls and use a keyboard-accessible, non-wrapping elevator to
 switch among all floors without changing placements or timer state. Keep the elevator outside the
 active-floor frame, order its floor buttons from ground floor to the selected height's top floor,

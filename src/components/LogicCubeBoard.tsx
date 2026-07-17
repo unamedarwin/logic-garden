@@ -22,7 +22,9 @@ import {
   buildingWallSegmentsForLayer,
 } from '../domain/buildingPlan'
 import { shareCubeAxisLine } from '../domain/constraints'
+import { buildingRoomDestinationsForPositions } from '../domain/placements'
 import type {
+  BuildingPlacement,
   Character,
   CharacterId,
   Item,
@@ -43,6 +45,31 @@ const isCrossedByCubeAxes = (candidate: Position, placements: readonly PlacedCub
   placements.some(
     ({ position }) => position.id !== candidate.id && shareCubeAxisLine(position, candidate),
   )
+
+const touchesBuildingRoute = (position: Position, positions: readonly Position[]): boolean =>
+  positions.some(
+    (candidate) =>
+      candidate.layer === position.layer &&
+      Math.abs(candidate.row - position.row) + Math.abs(candidate.column - position.column) ===
+        1 &&
+      (candidate.buildingKind === 'landing' ||
+        candidate.buildingKind === 'stairs' ||
+        candidate.buildingKind === 'entrance'),
+  )
+
+const labelAnchorForUnit = (
+  roomPositions: readonly Position[],
+  floorPositions: readonly Position[],
+) =>
+  roomPositions
+    .filter((candidate) => !candidate.blocked)
+    .toSorted(
+      (first, second) =>
+        Number(touchesBuildingRoute(first, floorPositions)) -
+          Number(touchesBuildingRoute(second, floorPositions)) ||
+        first.row - second.row ||
+        first.column - second.column,
+    )[0]
 
 const motionSafeScrollBehavior = (): ScrollBehavior => {
   if (typeof window === 'undefined') return 'auto'
@@ -76,6 +103,7 @@ interface CubeCellProps {
   readonly crossed: boolean
   readonly disabled: boolean
   readonly zoneAnchor: boolean
+  readonly decorativeOnly: boolean
   readonly tabIndex: number
   readonly locale: Locale
   readonly returnLabel: string
@@ -96,6 +124,7 @@ const CubeCell = ({
   crossed,
   disabled,
   zoneAnchor,
+  decorativeOnly,
   tabIndex,
   locale,
   returnLabel,
@@ -106,7 +135,10 @@ const CubeCell = ({
   onFocus,
   onKeyDown,
 }: CubeCellProps) => {
-  const { setNodeRef, isOver } = useDroppable({ id: `position:${position.id}` })
+  const { setNodeRef, isOver } = useDroppable({
+    id: `position:${position.id}`,
+    disabled,
+  })
   const label =
     position.buildingUnitId !== undefined && position.layer !== undefined
       ? buildingUnitLabel(locale, position.buildingUnitId, position.layer)
@@ -116,9 +148,9 @@ const CubeCell = ({
   return (
     <article
       ref={setNodeRef}
-      role="gridcell"
-      aria-rowindex={position.row + 1}
-      aria-colindex={position.column + 1}
+      role={decorativeOnly ? 'presentation' : 'gridcell'}
+      aria-rowindex={decorativeOnly ? undefined : position.row + 1}
+      aria-colindex={decorativeOnly ? undefined : position.column + 1}
       data-grid-position={position.id}
       data-building-kind={position.buildingKind}
       className={`logic-cube__cell location-cell logic-cube__cell--${position.buildingKind ?? 'home'} ${position.blocked ? 'location-cell--blocked' : ''} ${character ? 'location-cell--filled' : ''} ${crossed ? 'location-cell--crossed' : ''} ${selectedCharacterId && !disabled ? 'location-cell--placeable' : ''} ${isOver && !disabled ? 'location-cell--over' : ''}`}
@@ -131,6 +163,7 @@ const CubeCell = ({
           selectedCharacterId ? moveToPositionLabel(label) : selectPositionLabel(label)
         }
         disabled={disabled}
+        aria-hidden={decorativeOnly}
         tabIndex={tabIndex}
         onClick={() => onMoveToPosition(position.id)}
         onFocus={onFocus}
@@ -176,10 +209,103 @@ const CubeCell = ({
   )
 }
 
+interface RoomTargetProps {
+  readonly position: Position
+  readonly roomPositions: readonly Position[]
+  readonly character?: Character
+  readonly selectedCharacterId?: CharacterId
+  readonly draggedCharacter?: Character
+  readonly tabIndex: number
+  readonly locale: Locale
+  readonly returnLabel: string
+  readonly moveToPositionLabel: (positionLabel: string) => string
+  readonly selectPositionLabel: (positionLabel: string) => string
+  readonly onMoveToPosition: (positionId: PositionId) => void
+  readonly onRemoveCharacter: (characterId: CharacterId) => void
+  readonly onFocus: () => void
+  readonly onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void
+}
+
+const RoomTarget = ({
+  position,
+  roomPositions,
+  character,
+  selectedCharacterId,
+  draggedCharacter,
+  tabIndex,
+  locale,
+  returnLabel,
+  moveToPositionLabel,
+  selectPositionLabel,
+  onMoveToPosition,
+  onRemoveCharacter,
+  onFocus,
+  onKeyDown,
+}: RoomTargetProps) => {
+  const { setNodeRef, isOver } = useDroppable({ id: `position:${position.id}` })
+  const rows = roomPositions.map((candidate) => candidate.row)
+  const columns = roomPositions.map((candidate) => candidate.column)
+  const rowStart = Math.min(...rows)
+  const rowEnd = Math.max(...rows)
+  const columnStart = Math.min(...columns)
+  const columnEnd = Math.max(...columns)
+  const expectedCellCount = (rowEnd - rowStart + 1) * (columnEnd - columnStart + 1)
+  if (expectedCellCount !== roomPositions.length) {
+    throw new Error(`L’estança ${position.placeId} no forma un rectangle interactiu.`)
+  }
+  const label = buildingUnitLabel(locale, position.buildingUnitId ?? '', position.layer ?? 0)
+  return (
+    <article
+      ref={setNodeRef}
+      role="presentation"
+      data-room-target={position.placeId}
+      data-grid-position={position.id}
+      className={`logic-cube__room-target ${selectedCharacterId ? 'logic-cube__room-target--placeable' : ''} ${isOver ? 'logic-cube__room-target--over' : ''} ${character ? 'logic-cube__room-target--filled' : ''}`}
+      style={{
+        left: `${(columnStart / BUILDING_COLUMNS) * 100}%`,
+        top: `${(rowStart / BUILDING_ROWS) * 100}%`,
+        width: `${((columnEnd - columnStart + 1) / BUILDING_COLUMNS) * 100}%`,
+        height: `${((rowEnd - rowStart + 1) / BUILDING_ROWS) * 100}%`,
+      }}
+    >
+      <button
+        id={`grid-target-${position.id}`}
+        type="button"
+        className="logic-cube__room-button"
+        aria-label={
+          selectedCharacterId ? moveToPositionLabel(label) : selectPositionLabel(label)
+        }
+        tabIndex={tabIndex}
+        onClick={() => onMoveToPosition(position.id)}
+        onFocus={onFocus}
+        onKeyDown={onKeyDown}
+      >
+        <span className="sr-only">{label}</span>
+      </button>
+      {character && (
+        <div className="logic-cube__room-token">
+          <CharacterToken
+            character={character}
+            selected={false}
+            onSelect={() => onRemoveCharacter(character.id)}
+            actionLabel={`${returnLabel}: ${character.name}`}
+          />
+        </div>
+      )}
+      {isOver && draggedCharacter && (
+        <div className="logic-cube__room-preview">
+          <CharacterTokenPreview character={draggedCharacter} variant="drop-target" />
+        </div>
+      )}
+    </article>
+  )
+}
+
 interface LogicCubeBoardProps {
   readonly positions: readonly Position[]
   readonly characters: readonly Character[]
   readonly items: readonly Item[]
+  readonly buildingPlacement?: BuildingPlacement
   readonly assignments: Readonly<Partial<Record<CharacterId, PositionId>>>
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacterId?: CharacterId
@@ -202,6 +328,7 @@ export const LogicCubeBoard = ({
   positions,
   characters,
   items,
+  buildingPlacement = 'cells',
   assignments,
   selectedCharacterId,
   draggedCharacterId,
@@ -242,6 +369,11 @@ export const LogicCubeBoard = ({
   }, [activeLayer, buildingDepth])
 
   const visiblePositions = positions.filter((position) => position.layer === activeLayer)
+  const roomPlacement = buildingPlacement === 'rooms'
+  const roomDestinations = roomPlacement ? buildingRoomDestinationsForPositions(positions) : []
+  const visibleRoomDestinations = roomDestinations.filter(
+    (position) => position.layer === activeLayer,
+  )
   const placedPositions = Object.entries(assignments)
     .map(([characterId, positionId]) => {
       const position = positions.find((candidate) => candidate.id === positionId)
@@ -251,12 +383,14 @@ export const LogicCubeBoard = ({
   const occupiedByOthers = placedPositions.filter(
     ({ characterId }) => characterId !== requestedCharacterId,
   )
-  const positionIsUnavailable = (position: Position) => Boolean(position.blocked)
-  const firstFocusable = visiblePositions.find((position) => !positionIsUnavailable(position))
+  const positionIsUnavailable = (position: Position) =>
+    roomPlacement || Boolean(position.blocked)
+  const focusablePositions = roomPlacement
+    ? visibleRoomDestinations
+    : visiblePositions.filter((position) => !positionIsUnavailable(position))
+  const firstFocusable = focusablePositions[0]
   const [focusedPositionId, setFocusedPositionId] = useState<PositionId | undefined>()
-  const focusTargetId = visiblePositions.some(
-    (position) => position.id === focusedPositionId && !positionIsUnavailable(position),
-  )
+  const focusTargetId = focusablePositions.some((position) => position.id === focusedPositionId)
     ? focusedPositionId
     : firstFocusable?.id
   const draggedCharacter = characters.find((character) => character.id === draggedCharacterId)
@@ -348,6 +482,26 @@ export const LogicCubeBoard = ({
     if (!direction) return
     event.preventDefault()
     const [rowStep, columnStep] = direction
+    if (roomPlacement) {
+      const next = focusablePositions
+        .filter((candidate) => {
+          if (rowStep < 0) return candidate.row < position.row
+          if (rowStep > 0) return candidate.row > position.row
+          if (columnStep < 0) return candidate.column < position.column
+          return candidate.column > position.column
+        })
+        .sort(
+          (first, second) =>
+            Math.abs(first.row - position.row) +
+            Math.abs(first.column - position.column) -
+            (Math.abs(second.row - position.row) + Math.abs(second.column - position.column)),
+        )[0]
+      if (next) {
+        setFocusedPositionId(next.id)
+        requestAnimationFrame(() => document.getElementById(`grid-target-${next.id}`)?.focus())
+      }
+      return
+    }
     let row = position.row + rowStep
     let column = position.column + columnStep
     while (row >= 0 && row < BUILDING_ROWS && column >= 0 && column < BUILDING_COLUMNS) {
@@ -383,7 +537,7 @@ export const LogicCubeBoard = ({
 
   return (
     <section
-      className={`logic-cube ${draggedCharacter ? 'game-board--dragging' : ''}`}
+      className={`logic-cube ${roomPlacement ? 'logic-cube--rooms' : 'logic-cube--cells'} ${draggedCharacter ? 'game-board--dragging' : ''}`}
       style={cubeStyle}
       data-grid-size={BUILDING_COLUMNS}
       data-grid-depth={buildingDepth}
@@ -474,12 +628,14 @@ export const LogicCubeBoard = ({
         </div>
         <div
           className="logic-cube__surface"
-          role="grid"
-          aria-rowcount={BUILDING_ROWS}
-          aria-colcount={BUILDING_COLUMNS}
+          role={roomPlacement ? 'group' : 'grid'}
+          aria-rowcount={roomPlacement ? undefined : BUILDING_ROWS}
+          aria-colcount={roomPlacement ? undefined : BUILDING_COLUMNS}
           aria-label={`${boardLabel}: ${buildingFloorLabel(locale, activeLayer)}`}
         >
-          {draggedCharacter && <div className="game-board__drop-grid" aria-hidden="true" />}
+          {draggedCharacter && !roomPlacement && (
+            <div className="game-board__drop-grid" aria-hidden="true" />
+          )}
           <div className="logic-cube__walls" aria-hidden="true">
             {floorWalls.map((wall) => (
               <span
@@ -518,21 +674,24 @@ export const LogicCubeBoard = ({
           </div>
           <div className="game-board__cells">
             {Array.from({ length: BUILDING_ROWS }, (_, row) => (
-              <div key={row} className="game-board__row" role="row">
+              <div
+                key={row}
+                className="game-board__row"
+                role={roomPlacement ? 'presentation' : 'row'}
+              >
                 {visiblePositions
                   .filter((position) => position.row === row)
                   .map((position) => {
-                    const character = characters.find(
-                      (candidate) => assignments[candidate.id] === position.id,
-                    )
+                    const character = roomPlacement
+                      ? undefined
+                      : characters.find(
+                          (candidate) => assignments[candidate.id] === position.id,
+                        )
                     const unitPositions = visiblePositions.filter(
                       (candidate) => candidate.placeId === position.placeId,
                     )
                     const zoneAnchor =
-                      (
-                        unitPositions.find((candidate) => !candidate.blocked) ??
-                        unitPositions[0]
-                      )?.id === position.id
+                      labelAnchorForUnit(unitPositions, visiblePositions)?.id === position.id
                     return (
                       <CubeCell
                         key={position.id}
@@ -541,9 +700,14 @@ export const LogicCubeBoard = ({
                         selectedCharacterId={selectedCharacterId}
                         draggedCharacter={draggedCharacter}
                         decorativeEmoji={zoneAnchor ? undefined : decorativeFurniture(position)}
-                        crossed={!character && isCrossedByCubeAxes(position, occupiedByOthers)}
+                        crossed={
+                          !roomPlacement &&
+                          !character &&
+                          isCrossedByCubeAxes(position, occupiedByOthers)
+                        }
                         disabled={positionIsUnavailable(position)}
                         zoneAnchor={zoneAnchor}
+                        decorativeOnly={roomPlacement}
                         tabIndex={focusTargetId === position.id ? 0 : -1}
                         locale={locale}
                         returnLabel={returnLabel}
@@ -559,6 +723,37 @@ export const LogicCubeBoard = ({
               </div>
             ))}
           </div>
+          {roomPlacement && (
+            <div className="logic-cube__room-targets">
+              {visibleRoomDestinations.map((position) => {
+                const roomPositions = visiblePositions.filter(
+                  (candidate) => candidate.placeId === position.placeId,
+                )
+                const character = characters.find(
+                  (candidate) => assignments[candidate.id] === position.id,
+                )
+                return (
+                  <RoomTarget
+                    key={position.id}
+                    position={position}
+                    roomPositions={roomPositions}
+                    character={character}
+                    selectedCharacterId={selectedCharacterId}
+                    draggedCharacter={draggedCharacter}
+                    tabIndex={focusTargetId === position.id ? 0 : -1}
+                    locale={locale}
+                    returnLabel={returnLabel}
+                    moveToPositionLabel={moveToPositionLabel}
+                    selectPositionLabel={selectPositionLabel}
+                    onMoveToPosition={onMoveToPosition}
+                    onRemoveCharacter={onRemoveCharacter}
+                    onFocus={() => setFocusedPositionId(position.id)}
+                    onKeyDown={(event) => moveFocus(position, event)}
+                  />
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </section>

@@ -28,7 +28,7 @@ describe('preference migration without profiles', () => {
     })
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 5,
+      schemaVersion: 6,
       difficulty: 'medium',
       collection: 'two-dimensional',
       advancedGridSize: 6,
@@ -57,8 +57,9 @@ describe('preference migration without profiles', () => {
     )
 
     await expect(loadPreferences()).resolves.toMatchObject({
-      schemaVersion: 5,
+      schemaVersion: 6,
       collection: 'three-dimensional',
+      buildingPlacement: 'rooms',
       showCheckProgress: true,
       advancedGridSize: 6,
     })

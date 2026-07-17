@@ -18,6 +18,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard'
 export type AdvancedGridSize = 6 | 9 | 16
 export type ChildMapSize = 4 | 6 | 8
 export type BuildingSize = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
+export type BuildingPlacement = 'rooms' | 'cells'
 export type BoardMode = 'map' | 'logic-grid' | 'logic-cube'
 export type PuzzleVariant = 'spatial' | 'cube'
 export type PuzzleCollection = 'children' | 'two-dimensional' | 'three-dimensional'
@@ -53,6 +54,7 @@ export interface ChallengeMetadata {
   readonly gridSize?: AdvancedGridSize
   readonly childMapSize?: ChildMapSize
   readonly buildingDepth?: BuildingSize
+  readonly buildingPlacement?: BuildingPlacement
   readonly benchmarkSeconds?: number
 }
 
@@ -96,6 +98,10 @@ export const isChallengeMetadata = (value: unknown): value is ChallengeMetadata 
       (candidate.variant !== 'cube' && candidate.audience !== 'children')) &&
     (candidate.childMapSize === undefined || candidate.audience === 'children') &&
     (candidate.buildingDepth === undefined || candidate.variant === 'cube') &&
+    (candidate.buildingPlacement === undefined ||
+      candidate.buildingPlacement === 'rooms' ||
+      candidate.buildingPlacement === 'cells') &&
+    (candidate.buildingPlacement === undefined || candidate.variant === 'cube') &&
     (candidate.variant !== 'cube' || candidate.audience !== 'children') &&
     (candidate.benchmarkSeconds === undefined ||
       (Number.isSafeInteger(candidate.benchmarkSeconds) &&
@@ -233,6 +239,8 @@ export interface Puzzle {
   readonly seed: Seed
   readonly difficulty: Difficulty
   readonly boardMode: BoardMode
+  /** Placement scale for 3D buildings; legacy puzzles without it use cell placement. */
+  readonly buildingPlacement?: BuildingPlacement
   /** The seeded visual plan used by adult and teen spatial boards. */
   readonly spatialPlanId?: string
   readonly theme: ThemeId

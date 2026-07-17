@@ -11,6 +11,7 @@ import type { GameState } from '../game/gameReducer'
 import { GENERATOR_VERSION } from '../generator/version'
 import { analyzeSolutions } from '../solver/solver'
 import { isAssignmentGeometryValid } from '../solver/constraintEvaluator'
+import { placementDestinations } from '../domain/placements'
 
 const key = 'logic-garden:saved-game:v1'
 
@@ -41,6 +42,9 @@ const isCompatibleState = (value: unknown): value is GameState => {
   )
     return false
   if (puzzle.boardMode === 'logic-cube') {
+    if (puzzle.buildingPlacement !== 'rooms' && puzzle.buildingPlacement !== 'cells') {
+      return false
+    }
     if (!hasCanonicalBuildingGeometry(puzzle.positions)) return false
     const depth = buildingDepthForPositions(puzzle.positions)
     if (
@@ -49,6 +53,15 @@ const isCompatibleState = (value: unknown): value is GameState => {
         buildingPlayableCount(depth)
     )
       return false
+    if (
+      puzzle.buildingPlacement === 'rooms' &&
+      !Object.values(state.assignments).every((positionId) =>
+        placementDestinations(puzzle).some((position) => position.id === positionId),
+      )
+    )
+      return false
+  } else if (puzzle.buildingPlacement !== undefined) {
+    return false
   }
   // Wrong deductions are valid player state. Persistence checks only physical
   // board rules; clue truth is evaluated when the player checks the solution.
@@ -60,7 +73,8 @@ const isCompatibleState = (value: unknown): value is GameState => {
 const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Record<string, unknown>
-  const state = candidate.state as GameState
+  if (!isCompatibleState(candidate.state)) return false
+  const state = candidate.state
   const challenge = candidate.challenge as ChallengeMetadata | undefined
   const boardSize = Math.sqrt(state.puzzle.positions.length)
   const challengeSizeMatches =
@@ -75,7 +89,6 @@ const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
   return (
     candidate.schemaVersion === 4 &&
     candidate.generatorVersion === GENERATOR_VERSION &&
-    isCompatibleState(candidate.state) &&
     (candidate.challenge === undefined ||
       (isChallengeMetadata(candidate.challenge) &&
         candidate.challenge.generatorVersion === GENERATOR_VERSION &&
@@ -85,6 +98,9 @@ const isCompatibleSavedGame = (value: unknown): value is SavedGame => {
           (getTheme(state.puzzle.theme).audience ?? 'children') &&
         (candidate.challenge.variant === 'cube') ===
           (state.puzzle.boardMode === 'logic-cube') &&
+        (state.puzzle.boardMode !== 'logic-cube' ||
+          (candidate.challenge.buildingPlacement ?? 'cells') ===
+            (state.puzzle.buildingPlacement ?? 'cells')) &&
         challengeSizeMatches))
   )
 }

@@ -1,7 +1,7 @@
 import type { CharacterId, PartialAssignment, PositionId, Puzzle } from '../domain/types'
 import { getSolverHint, validateAssignment } from './validation'
 import { solve } from '../solver/solver'
-import { shareCubeAxisLine } from '../domain/constraints'
+import { placementDestinationFor, placementsConflict } from '../domain/placements'
 import type { GameFeedback } from './feedback'
 
 export interface GameSnapshot {
@@ -112,14 +112,12 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
       }
     }
     case 'move-character': {
-      const targetPosition = state.puzzle.positions.find(
-        (position) => position.id === action.positionId,
-      )
+      const targetPosition = placementDestinationFor(state.puzzle, action.positionId)
       const character = state.puzzle.characters.find(
         (character) => character.id === action.characterId,
       )
-      if (!targetPosition || targetPosition.blocked || !character) return state
-      if (state.assignments[action.characterId] === action.positionId) return state
+      if (!targetPosition || !character) return state
+      if (state.assignments[action.characterId] === targetPosition.id) return state
 
       const conflictingCharacterIds: CharacterId[] = []
       if (state.puzzle.boardMode === 'logic-grid' || state.puzzle.boardMode === 'logic-cube') {
@@ -130,21 +128,17 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
             (position) => position.id === assignedPositionId,
           )
           if (!assignedPosition) continue
-          const conflicts =
-            state.puzzle.boardMode === 'logic-cube'
-              ? shareCubeAxisLine(assignedPosition, targetPosition)
-              : assignedPosition.row === targetPosition.row ||
-                assignedPosition.column === targetPosition.column
+          const conflicts = placementsConflict(state.puzzle, assignedPosition, targetPosition)
           if (conflicts) conflictingCharacterIds.push(candidate.id)
         }
       }
 
       const occupiedBy = state.puzzle.characters.find(
-        (character) => state.assignments[character.id] === action.positionId,
+        (character) => state.assignments[character.id] === targetPosition.id,
       )
       const assignments: Partial<Record<CharacterId, PositionId>> = {
         ...state.assignments,
-        [action.characterId]: action.positionId,
+        [action.characterId]: targetPosition.id,
       }
       for (const conflictingCharacterId of conflictingCharacterIds) {
         delete assignments[conflictingCharacterId]
@@ -247,7 +241,7 @@ export const gameReducer = (state: GameState, action: GameAction): GameState => 
           }
           return (
             state.puzzle.boardMode === 'logic-cube' &&
-            shareCubeAxisLine(assignedPosition, targetPosition)
+            placementsConflict(state.puzzle, assignedPosition, targetPosition)
           )
         })
         .map((candidate) => candidate.id)
