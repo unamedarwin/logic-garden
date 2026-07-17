@@ -2,9 +2,25 @@ import { describe, expect, it } from 'vitest'
 import { createGameState, gameReducer } from '../game/gameReducer'
 import { generatePuzzle } from '../generator/puzzleGenerator'
 import { solve } from '../solver/solver'
+import { clueReferencesCharacter } from '../domain/clueRelations'
 import { shareCubeAxisLine } from '../domain/constraints'
 
 describe('game reducer', () => {
+  it('starts with the first character that has contextual clues selected', () => {
+    const puzzle = generatePuzzle('easy', 'initial-selected-character', 'adults', 'cube')
+    const state = createGameState(puzzle)
+    const selectedCharacter = puzzle.characters.find(
+      (character) => character.id === state.selectedCharacterId,
+    )
+
+    expect(selectedCharacter).toBeDefined()
+    expect(
+      puzzle.clues.some((clue) =>
+        selectedCharacter ? clueReferencesCharacter(puzzle, clue, selectedCharacter.id) : false,
+      ),
+    ).toBe(true)
+  })
+
   it('accepts an incorrect hypothesis on a visually free building cell', () => {
     const puzzle = generatePuzzle(
       'hard',
@@ -151,7 +167,9 @@ describe('game reducer', () => {
     const solution = solve(puzzle)
     if (!solution) throw new Error('Expected a solvable generated puzzle')
     let state = createGameState(puzzle)
-    state = gameReducer(state, { type: 'select-character', characterId: character.id })
+    if (state.selectedCharacterId !== character.id) {
+      state = gameReducer(state, { type: 'select-character', characterId: character.id })
+    }
     state = gameReducer(state, { type: 'hint' })
 
     expect(state.hintsUsed).toBe(1)

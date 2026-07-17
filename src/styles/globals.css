@@ -453,6 +453,20 @@ summary:focus-visible {
 .building-placement-selector {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.building-placement-selector label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 8px;
+  align-items: start;
+}
+.building-placement-selector label svg {
+  grid-row: 1 / span 2;
+  margin-top: 2px;
+}
+.building-placement-selector label strong,
+.building-placement-selector label span {
+  display: block;
+}
 .difficulty-selector legend {
   grid-column: 1 / -1;
   margin-bottom: 1px;
@@ -1658,6 +1672,23 @@ summary:focus-visible {
   .game-actions__primary .button {
     grid-column: span 2;
   }
+}
+
+.competition-panel {
+  display: grid;
+  gap: 12px;
+  margin: 24px auto 0;
+  padding: 18px;
+  border: 3px solid var(--ink);
+}
+.competition-panel__profile,
+.competition-panel__columns {
+  display: grid;
+  gap: 12px;
+}
+.competition-panel__profile,
+.competition-panel__columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .mobile-game-switcher {
   display: none;

@@ -246,9 +246,10 @@ describe('game interface', () => {
 
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' })
     expect(await screen.findByRole('grid', { name: 'Mapa del puzzle' })).toBeInTheDocument()
-    const token = container.querySelector('[data-character-id]') as HTMLButtonElement
+    const token = container.querySelector(
+      '.character-clue-rail__person--selected',
+    ) as HTMLButtonElement
     token.focus()
-    await user.keyboard('{Enter}')
     await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
     expect(screen.getByRole('button', { name: 'Desfer' })).toBeEnabled()
 
@@ -259,6 +260,10 @@ describe('game interface', () => {
     await user.click(screen.getByRole('button', { name: 'Continua jugant' }))
     await user.click(screen.getByRole('button', { name: 'Desfer' }))
     expect(screen.getByRole('button', { name: 'Refer' })).toBeEnabled()
+    const selectedAfterUndo = container.querySelector<HTMLButtonElement>(
+      '.character-clue-rail__person--selected',
+    )
+    if (selectedAfterUndo) await user.click(selectedAfterUndo)
     await user.click(screen.getByRole('button', { name: 'Pista' }))
     expect(
       screen.getByRole('dialog', { name: 'De qui necessites una pista?' }),
@@ -355,11 +360,13 @@ describe('game interface', () => {
     await startDefaultGame(user)
 
     const trayToken = await waitFor(() => {
-      const token = container.querySelector('[data-character-id]') as HTMLButtonElement | null
+      const token = container.querySelector(
+        '.character-clue-rail__person--selected',
+      ) as HTMLButtonElement | null
       expect(token).not.toBeNull()
       return token!
     })
-    await user.click(trayToken)
+    trayToken.focus()
     await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
     const placedCharacterId = screen.getByRole('button', {
       name: /^Torna a la safata: /u,
@@ -403,8 +410,10 @@ describe('game interface', () => {
     await waitFor(() =>
       expect(container.querySelector('[data-character-id]')).toBeInTheDocument(),
     )
-    const trayToken = container.querySelector('[data-character-id]') as HTMLButtonElement
-    await user.click(trayToken)
+    const trayToken = container.querySelector(
+      '.character-clue-rail__person--selected',
+    ) as HTMLButtonElement
+    trayToken.focus()
     await user.click(screen.getAllByRole('button', { name: /^Mou /u })[0]!)
 
     const placedToken = screen.getByRole('button', { name: /^Torna a la safata: /u })
@@ -494,9 +503,9 @@ describe('game interface', () => {
       expect(container.querySelector('.character-clue-rail__person')).toBeInTheDocument(),
     )
     const railPerson = container.querySelector(
-      '.character-clue-rail__person',
+      '.character-clue-rail__person--selected',
     ) as HTMLButtonElement
-    await user.click(railPerson)
+    railPerson.focus()
     const firstTarget = screen.getAllByRole('button', { name: /^Mou /u })[0]!
     await user.click(firstTarget)
 
@@ -561,13 +570,13 @@ describe('game interface', () => {
     expect(screen.getByText('Descobreix a quina llar o botiga és cadascú.')).toBeVisible()
     expect(
       screen.getByRole('heading', {
-        name: 'Tria una persona i una estança de l’edifici.',
+        name: /Tria .* estança de .*edifici/u,
       }),
     ).toBeInTheDocument()
 
-    await user.click(
-      container.querySelector<HTMLButtonElement>('.character-clue-rail__person')!,
-    )
+    container
+      .querySelector<HTMLButtonElement>('.character-clue-rail__person--selected')
+      ?.focus()
     const rooms = Array.from(container.querySelectorAll<HTMLElement>('[data-room-target]'))
     await user.click(rooms[0]!.querySelector<HTMLButtonElement>('.logic-cube__room-button')!)
     const placedToken = screen.getByRole('button', { name: /^Torna a la safata:/u })
@@ -585,6 +594,16 @@ describe('game interface', () => {
     )
     expect(rooms[1]!.querySelector('.character-token')).toBeInTheDocument()
   }, 30_000)
+
+  it('marks the initially shown clue character as selected when a game starts', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await startDefaultGame(user)
+
+    const selectedPerson = container.querySelector('.character-clue-rail__person--selected')
+
+    expect(selectedPerson).toBeInTheDocument()
+  })
 
   it('preserves the chosen 2D difficulty while visiting the 3D collection', async () => {
     const user = userEvent.setup()
@@ -608,8 +627,13 @@ describe('game interface', () => {
 
   it('asks which person needs a hint when no person is selected', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    const { container } = render(<App />)
     await startDefaultGame(user)
+    const selectedPerson = container.querySelector<HTMLButtonElement>(
+      '.character-clue-rail__person--selected',
+    )
+    if (!selectedPerson) throw new Error('Expected an initially selected person')
+    await user.click(selectedPerson)
 
     await user.click(screen.getByRole('button', { name: 'Pista' }))
     const dialog = screen.getByRole('dialog', { name: 'De qui necessites una pista?' })

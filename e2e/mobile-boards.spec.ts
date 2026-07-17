@@ -273,12 +273,15 @@ test('Illustrated 8-person story stays clear at the iPhone 16e viewport', async 
   await expect(page.locator('.illustrated-story-premise')).not.toBeEmpty()
   await page.locator('.character-clue-rail__people').scrollIntoViewIfNeeded()
   await expectContextAboveActions(page)
+  const scrollBeforeRailSelection = await page.evaluate(() => window.scrollY)
   await expect(page.locator('.character-clue-rail__story-progress')).toHaveAttribute(
     'data-story-stage',
     'opening',
   )
   await page.locator('.character-clue-rail__person').last().click()
   await expect(page.locator('.character-clue-rail__clue').first()).toBeVisible()
+  const scrollAfterRailSelection = await page.evaluate(() => window.scrollY)
+  expect(Math.abs(scrollAfterRailSelection - scrollBeforeRailSelection)).toBeLessThanOrEqual(2)
   await expect(page.locator('.character-clue-rail__story-beat')).toHaveCount(0)
   await expectContextAboveActions(page)
   await page.locator('.location-cell__target').first().click()

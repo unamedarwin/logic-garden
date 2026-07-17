@@ -1,6 +1,7 @@
 import type { CharacterId, PartialAssignment, PositionId, Puzzle } from '../domain/types'
 import { getSolverHint, validateAssignment } from './validation'
 import { solve } from '../solver/solver'
+import { clueReferencesCharacter } from '../domain/clueRelations'
 import { placementDestinationFor, placementsConflict } from '../domain/placements'
 import type { GameFeedback } from './feedback'
 
@@ -58,11 +59,17 @@ const nextUnassignedCharacter = (
   return undefined
 }
 
+const initialSelectedCharacter = (puzzle: Puzzle): CharacterId | undefined =>
+  puzzle.characters.find((character) =>
+    puzzle.clues.some((clue) => clueReferencesCharacter(puzzle, clue, character.id)),
+  )?.id ?? puzzle.characters[0]?.id
+
 export const createGameState = (puzzle: Puzzle): GameState => ({
   puzzle,
   assignments: {},
   past: [],
   future: [],
+  selectedCharacterId: initialSelectedCharacter(puzzle),
   moves: 0,
   hintsUsed: 0,
   status: 'playing',

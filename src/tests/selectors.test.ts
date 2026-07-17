@@ -17,10 +17,13 @@ describe('game selectors', () => {
       throw new Error('Fixture puzzle must contain at least two characters and one position.')
     }
 
-    const selected = gameReducer(createGameState(puzzle), {
-      type: 'select-character',
-      characterId: firstCharacter.id,
-    })
+    let selected = createGameState(puzzle)
+    if (selected.selectedCharacterId !== firstCharacter.id) {
+      selected = gameReducer(selected, {
+        type: 'select-character',
+        characterId: firstCharacter.id,
+      })
+    }
     const state = gameReducer(selected, {
       type: 'move-character',
       characterId: firstCharacter.id,

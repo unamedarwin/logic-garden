@@ -100,3 +100,38 @@
 - Tablet orientation regression is now covered in Playwright for portrait and landscape viewports:
   the suite fits and centers placements on a `16 x 16` 2D board and a 10-floor 3D building without
   horizontal document overflow.
+- The contextual clue rail no longer performs vertical page corrections when the selected person
+  changes or when a clue card is paged horizontally. It may center content only inside its own
+  horizontal rails. Unit tests reject `window.scrollBy` from the rail, and the iPhone 16e E2E check
+  asserts that selecting another rail person does not move `window.scrollY`.
+- Open follow-up before the next release: the focused iPhone 16e Playwright run confirmed that
+  removing the vertical auto-scroll avoids the jump, but the selected person's contextual clue can
+  still sit too close to, or partly under, the fixed action rail. Fix this with CSS layout reserve
+  or scroll margin around the lower workspace, not by reintroducing JavaScript `window.scrollBy`
+  corrections from the clue rail.
+
+## Local competitive mode: P2P QR baseline
+
+- Implemented network shape: the PWA does not start a server, relay, websocket listener, LAN
+  discovery process, Bluetooth exchange, or NFC exchange. Nearby devices pair explicitly with a
+  QR/copy/share flow carrying a compressed WebRTC offer and answer. Once paired, game events travel
+  through a direct WebRTC DataChannel.
+- Pairing flow: the master creates a lobby and shows an offer QR. A participant scans or pastes it,
+  creates an answer QR, and the master scans or pastes that answer. The same codes can be copied or
+  sent through the device share sheet for AirDrop, messages, or another local sharing path.
+- Privacy model: signaling QR codes contain only WebRTC session descriptions, local lobby ids, and
+  temporary display profiles. Rounds send reproducible puzzle metadata: collection, size, difficulty,
+  seed, generator version, variant, building placement, and selected safe theme id. They never send a
+  solution, answer map, saved solo history, token, geolocation, or tracking identifier.
+- Session model: the master chooses the current setup and starts each round. Every connected device
+  generates the same puzzle locally and validates completion locally. Finishing a round sends only
+  participant id, round id, elapsed time, moves, hints used, and finish timestamp.
+- Round flow: all connected players solve the same puzzle. The standings panel keeps cumulative
+  time and solved-round count. A round is considered complete when every connected lobby member,
+  including the master, has submitted a finish result; the master can then start the next round.
+- Compatibility limits: this is intended for nearby devices and works best on the same Wi-Fi. With
+  no STUN/TURN server and no relay, restrictive routers or client-isolated networks can prevent
+  direct connection. The UI keeps copy/paste as a fallback when camera scanning is unavailable.
+- Open hardening: add a two-browser Playwright flow with mocked camera/QR input, reconnection
+  behavior, participant removal when someone leaves, and a compact mobile lobby layout review before
+  treating group play as release-polished.

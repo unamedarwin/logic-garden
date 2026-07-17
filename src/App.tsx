@@ -37,6 +37,7 @@ import { CompletedGames } from './components/CompletedGames'
 import { DifficultySelector } from './components/DifficultySelector'
 import { GameBoard } from './components/GameBoard'
 import { LogicCubeBoard } from './components/LogicCubeBoard'
+import { LocalCompetitionPanel } from './components/LocalCompetitionPanel'
 import { GameHeader } from './components/GameHeader'
 import { GameTimer } from './components/GameTimer'
 import { HintCharacterDialog } from './components/HintCharacterDialog'
@@ -65,6 +66,7 @@ import { getTheme, themesForPuzzleCollection } from './domain/themes'
 import {
   seed,
   type Audience,
+  type ChallengeMetadata,
   type CharacterId,
   type Difficulty,
   type PuzzleCollection,
@@ -96,6 +98,8 @@ import {
   type CompletedGame,
   type Statistics,
 } from './storage/statistics'
+import type { CompetitionRound } from './multiplayer/protocol'
+import { useLocalCompetition } from './multiplayer/useLocalCompetition'
 
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
 
@@ -225,6 +229,7 @@ export default function App() {
   const [showHintPicker, setShowHintPicker] = useState(false)
   const [showCheckResult, setShowCheckResult] = useState(false)
   const [sharedChallenge, setSharedChallenge] = useState<SharedGameRoute | null>(null)
+  const [activeCompetitionRoundId, setActiveCompetitionRoundId] = useState<string | null>(null)
   const [showChallengeIntro, setShowChallengeIntro] = useState(false)
   const [challengeFirstVisit, setChallengeFirstVisit] = useState(false)
   const [activeDragCharacterId, setActiveDragCharacterId] = useState<CharacterId | null>(null)
@@ -383,6 +388,78 @@ export default function App() {
     return worker.dispose
   }, [])
 
+  const startCompetitionRoundGame = (round: CompetitionRound) => {
+    setGenerating(true)
+    try {
+      const nextGame = createGameState(
+        generatePuzzleForCollection(
+          round.metadata.difficulty,
+          round.metadata.seed,
+          round.collection,
+          round.metadata.gridSize ?? preferences.advancedGridSize,
+          round.metadata.childMapSize ?? preferences.childMapSize,
+          round.metadata.buildingDepth ?? preferences.buildingDepth,
+          round.themeId,
+          round.metadata.buildingPlacement ?? preferences.buildingPlacement,
+        ),
+      )
+      setGame(nextGame)
+      setSelectedThemeId(nextGame.puzzle.theme)
+      setView('game')
+      setSharedChallenge(null)
+      setShowChallengeIntro(false)
+      setShowHintPicker(false)
+      setShowCheckResult(false)
+      setActiveCompetitionRoundId(round.id)
+      window.history.replaceState({}, '', import.meta.env.BASE_URL)
+      resetPageScroll()
+      setNotice('Ronda de grup iniciada.')
+    } catch {
+      setNotice(t(preferences.locale, 'gamePreparationError'))
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const localCompetition = useLocalCompetition(startCompetitionRoundGame)
+
+  const createCompetitionRound = (): CompetitionRound => {
+    const source = seed(createSeed())
+    const audience: Audience =
+      preferences.collection === 'children'
+        ? 'children'
+        : preferences.collection === 'two-dimensional'
+          ? 'teens'
+          : 'adults'
+    const metadata: ChallengeMetadata = {
+      difficulty: preferences.difficulty,
+      seed: source,
+      audience,
+      generatorVersion: GENERATOR_VERSION,
+      variant: preferences.collection === 'three-dimensional' ? 'cube' : 'spatial',
+      ...(preferences.collection === 'children'
+        ? { childMapSize: preferences.childMapSize }
+        : {}),
+      ...(preferences.collection === 'two-dimensional'
+        ? { gridSize: preferences.advancedGridSize }
+        : {}),
+      ...(preferences.collection === 'three-dimensional'
+        ? {
+            buildingDepth: preferences.buildingDepth,
+            buildingPlacement: preferences.buildingPlacement,
+          }
+        : {}),
+    }
+    return {
+      id: createSeed(),
+      title: themeCopy(preferences.locale, selectedThemeId, source).title,
+      metadata,
+      collection: preferences.collection,
+      themeId: selectedThemeId,
+      startedAt: Date.now(),
+    }
+  }
+
   const startGame = (
     difficulty: Difficulty = preferences.difficulty,
     source = createSeed(),
@@ -406,6 +483,7 @@ export default function App() {
       setGame(nextGame)
       setView('game')
       setSharedChallenge(null)
+      setActiveCompetitionRoundId(null)
       setShowChallengeIntro(false)
       setShowHintPicker(false)
       setShowCheckResult(false)
@@ -493,6 +571,7 @@ export default function App() {
       setNotice('')
     } catch {
       setSharedChallenge(null)
+      setActiveCompetitionRoundId(null)
       setShowChallengeIntro(false)
       setNotice(t(preferences.locale, 'gamePreparationError'))
     } finally {
@@ -518,6 +597,16 @@ export default function App() {
     if (action.type === 'check' && nextGame.status === 'won' && game.status !== 'won') {
       void clearSavedGame()
       const finishedAt = nextGame.finishedAt ?? Date.now()
+      if (activeCompetitionRoundId) {
+        localCompetition.submitResult({
+          roundId: activeCompetitionRoundId,
+          participantId: localCompetition.state.profile.id,
+          elapsedSeconds: elapsedSeconds(nextGame.startedAt, finishedAt),
+          moves: nextGame.moves,
+          hintsUsed: nextGame.hintsUsed,
+          finishedAt,
+        })
+      }
       const completion = {
         seed: nextGame.puzzle.seed,
         theme: nextGame.puzzle.theme,
@@ -865,6 +954,26 @@ export default function App() {
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
           onShare={shareCompletedGame}
         />
+        <LocalCompetitionPanel
+          state={localCompetition.state}
+          canStartRound={
+            !generating &&
+            localCompetition.state.role === 'master' &&
+            localCompetition.state.connectionState === 'connected' &&
+            localCompetition.state.participants.some(
+              (participant) => participant.role === 'participant' && participant.connected,
+            )
+          }
+          onProfileChange={localCompetition.setProfile}
+          onCreateOffer={() => void localCompetition.createOffer()}
+          onAcceptOffer={(code) => void localCompetition.acceptOffer(code)}
+          onAcceptAnswer={(code) => void localCompetition.acceptAnswer(code)}
+          onStartRound={() => localCompetition.startRound(createCompetitionRound())}
+          onReset={() => {
+            localCompetition.reset()
+            setActiveCompetitionRoundId(null)
+          }}
+        />
         <InstallPrompt
           label={t(preferences.locale, 'install')}
           locale={preferences.locale}
@@ -1046,14 +1155,17 @@ export default function App() {
                 <div>
                   <p className="eyebrow">{boardTitle}</p>
                   <h2>
-                    {activeBoardCharacterId
-                      ? selectedCharacterPlacementCopy(
-                          preferences.locale,
-                          game.puzzle.characters.find(
-                            (character) => character.id === activeBoardCharacterId,
-                          )?.name ?? '',
-                        )
-                      : boardInstruction}
+                    {game.puzzle.boardMode === 'logic-cube' &&
+                    game.puzzle.buildingPlacement === 'rooms'
+                      ? boardInstruction
+                      : activeBoardCharacterId
+                        ? selectedCharacterPlacementCopy(
+                            preferences.locale,
+                            game.puzzle.characters.find(
+                              (character) => character.id === activeBoardCharacterId,
+                            )?.name ?? '',
+                          )
+                        : boardInstruction}
                   </h2>
                 </div>
                 <span className="map-area__prompt">{boardInstruction}</span>

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CharacterClueRail } from '../components/CharacterClueRail'
 import { buildChildNarrative } from '../domain/childNarrative'
@@ -64,7 +64,7 @@ describe('character clue rail', () => {
 
     rerender(renderRail(characterIds.b))
 
-    expect(scrollTo).toHaveBeenLastCalledWith({ left: 0, behavior: 'auto' })
+    expect(scrollTo).toHaveBeenCalledWith({ left: 0, behavior: 'auto' })
   })
 
   it('shows an exact location before a broader landmark clue for the same person', () => {
@@ -114,7 +114,11 @@ describe('character clue rail', () => {
   })
 
   it('uses instant scrolling when reduced motion is requested', () => {
-    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
+    const scrollTo = vi.fn()
+    Object.defineProperty(HTMLDivElement.prototype, 'scrollTo', {
+      configurable: true,
+      value: scrollTo,
+    })
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       value: vi.fn().mockReturnValue({ matches: true }),
@@ -151,12 +155,10 @@ describe('character clue rail', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Pista següent' }))
 
-    expect(scrollIntoView).toHaveBeenCalledWith(
-      expect.objectContaining({ behavior: 'auto', inline: 'start' }),
-    )
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'auto' }))
   })
 
-  it('reveals contextual clues above the fixed action rail', () => {
+  it('does not push the page vertically when contextual clues overlap the fixed action rail', () => {
     const scrollBy = vi.fn()
     Object.defineProperty(window, 'scrollBy', { configurable: true, value: scrollBy })
     Object.defineProperty(window, 'matchMedia', {
@@ -204,10 +206,10 @@ describe('character clue rail', () => {
       </>,
     )
 
-    expect(scrollBy).toHaveBeenCalledWith({ top: 52, behavior: 'auto' })
+    expect(scrollBy).not.toHaveBeenCalled()
   })
 
-  it('reveals the contextual clue when manual scrolling brings it under the actions', async () => {
+  it('does not fight manual vertical scrolling near the fixed actions', () => {
     const scrollBy = vi.fn()
     let contextTop = window.innerHeight + 40
     Object.defineProperty(window, 'scrollBy', { configurable: true, value: scrollBy })
@@ -256,7 +258,7 @@ describe('character clue rail', () => {
     contextTop = 700
     fireEvent.scroll(window)
 
-    await waitFor(() => expect(scrollBy).toHaveBeenCalledWith({ top: 52, behavior: 'auto' }))
+    expect(scrollBy).not.toHaveBeenCalled()
   })
 
   it('shows narrative progress without treating a complete proposal as solved', () => {

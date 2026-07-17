@@ -38,6 +38,7 @@ export const BuildingPlacementSelector = ({
             name="building-placement"
             value={choice}
             checked={value === choice}
+            aria-label={`${title}. ${description}`}
             onChange={() => onChange(choice)}
           />
           <Icon aria-hidden="true" />

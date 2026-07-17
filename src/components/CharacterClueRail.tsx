@@ -98,8 +98,8 @@ export const CharacterClueRail = ({
   nextClueLabel,
   onSelect,
 }: CharacterClueRailProps) => {
+  const peopleRailRef = useRef<HTMLDivElement>(null)
   const clueRailRef = useRef<HTMLDivElement>(null)
-  const contextRef = useRef<HTMLDivElement>(null)
   const peopleRefs = useRef(new Map<CharacterId, HTMLButtonElement>())
   const [clueIndex, setClueIndex] = useState(0)
   const firstCharacterWithClue = puzzle.characters.find((character) =>
@@ -132,47 +132,15 @@ export const CharacterClueRail = ({
     setClueIndex(0)
     clueRailRef.current?.scrollTo({ left: 0, behavior: 'auto' })
     if (activeCharacterId) {
-      peopleRefs.current.get(activeCharacterId)?.scrollIntoView({
-        behavior: motionSafeScrollBehavior(),
-        block: 'nearest',
-        inline: 'center',
-      })
-    }
-    const ensureContextAboveActions = () => {
-      const context = contextRef.current
-      const actions = document.querySelector<HTMLElement>('.game-actions')
-      if (!context || !actions) return
-      const contextBounds = context.getBoundingClientRect()
-      const actionsBounds = actions.getBoundingClientRect()
-      const overlap = contextBounds.bottom - actionsBounds.top + 12
-      if (
-        contextBounds.height > 0 &&
-        actionsBounds.height > 0 &&
-        overlap > 0 &&
-        contextBounds.top < window.innerHeight
-      ) {
-        window.scrollBy({ top: overlap, behavior: 'auto' })
+      const activePerson = peopleRefs.current.get(activeCharacterId)
+      const peopleRail = peopleRailRef.current
+      if (activePerson && peopleRail) {
+        peopleRail.scrollTo({
+          left:
+            activePerson.offsetLeft - (peopleRail.clientWidth - activePerson.offsetWidth) / 2,
+          behavior: motionSafeScrollBehavior(),
+        })
       }
-    }
-    ensureContextAboveActions()
-
-    let frame = 0
-    const scheduleContextCheck = () => {
-      window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(ensureContextAboveActions)
-    }
-    window.addEventListener('scroll', scheduleContextCheck, { passive: true })
-    window.addEventListener('resize', scheduleContextCheck)
-    window.visualViewport?.addEventListener('scroll', scheduleContextCheck, {
-      passive: true,
-    })
-    window.visualViewport?.addEventListener('resize', scheduleContextCheck)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', scheduleContextCheck)
-      window.removeEventListener('resize', scheduleContextCheck)
-      window.visualViewport?.removeEventListener('scroll', scheduleContextCheck)
-      window.visualViewport?.removeEventListener('resize', scheduleContextCheck)
     }
   }, [activeCharacterId])
 
@@ -192,16 +160,19 @@ export const CharacterClueRail = ({
   const showClue = (nextIndex: number) => {
     const boundedIndex = Math.max(0, Math.min(clues.length - 1, nextIndex))
     setClueIndex(boundedIndex)
-    clueRailRef.current?.children[boundedIndex]?.scrollIntoView({
-      behavior: motionSafeScrollBehavior(),
-      block: 'nearest',
-      inline: 'start',
-    })
+    const clueRail = clueRailRef.current
+    const clueElement = clueRail?.children[boundedIndex]
+    if (clueRail && clueElement instanceof HTMLElement) {
+      clueRail.scrollTo({
+        left: clueElement.offsetLeft,
+        behavior: motionSafeScrollBehavior(),
+      })
+    }
   }
 
   return (
     <section className="character-clue-rail" aria-label={label}>
-      <div className="character-clue-rail__people" role="list">
+      <div ref={peopleRailRef} className="character-clue-rail__people" role="list">
         {puzzle.characters.map((character) => {
           const selected = selectedCharacterId === character.id
           const placed = assignments[character.id] !== undefined
@@ -222,12 +193,7 @@ export const CharacterClueRail = ({
           )
         })}
       </div>
-      <div
-        ref={contextRef}
-        id={clueRegionId}
-        className="character-clue-rail__context"
-        aria-live="polite"
-      >
+      <div id={clueRegionId} className="character-clue-rail__context" aria-live="polite">
         {storyProgress && (
           <div
             className="character-clue-rail__story-progress"
