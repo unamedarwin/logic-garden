@@ -99,6 +99,19 @@ import {
 
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
 
+const minimumBoardZoom = 1
+const maximumBoardZoom = 2.5
+
+const clampBoardZoom = (zoom: number) =>
+  Math.min(maximumBoardZoom, Math.max(minimumBoardZoom, zoom))
+
+const touchDistance = (touches: TouchList) => {
+  const first = touches.item(0)
+  const second = touches.item(1)
+  if (!first || !second) return undefined
+  return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)
+}
+
 type AppView = 'home' | 'game'
 type HomeJourneyStep = JourneyStep
 
@@ -217,6 +230,10 @@ export default function App() {
   const [activeDragCharacterId, setActiveDragCharacterId] = useState<CharacterId | null>(null)
   const [boardZoom, setBoardZoom] = useState(1)
   const boardScrollRef = useRef<HTMLDivElement>(null)
+  const boardZoomRef = useRef(boardZoom)
+  const pinchGestureRef = useRef<{ readonly distance: number; readonly zoom: number } | null>(
+    null,
+  )
   const setupStepRef = useRef<HTMLDivElement>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -279,12 +296,17 @@ export default function App() {
   }, [game, sharedChallenge])
 
   useEffect(() => {
+    boardZoomRef.current = boardZoom
+  }, [boardZoom])
+
+  useEffect(() => {
     const scrollArea = boardScrollRef.current
     if (!scrollArea) return
     scrollArea.scrollLeft = 0
     scrollArea.scrollTop = 0
     setBoardZoom(1)
     setActiveDragCharacterId(null)
+    pinchGestureRef.current = null
   }, [game?.puzzle.id])
 
   useEffect(() => {
@@ -293,7 +315,52 @@ export default function App() {
     if (!scrollArea) return
     scrollArea.scrollLeft = 0
     scrollArea.scrollTop = 0
+    pinchGestureRef.current = null
   }, [boardZoom])
+
+  useEffect(() => {
+    if (view !== 'game') return undefined
+    const scrollArea = boardScrollRef.current
+    if (!scrollArea) return undefined
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 2) {
+        pinchGestureRef.current = null
+        return
+      }
+      const distance = touchDistance(event.touches)
+      if (!distance) return
+      pinchGestureRef.current = { distance, zoom: boardZoomRef.current }
+    }
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 2) return
+      const currentDistance = touchDistance(event.touches)
+      const gesture = pinchGestureRef.current
+      if (!currentDistance || !gesture) return
+      event.preventDefault()
+      setBoardZoom(
+        clampBoardZoom(
+          Number((gesture.zoom * (currentDistance / gesture.distance)).toFixed(2)),
+        ),
+      )
+    }
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) pinchGestureRef.current = null
+    }
+
+    scrollArea.addEventListener('touchstart', onTouchStart, { passive: true })
+    scrollArea.addEventListener('touchmove', onTouchMove, { passive: false })
+    scrollArea.addEventListener('touchend', onTouchEnd)
+    scrollArea.addEventListener('touchcancel', onTouchEnd)
+    return () => {
+      scrollArea.removeEventListener('touchstart', onTouchStart)
+      scrollArea.removeEventListener('touchmove', onTouchMove)
+      scrollArea.removeEventListener('touchend', onTouchEnd)
+      scrollArea.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [game?.puzzle.id, view])
 
   useEffect(() => {
     if (!ready || view !== 'home') return
@@ -1011,7 +1078,7 @@ export default function App() {
                   type="button"
                   disabled={boardZoom === 1}
                   aria-label={t(preferences.locale, 'zoomOutBoard')}
-                  onClick={() => setBoardZoom((current) => Math.max(1, current - 0.5))}
+                  onClick={() => setBoardZoom((current) => clampBoardZoom(current - 0.5))}
                 >
                   <ZoomOut aria-hidden="true" />
                 </button>
@@ -1020,9 +1087,9 @@ export default function App() {
                 </span>
                 <button
                   type="button"
-                  disabled={boardZoom === 2.5}
+                  disabled={boardZoom === maximumBoardZoom}
                   aria-label={t(preferences.locale, 'zoomInBoard')}
-                  onClick={() => setBoardZoom((current) => Math.min(2.5, current + 0.5))}
+                  onClick={() => setBoardZoom((current) => clampBoardZoom(current + 0.5))}
                 >
                   <ZoomIn aria-hidden="true" />
                 </button>

@@ -88,16 +88,15 @@
   instrumented branches hundreds of times. The release `verify` command still runs the corpus in
   full, while coverage retains its independent statement, branch, function, and line thresholds.
 
-## Touch gestures: open quality issue
+## Touch gestures: implemented
 
-- A mobile report found that page scrolling and zoom gestures can trap the app after dragging the
-  screen downward and then attempting to zoom the board. Add a dedicated gesture controller so
-  two-finger pinch zoom is captured only on the board surface, one-finger document scrolling remains
-  normal outside the board, and returning to fitted mode clears any pan offsets and restores the
-  page scroll path.
-- Verification should cover iOS-sized viewports with: normal page scroll, pinch-to-zoom on the map,
-  no pinch handling over the action rail or clue rail, fit-mode recovery after zoom, and no state
-  where the page cannot scroll back upward.
+- A mobile report found that page scrolling and zoom gestures could trap the app after dragging
+  the screen downward and then attempting to zoom the board. The board now owns a dedicated gesture
+  controller: two-finger pinch zoom is captured only on the board surface, one-finger page scrolling
+  remains normal outside the board, and returning to fitted mode clears internal pan offsets.
+- Regression tests dispatch a two-finger board gesture, verify that the native pinch is cancelled
+  on the board, confirm the zoom reaches 150%, and assert that the `Encaixa` action restores fit
+  mode and zeroes board scroll.
 - Tablet orientation regression is now covered in Playwright for portrait and landscape viewports:
   the suite fits and centers placements on a `16 x 16` 2D board and a 10-floor 3D building without
   horizontal document overflow.

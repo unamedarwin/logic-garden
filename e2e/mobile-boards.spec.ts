@@ -143,6 +143,8 @@ const expectElementCentered = async (element: Locator, container: Locator) => {
 }
 
 const dragWithPointer = async (page: Page, source: Locator, target: Locator) => {
+  await source.scrollIntoViewIfNeeded()
+  await target.scrollIntoViewIfNeeded()
   const sourceBox = await source.boundingBox()
   const targetBox = await target.boundingBox()
   if (!sourceBox || !targetBox) throw new Error('Expected visible drag source and target')
@@ -156,8 +158,10 @@ const dragWithPointer = async (page: Page, source: Locator, target: Locator) => 
   }
   await page.mouse.move(sourceCenter.x, sourceCenter.y)
   await page.mouse.down()
-  await page.mouse.move(sourceCenter.x + 12, sourceCenter.y - 12, { steps: 3 })
-  await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 12 })
+  await page.mouse.move(sourceCenter.x + 18, sourceCenter.y - 18, { steps: 6 })
+  await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 24 })
+  await page.mouse.move(targetCenter.x + 2, targetCenter.y + 2, { steps: 2 })
+  await page.mouse.move(targetCenter.x, targetCenter.y, { steps: 2 })
 }
 
 const saveEvidence = async (page: Page, testInfo: TestInfo, name: string) => {

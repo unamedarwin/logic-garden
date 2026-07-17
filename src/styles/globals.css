@@ -2053,12 +2053,14 @@ summary:focus-visible {
   overflow: hidden;
   overscroll-behavior-inline: contain;
   scrollbar-width: thin;
+  touch-action: pan-y;
 }
 .game-board-scroll--zoomed {
   max-height: min(76dvh, 760px);
   overflow: auto;
   overscroll-behavior: contain;
   scroll-padding: 10px;
+  touch-action: pan-x pan-y;
 }
 .game-board-scroll--zoomed .game-board {
   margin-inline: 0;

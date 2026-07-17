@@ -434,6 +434,56 @@ describe('game interface', () => {
     expect(viewport).toHaveClass('game-board-scroll--fit')
   })
 
+  it('captures pinch zoom only on the board and restores fit mode', async () => {
+    const user = userEvent.setup()
+    const { container } = render(<App />)
+    await startDefaultGame(user)
+
+    const viewport = container.querySelector('.game-board-scroll')
+    expect(viewport).toBeInstanceOf(HTMLDivElement)
+    if (!(viewport instanceof HTMLDivElement)) return
+    const touchList = (points: readonly (readonly [number, number])[]) => ({
+      length: points.length,
+      item: (index: number) => {
+        const point = points[index]
+        return point ? ({ clientX: point[0], clientY: point[1] } as Touch) : null
+      },
+    })
+    const touchStart = new Event('touchstart', { bubbles: true, cancelable: true })
+    Object.defineProperty(touchStart, 'touches', {
+      value: touchList([
+        [10, 10],
+        [110, 10],
+      ]),
+    })
+    const touchMove = new Event('touchmove', { bubbles: true, cancelable: true })
+    Object.defineProperty(touchMove, 'touches', {
+      value: touchList([
+        [10, 10],
+        [160, 10],
+      ]),
+    })
+
+    await act(async () => {
+      viewport.dispatchEvent(touchStart)
+    })
+    let nativeGestureAllowed = true
+    await act(async () => {
+      nativeGestureAllowed = viewport.dispatchEvent(touchMove)
+    })
+
+    expect(nativeGestureAllowed).toBe(false)
+    expect(screen.getByText('150%')).toBeInTheDocument()
+    expect(viewport).toHaveClass('game-board-scroll--zoomed')
+
+    viewport.scrollLeft = 30
+    viewport.scrollTop = 25
+    await user.click(screen.getByRole('button', { name: 'Encaixa' }))
+    expect(viewport).toHaveClass('game-board-scroll--fit')
+    expect(viewport.scrollLeft).toBe(0)
+    expect(viewport.scrollTop).toBe(0)
+  })
+
   it('previews the exact drop cell and repositions a placed character', async () => {
     const user = userEvent.setup()
     const { container } = render(<App />)
