@@ -95,6 +95,11 @@ The plaque prefers the room-facing side; an internal wall may use its other free
 the only collision-free placement. Object and avatar centers are derived directly from the same
 row and column center used by the semantic drop target.
 
+Placed-character artwork scales as a percentage of its in-cell token rather than from viewport
+units or a fixed font ceiling. This keeps portraits legible on spacious `6 x 6` tablet boards while
+preserving exact containment and centering on dense `16 x 16` boards. Tablet QA checks the artwork
+ratio separately from token centering so a tiny face inside a correctly centered card cannot pass.
+
 ## Layer order and QA
 
 The visual stack is floor plan, room texture, terrain patch, sparse motifs, walls and labels, fixed

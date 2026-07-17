@@ -101,6 +101,10 @@
 - Tablet orientation regression is now covered in Playwright for portrait and landscape viewports:
   the suite fits and centers placements on a `16 x 16` 2D board and a 10-floor 3D building without
   horizontal document overflow.
+- Tablet character QA also covers the visually expansive `6 x 6` board. Placed portraits scale
+  from their actual cell token instead of stopping at a phone-sized font cap, remain fully inside
+  edge cells, and keep a measurable artwork ratio in both orientations. The people rail presents
+  the same reviewed avatars at a larger, card-relative reading size.
 - Sticky setup navigation and the fixed action rail use opaque surfaces without backdrop blur. This
   avoids WebKit compositing flicker while browser chrome expands or contracts during vertical scroll.
 - Programmatic setup focus uses `preventScroll`, and changing a 3D floor scrolls only the horizontal

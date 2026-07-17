@@ -137,6 +137,55 @@ const expectCentered = async (token: Locator, cell: Locator) => {
   expect(Math.abs(tokenCenter.y - cellCenter.y)).toBeLessThanOrEqual(1)
 }
 
+const expectCharacterArtworkProportions = async (token: Locator, cell: Locator) => {
+  const geometry = await cell.evaluate((element) => {
+    const tokenElement = element.querySelector<HTMLElement>('.character-token')
+    const artwork = element.querySelector<HTMLElement>('.character-token__emoji .scene-icon')
+    const bounds = (candidate: HTMLElement | null) => {
+      if (!candidate) return null
+      const box = candidate.getBoundingClientRect()
+      return {
+        left: box.left,
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        width: box.width,
+      }
+    }
+    return {
+      cell: bounds(element as HTMLElement),
+      token: bounds(tokenElement),
+      artwork: bounds(artwork),
+    }
+  })
+  await expect(token).toBeVisible()
+  expect(geometry.cell).not.toBeNull()
+  expect(geometry.token).not.toBeNull()
+  expect(geometry.artwork).not.toBeNull()
+  if (!geometry.cell || !geometry.token || !geometry.artwork) return
+  expect(geometry.token.left).toBeGreaterThanOrEqual(geometry.cell.left)
+  expect(geometry.token.top).toBeGreaterThanOrEqual(geometry.cell.top)
+  expect(geometry.token.right).toBeLessThanOrEqual(geometry.cell.right)
+  expect(geometry.token.bottom).toBeLessThanOrEqual(geometry.cell.bottom)
+  expect(geometry.artwork.width / geometry.token.width).toBeGreaterThanOrEqual(0.67)
+  expect(geometry.artwork.width / geometry.token.width).toBeLessThanOrEqual(0.8)
+}
+
+const expectPickerArtworkProportions = async (person: Locator) => {
+  const geometry = await person.evaluate((element) => {
+    const artwork = element.querySelector<HTMLElement>(
+      '.character-clue-rail__emoji .scene-icon',
+    )
+    const personBox = element.getBoundingClientRect()
+    const artworkBox = artwork?.getBoundingClientRect()
+    return {
+      personWidth: personBox.width,
+      artworkWidth: artworkBox?.width ?? 0,
+    }
+  })
+  expect(geometry.artworkWidth / geometry.personWidth).toBeGreaterThanOrEqual(0.35)
+}
+
 const expectElementCentered = async (element: Locator, container: Locator) => {
   await expect(element).toBeVisible()
   const [elementBox, containerBox] = await Promise.all([
@@ -163,8 +212,14 @@ const expectCrossOutline = async (crossedCell: Locator) => {
     }),
   )
   expect(strokes).toEqual([
-    { background: 'rgb(240, 82, 135)', outline: 'rgb(255, 255, 255) 0px 0px 0px 1px' },
-    { background: 'rgb(240, 82, 135)', outline: 'rgb(255, 255, 255) 0px 0px 0px 1px' },
+    {
+      background: 'rgb(240, 82, 135)',
+      outline: 'rgb(255, 255, 255) 0px 0px 0px 1px',
+    },
+    {
+      background: 'rgb(240, 82, 135)',
+      outline: 'rgb(255, 255, 255) 0px 0px 0px 1px',
+    },
   ])
 }
 
@@ -191,7 +246,10 @@ const dragWithPointer = async (page: Page, source: Locator, target: Locator) => 
 }
 
 const saveEvidence = async (page: Page, testInfo: TestInfo, name: string) => {
-  await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true })
+  await page.screenshot({
+    path: testInfo.outputPath(`${name}.png`),
+    fullPage: true,
+  })
 }
 
 test.beforeEach(async ({ page }) => {
@@ -384,8 +442,30 @@ for (const tablet of [
       .locator('.location-cell:not(.location-cell--blocked)')
       .first()
     await gridDestination.locator('.location-cell__target').click()
-    await expectCentered(gridDestination.locator('.character-token'), gridDestination)
+    const placedToken = gridDestination.locator('.character-token')
+    await expectCentered(placedToken, gridDestination)
+    await expectCharacterArtworkProportions(placedToken, gridDestination)
+    await expectPickerArtworkProportions(page.locator('.character-clue-rail__person').first())
     await saveEvidence(page, testInfo, `tablet-${tablet.name}-2d-placed`)
+  })
+
+  test(`Tablet ${tablet.name} keeps 6x6 character artwork legible`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: tablet.width, height: tablet.height })
+
+    await startGame(page, 'Puzzles 2D', /6×6/u)
+    const gridBoard = page.locator('.game-board--logic-grid')
+    const firstPerson = page.locator('.character-clue-rail__person').first()
+    await expectPickerArtworkProportions(firstPerson)
+    await selectPerson(firstPerson)
+    const destination = gridBoard.locator('.location-cell:not(.location-cell--blocked)').last()
+    await destination.locator('.location-cell__target').click()
+    const placedToken = destination.locator('.character-token')
+    await expectCentered(placedToken, destination)
+    await expectCharacterArtworkProportions(placedToken, destination)
+    await expectNoDocumentOverflow(page)
+    await saveEvidence(page, testInfo, `tablet-${tablet.name}-2d-6x6-characters`)
   })
 
   test(`Tablet ${tablet.name} keeps 3D placements centered`, async ({ page }, testInfo) => {
@@ -515,7 +595,10 @@ for (const depth of [3, 6, 10] as const) {
         }))
         const doors = Array.from(
           surface.querySelectorAll<HTMLElement>('.logic-cube__door'),
-        ).map((door) => ({ box: box(door), transform: getComputedStyle(door).transform }))
+        ).map((door) => ({
+          box: box(door),
+          transform: getComputedStyle(door).transform,
+        }))
         const labels = Array.from(
           surface.querySelectorAll<HTMLElement>('.logic-cube__zone-label'),
         ).map((label) => ({
