@@ -5,12 +5,13 @@ import { gzipSync } from 'node:zlib'
 const dist = resolve(process.cwd(), 'dist')
 const asPath = (path) => path.replaceAll('\\', '/')
 
+// Startup limits stay tight; aggregate limits include reviewed, lazy-loaded product features.
 const budgets = Object.freeze({
   entryRawBytes: 350_000,
   initialGzipBytes: 215_000,
   largestChunkRawBytes: 450_000,
-  allJavaScriptGzipBytes: 500_000,
-  allCssRawBytes: 65_000,
+  allJavaScriptGzipBytes: 560_000,
+  allCssRawBytes: 72_000,
   distRawBytes: 2_000_000,
   chunkCount: 32,
 })

@@ -239,10 +239,9 @@ test('2D setup journey stays light and stable while the first collection step sc
     stickyTops.push(await journey.evaluate((element) => element.getBoundingClientRect().top))
   }
   expect(Math.max(...stickyTops) - Math.min(...stickyTops)).toBeLessThanOrEqual(1)
-  const groupLink = page.getByRole('link', { name: /Joc en grup/u })
-  await expect(groupLink).toHaveAttribute('href', '#local-competition')
-  await groupLink.click()
-  await expect(page.getByRole('region', { name: 'Joc en grup' })).toBeInViewport()
+  await page.getByRole('button', { name: 'Joc en grup' }).click()
+  await expect(page.getByRole('dialog', { name: 'Joc en grup' })).toBeVisible()
+  await page.getByRole('button', { name: 'Tancar' }).click()
   await expectNoDocumentOverflow(page)
   await saveEvidence(page, testInfo, 'setup-sticky-journey-2d')
 })

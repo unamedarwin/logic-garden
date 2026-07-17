@@ -1,3 +1,12 @@
+import type { CompetitionParticipant, CompetitionRoundResult } from '../multiplayer/protocol'
+import { useDialogFocus } from './useDialogFocus'
+
+interface CompetitionSummary {
+  readonly participants: readonly CompetitionParticipant[]
+  readonly results: readonly CompetitionRoundResult[]
+  readonly roundId: string
+}
+
 interface ResultDialogProps {
   readonly title: string
   readonly message: string
@@ -16,7 +25,11 @@ interface ResultDialogProps {
   readonly challengeMessage?: string
   readonly challengeShareHint?: string
   readonly progressLabel?: string
+  readonly competitionSummary?: CompetitionSummary
 }
+
+const resultTime = (seconds: number) =>
+  `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
 export const ResultDialog = ({
   title,
@@ -36,8 +49,21 @@ export const ResultDialog = ({
   challengeMessage,
   challengeShareHint,
   progressLabel,
+  competitionSummary,
 }: ResultDialogProps) => {
   const dialogRef = useDialogFocus()
+  const roundResults = competitionSummary?.results.filter(
+    (result) => result.roundId === competitionSummary.roundId,
+  )
+  const connectedParticipants = competitionSummary?.participants.filter(
+    (participant) => participant.connected,
+  )
+  const allFinished = Boolean(
+    connectedParticipants?.length &&
+    connectedParticipants.every((participant) =>
+      roundResults?.some((result) => result.participantId === participant.id),
+    ),
+  )
   return (
     <div className="result-backdrop" role="presentation">
       <section
@@ -64,14 +90,40 @@ export const ResultDialog = ({
             {challengeShareHint && <span>{challengeShareHint}</span>}
           </div>
         )}
+        {competitionSummary && connectedParticipants && roundResults && (
+          <div className="result-dialog__competition" aria-live="polite">
+            <strong>
+              {allFinished ? 'Tothom ha acabat la ronda.' : 'Esperant la resta del grup…'}
+            </strong>
+            <ul>
+              {connectedParticipants.map((participant) => {
+                const result = roundResults.find(
+                  (candidate) => candidate.participantId === participant.id,
+                )
+                return (
+                  <li key={participant.id}>
+                    <span>
+                      <span aria-hidden="true">{participant.avatar}</span> {participant.name}
+                    </span>
+                    <strong>
+                      {result ? resultTime(result.elapsedSeconds) : 'Encara juga'}
+                    </strong>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )}
         <div className="button-row">
-          <button
-            type="button"
-            className="button button--secondary"
-            onClick={onChangeDifficulty}
-          >
-            {changeDifficultyLabel}
-          </button>
+          {!competitionSummary && (
+            <button
+              type="button"
+              className="button button--secondary"
+              onClick={onChangeDifficulty}
+            >
+              {changeDifficultyLabel}
+            </button>
+          )}
           <button type="button" className="button button--secondary" onClick={onShare}>
             {shareLabel}
           </button>
@@ -83,4 +135,3 @@ export const ResultDialog = ({
     </div>
   )
 }
-import { useDialogFocus } from './useDialogFocus'

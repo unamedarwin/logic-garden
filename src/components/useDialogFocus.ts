@@ -4,6 +4,7 @@ const focusableSelector = [
   'button:not([disabled])',
   'select:not([disabled])',
   'input:not([disabled])',
+  'textarea:not([disabled])',
   '[href]',
   '[tabindex]:not([tabindex="-1"])',
 ].join(',')

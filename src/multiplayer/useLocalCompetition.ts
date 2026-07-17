@@ -34,45 +34,33 @@ export interface LocalCompetitionState {
   readonly error: string
 }
 
-const profileKey = 'logic-garden:competition-profile:v1'
-const iceTimeoutMs = 1800
+const iceTimeoutMs = 8000
+const connectionTimeoutMs = 30_000
 
-const avatars = ['🙂', '😄', '🧭', '🌿', '⭐', '🎧', '🏀', '📚'] as const
+const temporaryProfiles = [
+  { name: 'Roure', avatar: '🌳' },
+  { name: 'Lluna', avatar: '🌙' },
+  { name: 'Corall', avatar: '🪸' },
+  { name: 'Brúixola', avatar: '🧭' },
+  { name: 'Estel', avatar: '⭐' },
+  { name: 'Menta', avatar: '🌿' },
+  { name: 'Cometa', avatar: '☄️' },
+  { name: 'Onada', avatar: '🌊' },
+] as const
 
 const createId = () =>
   globalThis.crypto?.randomUUID?.().replaceAll('-', '').slice(0, 16) ??
   `peer${Date.now().toString(36)}`
 
-const defaultProfile = (): CompetitionProfile => ({
-  id: createId(),
-  name: 'Jugador',
-  avatar: avatars[Math.floor(Math.random() * avatars.length)] ?? '🙂',
-})
-
-const loadProfile = () => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(profileKey) ?? '') as unknown
-    if (!parsed || typeof parsed !== 'object') return defaultProfile()
-    const candidate = parsed as Record<string, unknown>
-    if (
-      typeof candidate.id === 'string' &&
-      typeof candidate.name === 'string' &&
-      typeof candidate.avatar === 'string'
-    ) {
-      return {
-        id: candidate.id,
-        name: candidate.name.slice(0, 40) || 'Jugador',
-        avatar: candidate.avatar.slice(0, 16) || '🙂',
-      }
-    }
-    return defaultProfile()
-  } catch {
-    return defaultProfile()
+const defaultProfile = (): CompetitionProfile => {
+  const id = createId()
+  const index = [...id].reduce((total, character) => total + character.charCodeAt(0), 0)
+  const preset = temporaryProfiles[index % temporaryProfiles.length] ?? temporaryProfiles[0]
+  return {
+    id,
+    name: `${preset.name} ${id.slice(0, 2).toUpperCase()}`,
+    avatar: preset.avatar,
   }
-}
-
-const saveProfile = (profile: CompetitionProfile) => {
-  localStorage.setItem(profileKey, JSON.stringify(profile))
 }
 
 const waitForIceGathering = (connection: RTCPeerConnection) =>
@@ -127,7 +115,7 @@ const mergeParticipants = (
 export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) => void) => {
   const [state, setState] = useState<LocalCompetitionState>(() => {
     const supported = typeof RTCPeerConnection !== 'undefined'
-    const profile = loadProfile()
+    const profile = defaultProfile()
     return {
       supported,
       role: null,
@@ -144,6 +132,8 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
   const stateRef = useRef(state)
   const connectionsRef = useRef(new Map<string, RTCPeerConnection>())
   const channelsRef = useRef(new Map<string, RTCDataChannel>())
+  const peerProfilesRef = useRef(new Map<string, CompetitionProfile>())
+  const connectionTimersRef = useRef(new Map<string, number>())
   const onRoundReceivedRef = useRef(onRoundReceived)
 
   useEffect(() => {
@@ -158,6 +148,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     () => () => {
       for (const channel of channelsRef.current.values()) channel.close()
       for (const connection of connectionsRef.current.values()) connection.close()
+      for (const timer of connectionTimersRef.current.values()) window.clearTimeout(timer)
     },
     [],
   )
@@ -182,13 +173,16 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     }
   }
 
-  const handlePeerMessage = (message: PeerCompetitionMessage, channel: RTCDataChannel) => {
+  const handlePeerMessage = (message: PeerCompetitionMessage, peerId: string) => {
     const current = stateRef.current
+    const peerProfile = peerProfilesRef.current.get(peerId)
     if (current.lobbyId && message.lobbyId !== current.lobbyId) return
     if (message.type === 'hello') {
+      if (peerProfile && message.profile.id !== peerProfile.id) return
+      const peerRole = current.role === 'participant' ? 'master' : 'participant'
       const nextParticipant = participantFromProfile(
         message.profile,
-        'participant',
+        peerRole,
         true,
         current.results,
       )
@@ -197,17 +191,22 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         ...previous,
         participants: mergeParticipants(previous.participants, nextParticipant),
       }))
-      channel.send(
-        encodePeerCompetitionMessage({
+      if (current.role === 'master') {
+        const standings: PeerCompetitionMessage = {
           type: 'standings',
           lobbyId: message.lobbyId,
           participants: nextParticipants,
-          results: stateRef.current.results,
-        }),
-      )
+          results: current.results,
+        }
+        const encoded = encodePeerCompetitionMessage(standings)
+        for (const peerChannel of channelsRef.current.values()) {
+          if (peerChannel.readyState === 'open') peerChannel.send(encoded)
+        }
+      }
       return
     }
     if (message.type === 'round-started') {
+      if (current.role !== 'participant') return
       setState((previous) => ({
         ...previous,
         activeRound: message.round,
@@ -217,6 +216,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       return
     }
     if (message.type === 'round-finished') {
+      if (!peerProfile || message.result.participantId !== peerProfile.id) return
       setState((previous) => {
         if (
           previous.results.some(
@@ -240,10 +240,11 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         )
         return { ...previous, results, participants }
       })
-      window.setTimeout(broadcastStandings, 0)
+      if (current.role === 'master') window.setTimeout(broadcastStandings, 0)
       return
     }
     if (message.type === 'standings') {
+      if (current.role === 'master') return
       setState((previous) => ({
         ...previous,
         participants: message.participants,
@@ -255,8 +256,12 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
   const attachChannel = (peerId: string, channel: RTCDataChannel) => {
     channelsRef.current.set(peerId, channel)
     channel.addEventListener('open', () => {
+      const connectionTimer = connectionTimersRef.current.get(peerId)
+      if (connectionTimer !== undefined) window.clearTimeout(connectionTimer)
+      connectionTimersRef.current.delete(peerId)
       const current = stateRef.current
       if (!current.lobbyId) return
+      const peerProfile = peerProfilesRef.current.get(peerId)
       channel.send(
         encodePeerCompetitionMessage({
           type: 'hello',
@@ -264,15 +269,51 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
           profile: current.profile,
         }),
       )
-      setState((previous) => ({ ...previous, connectionState: 'connected', error: '' }))
+      setState((previous) => ({
+        ...previous,
+        connectionState: 'connected',
+        error: '',
+        participants: peerProfile
+          ? mergeParticipants(
+              previous.participants,
+              participantFromProfile(
+                peerProfile,
+                previous.role === 'participant' ? 'master' : 'participant',
+                true,
+                previous.results,
+              ),
+            )
+          : previous.participants,
+      }))
     })
     channel.addEventListener('close', () => {
       channelsRef.current.delete(peerId)
+      const peerProfile = peerProfilesRef.current.get(peerId)
+      if (!peerProfile) return
+      setState((previous) => ({
+        ...previous,
+        connectionState: [...channelsRef.current.values()].some(
+          (candidate) => candidate.readyState === 'open',
+        )
+          ? 'connected'
+          : previous.role === 'master'
+            ? 'idle'
+            : 'error',
+        error:
+          previous.role === 'participant'
+            ? 'S’ha tancat la connexió directa. Torneu a crear la invitació.'
+            : previous.error,
+        participants: previous.participants.map((participant) =>
+          participant.id === peerProfile.id
+            ? { ...participant, connected: false }
+            : participant,
+        ),
+      }))
     })
     channel.addEventListener('message', (event) => {
       if (typeof event.data !== 'string') return
       const decoded = decodePeerCompetitionMessage(event.data)
-      if (decoded) handlePeerMessage(decoded, channel)
+      if (decoded) handlePeerMessage(decoded, peerId)
     })
   }
 
@@ -281,29 +322,11 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     return connection
   }
 
-  const setProfile = (profile: CompetitionProfile) => {
-    const cleanProfile = {
-      id: stateRef.current.profile.id,
-      name: profile.name.trim().slice(0, 40) || 'Jugador',
-      avatar: profile.avatar.trim().slice(0, 16) || '🙂',
-    }
-    saveProfile(cleanProfile)
-    setState((previous) => ({
-      ...previous,
-      profile: cleanProfile,
-      participants:
-        previous.role === 'master'
-          ? mergeParticipants(
-              previous.participants,
-              participantFromProfile(cleanProfile, 'master', true, previous.results),
-            )
-          : previous.participants,
-    }))
-  }
-
   const createOffer = async () => {
     if (!stateRef.current.supported) return
-    const lobbyId = createId()
+    const current = stateRef.current
+    const continuingLobby = current.role === 'master' && current.lobbyId !== null
+    const lobbyId = continuingLobby ? current.lobbyId : createId()
     const peerId = createId()
     const connection = createConnection()
     const channel = connection.createDataChannel('logic-garden')
@@ -317,9 +340,9 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       offerCode: '',
       answerCode: '',
       error: '',
-      participants: [
-        participantFromProfile(previous.profile, 'master', true, previous.results),
-      ],
+      participants: continuingLobby
+        ? previous.participants
+        : [participantFromProfile(previous.profile, 'master', true, previous.results)],
     }))
     try {
       const offer = await connection.createOffer()
@@ -359,6 +382,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       return
     }
     const peerId = envelope.peerId
+    peerProfilesRef.current.set(peerId, envelope.profile)
     const connection = createConnection()
     connection.addEventListener('datachannel', (event) => attachChannel(peerId, event.channel))
     connectionsRef.current.set(peerId, connection)
@@ -410,15 +434,35 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       setState((previous) => ({ ...previous, error: 'Aquest codi no és una resposta vàlida.' }))
       return
     }
+    peerProfilesRef.current.set(envelope.peerId, envelope.profile)
     try {
       await connection.setRemoteDescription(envelope.description)
+      const timer = window.setTimeout(() => {
+        const channel = channelsRef.current.get(envelope.peerId)
+        if (channel?.readyState === 'open') return
+        connection.close()
+        connectionsRef.current.delete(envelope.peerId)
+        channelsRef.current.delete(envelope.peerId)
+        connectionTimersRef.current.delete(envelope.peerId)
+        setState((previous) => ({
+          ...previous,
+          connectionState: [...channelsRef.current.values()].some(
+            (candidate) => candidate.readyState === 'open',
+          )
+            ? 'connected'
+            : 'error',
+          error:
+            'La connexió directa no ha respost. Comproveu que sou a la mateixa xarxa i torneu-ho a provar.',
+        }))
+      }, connectionTimeoutMs)
+      connectionTimersRef.current.set(envelope.peerId, timer)
       setState((previous) => ({
         ...previous,
-        connectionState: 'connected',
+        connectionState: 'creating-answer',
         error: '',
         participants: mergeParticipants(
           previous.participants,
-          participantFromProfile(envelope.profile, 'participant', true, previous.results),
+          participantFromProfile(envelope.profile, 'participant', false, previous.results),
         ),
       }))
     } catch {
@@ -478,13 +522,16 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       }
     })
     sendToPeers(message)
-    window.setTimeout(broadcastStandings, 0)
+    if (current.role === 'master') window.setTimeout(broadcastStandings, 0)
   }
 
   const reset = () => {
     for (const channel of channelsRef.current.values()) channel.close()
     for (const connection of connectionsRef.current.values()) connection.close()
+    for (const timer of connectionTimersRef.current.values()) window.clearTimeout(timer)
     channelsRef.current.clear()
+    peerProfilesRef.current.clear()
+    connectionTimersRef.current.clear()
     connectionsRef.current.clear()
     setState((previous) => ({
       ...previous,
@@ -502,7 +549,6 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
 
   return {
     state,
-    setProfile,
     createOffer,
     acceptOffer,
     acceptAnswer,

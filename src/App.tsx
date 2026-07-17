@@ -223,6 +223,7 @@ export default function App() {
   const [ready, setReady] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showCompetition, setShowCompetition] = useState(false)
   const [online, setOnline] = useState(() => navigator.onLine)
   const [notice, setNotice] = useState('')
   const [firstVisit, setFirstVisit] = useState(false)
@@ -424,6 +425,20 @@ export default function App() {
   }
 
   const localCompetition = useLocalCompetition(startCompetitionRoundGame)
+  const activeRoundParticipants = localCompetition.state.participants.filter(
+    (participant) => participant.connected,
+  )
+  const activeRoundResults = activeCompetitionRoundId
+    ? localCompetition.state.results.filter(
+        (result) => result.roundId === activeCompetitionRoundId,
+      )
+    : []
+  const competitionRoundFinished =
+    activeCompetitionRoundId === null ||
+    (activeRoundParticipants.length > 0 &&
+      activeRoundParticipants.every((participant) =>
+        activeRoundResults.some((result) => result.participantId === participant.id),
+      ))
 
   const createCompetitionRound = (): CompetitionRound => {
     const source = seed(createSeed())
@@ -841,9 +856,13 @@ export default function App() {
           onStepChange={openJourneyStep}
         />
         <p>
-          <a className="button" href="#local-competition">
-            Joc en grup · connecta amb QR
-          </a>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => setShowCompetition(true)}
+          >
+            Joc en grup
+          </button>
         </p>
         <section
           className={`home-hero ${normalizedJourneyStep === 'collection' ? '' : 'home-hero--setup'}`}
@@ -953,26 +972,6 @@ export default function App() {
           </div>
           <HomeScene collection={preferences.collection} />
         </section>
-        <LocalCompetitionPanel
-          state={localCompetition.state}
-          canStartRound={
-            !generating &&
-            localCompetition.state.role === 'master' &&
-            localCompetition.state.connectionState === 'connected' &&
-            localCompetition.state.participants.some(
-              (participant) => participant.role === 'participant' && participant.connected,
-            )
-          }
-          onProfileChange={localCompetition.setProfile}
-          onCreateOffer={() => void localCompetition.createOffer()}
-          onAcceptOffer={(code) => void localCompetition.acceptOffer(code)}
-          onAcceptAnswer={(code) => void localCompetition.acceptAnswer(code)}
-          onStartRound={() => localCompetition.startRound(createCompetitionRound())}
-          onReset={() => {
-            localCompetition.reset()
-            setActiveCompetitionRoundId(null)
-          }}
-        />
         <CompletedGames
           games={statistics.history}
           locale={preferences.locale}
@@ -986,6 +985,32 @@ export default function App() {
           locale={preferences.locale}
           prominent={firstVisit}
         />
+        {showCompetition && (
+          <LocalCompetitionPanel
+            state={localCompetition.state}
+            canStartRound={
+              !generating &&
+              localCompetition.state.role === 'master' &&
+              localCompetition.state.connectionState === 'connected' &&
+              competitionRoundFinished &&
+              localCompetition.state.participants.some(
+                (participant) => participant.role === 'participant' && participant.connected,
+              )
+            }
+            onClose={() => setShowCompetition(false)}
+            onCreateOffer={() => void localCompetition.createOffer()}
+            onAcceptOffer={(code) => void localCompetition.acceptOffer(code)}
+            onAcceptAnswer={(code) => void localCompetition.acceptAnswer(code)}
+            onStartRound={() => {
+              setShowCompetition(false)
+              localCompetition.startRound(createCompetitionRound())
+            }}
+            onReset={() => {
+              localCompetition.reset()
+              setActiveCompetitionRoundId(null)
+            }}
+          />
+        )}
         {showChallengeIntro && challengeInvite && (
           <ChallengeIntroDialog
             title={challengeInvite.title}
@@ -1441,7 +1466,13 @@ export default function App() {
           hintsUsed={game.hintsUsed}
           movesLabel={t(preferences.locale, 'moves').toLowerCase()}
           hintsLabel={t(preferences.locale, 'hintsUsed')}
-          newGameLabel={t(preferences.locale, 'newGame')}
+          newGameLabel={
+            activeCompetitionRoundId
+              ? localCompetition.state.role === 'master' && competitionRoundFinished
+                ? 'Preparar el següent puzzle'
+                : 'Tornar a la sala'
+              : t(preferences.locale, 'newGame')
+          }
           changeDifficultyLabel={t(preferences.locale, 'changeDifficulty')}
           shareLabel={t(
             preferences.locale,
@@ -1451,14 +1482,30 @@ export default function App() {
           challengeMessage={challengeResult?.message}
           challengeShareHint={challengeResult?.share}
           progressLabel={checkResult?.score}
-          onNewGame={() =>
+          competitionSummary={
+            activeCompetitionRoundId
+              ? {
+                  participants: localCompetition.state.participants,
+                  results: localCompetition.state.results,
+                  roundId: activeCompetitionRoundId,
+                }
+              : undefined
+          }
+          onNewGame={() => {
+            if (activeCompetitionRoundId) {
+              openHomeJourneyStep('collection')
+              setShowCompetition(
+                localCompetition.state.role !== 'master' || !competitionRoundFinished,
+              )
+              return
+            }
             startGame(
               game.puzzle.difficulty,
               createSeed(),
               currentPuzzleCollection,
               game.puzzle.theme,
             )
-          }
+          }}
           onChangeDifficulty={returnToHome}
           onShare={shareCurrentGame}
         />

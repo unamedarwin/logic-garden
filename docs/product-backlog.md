@@ -120,26 +120,41 @@
   discovery process, Bluetooth exchange, or NFC exchange. Nearby devices pair explicitly with a
   QR/copy/share flow carrying a compressed WebRTC offer and answer. Once paired, game events travel
   through a direct WebRTC DataChannel.
-- Pairing flow: the master creates a lobby and shows an offer QR. A participant scans or pastes it,
-  creates an answer QR, and the master scans or pastes that answer. The same codes can be copied or
-  sent through the device share sheet for AirDrop, messages, or another local sharing path.
+- Pairing flow: the master creates a lobby and shows an offer QR. Each participant scans or pastes
+  it, creates an answer QR, and the master scans or pastes that answer. After the direct channel
+  opens, the master can add another participant without replacing the lobby. The same codes can be
+  copied or sent through the device share sheet for AirDrop, messages, or another local sharing path.
 - Privacy model: signaling QR codes contain only WebRTC session descriptions, local lobby ids, and
-  temporary display profiles. Rounds send reproducible puzzle metadata: collection, size, difficulty,
-  seed, generator version, variant, building placement, and selected safe theme id. They never send a
+  an automatically generated session-only alias. The app does not ask for or persist a participant
+  name or avatar. Rounds send reproducible puzzle metadata: collection, size, difficulty, seed,
+  generator version, variant, building placement, and selected safe theme id. They never send a
   solution, answer map, saved solo history, token, geolocation, or tracking identifier.
 - Session model: the master chooses the current setup and starts each round. Every connected device
   generates the same puzzle locally and validates completion locally. Finishing a round sends only
   participant id, round id, elapsed time, moves, hints used, and finish timestamp.
 - Round flow: all connected players solve the same puzzle. The standings panel keeps cumulative
   time and solved-round count. A round is considered complete when every connected lobby member,
-  including the master, has submitted a finish result; the master can then start the next round.
+  including the master, has submitted a finish result. The completion dialog names temporary
+  aliases that have finished and those still playing. Until everyone finishes, the start action is
+  disabled; afterwards the master returns to the four-step setup and starts the next round without
+  dropping the peer connections.
 - Compatibility limits: this is intended for nearby devices and works best on the same Wi-Fi. With
   no STUN/TURN server and no relay, restrictive routers or client-isolated networks can prevent
-  direct connection. The UI keeps copy/paste as a fallback when camera scanning is unavailable.
-- The setup panel constrains every signaling field to its column and collapses master/participant
-  controls to one column on phones, preventing the local mode from widening the document viewport.
-- A permanent `Joc en grup` entry appears immediately below the setup journey and links to the local
-  QR connection panel, which is placed before completed-game history rather than hidden below it.
-- Open hardening: add a two-browser Playwright flow with mocked camera/QR input, reconnection
-  behavior, participant removal when someone leaves, and a compact mobile lobby layout review before
-  treating group play as release-polished.
+  direct connection. A 30-second master-side timeout reports this instead of claiming a connection.
+  The UI keeps copy/paste as a fallback when camera scanning is unavailable.
+- The camera path uses a local, lazy-loaded QR scanner when the browser has no native barcode API,
+  including Safari. It requests camera access only after the explicit scan action and destroys the
+  stream when the scanner closes.
+- The compact modal presents one role and one connection action at a time. Once connected, it shows
+  the temporary aliases, an `Afegir participant` action for the master, and the single start action.
+- Automated evidence connects three isolated browser contexts, verifies ICE candidates in both
+  signaling payloads, waits for actual DataChannel `open`, and confirms all devices receive the same
+  puzzle in Chromium and Firefox. The camera fallback has a regression test without
+  `BarcodeDetector`. Playwright WebKit on Linux is excluded only from the direct-channel case because
+  it cannot resolve its own isolated `.local` mDNS candidates; the modal remains covered by the
+  general WebKit mobile suite. Physical iPhone/iPad P2P validation remains required before claiming
+  complete Safari network compatibility.
+- Bundle baseline decision: the QR fallback and progressive lobby are optional functionality. The
+  initial gzip guard remains `215000` bytes; aggregate ceilings are `560000` gzip bytes of JavaScript
+  and `72000` raw CSS bytes. Future growth still fails the build unless explicitly reviewed and
+  documented.

@@ -342,7 +342,10 @@ short Share > Add to Home Screen instruction.
 Production builds enforce budgets for the entry module, initial graph, largest lazy chunk, total
 JavaScript and CSS, chunk count, and complete `dist` size. `pnpm pwa:check` additionally rejects
 duplicate precache entries, missing offline assets, source maps, source files, broken base paths,
-and credential-like strings.
+and credential-like strings. Entry and initial-graph limits are the stable startup guardrails.
+Aggregate JavaScript and CSS limits may be raised only for reviewed product capability that
+keeps optional code lazy-loaded, with the reason and measured build impact documented in the same
+change. The local QR camera fallback follows this rule and does not enter the initial graph.
 
 Share links are available during play and after completion, and never contain the answer or
 personal data. Payload schema 6 stores a generator version,

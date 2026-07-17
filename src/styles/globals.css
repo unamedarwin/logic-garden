@@ -1321,7 +1321,7 @@ summary:focus-visible {
 .result-backdrop,
 .check-result-backdrop {
   position: fixed;
-  z-index: 10;
+  z-index: 30;
   inset: 0;
   display: grid;
   place-items: center;
@@ -1439,6 +1439,28 @@ summary:focus-visible {
 }
 .result-dialog__challenge-card span {
   color: var(--ink-soft);
+}
+.result-dialog__competition {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--sky) 24%, white);
+  text-align: left;
+}
+.result-dialog__competition ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.result-dialog__competition li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }
 .challenge-dialog {
   width: min(440px, 100%);
@@ -1676,36 +1698,116 @@ summary:focus-visible {
 .competition-panel {
   display: grid;
   gap: 12px;
-  margin: 24px auto 0;
-  padding: 18px;
-  border: 3px solid var(--ink);
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
 }
-.competition-panel__profile,
-.competition-panel__columns {
+.competition-panel__step,
+.competition-panel__connected {
   display: grid;
   gap: 12px;
 }
-.competition-panel__profile,
-.competition-panel__columns {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.competition-panel__inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.competition-panel__progress {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: competition-step;
+}
+.competition-panel__progress li {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 5px;
+  background: color-mix(in srgb, var(--paper) 78%, var(--sky));
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.1;
+  text-align: center;
+  counter-increment: competition-step;
+}
+.competition-panel__progress li::before {
+  content: counter(competition-step);
+  font-weight: 900;
+}
+.competition-panel__progress li[aria-current='step'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.competition-panel__identity,
+.competition-panel__connected > p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.competition-panel__identity > span:first-child {
+  font-size: 1.8rem;
+}
+.competition-panel__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.competition-panel__people li {
+  border: 1px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #fff;
+}
+.competition-panel__lobby-actions {
+  display: grid;
+  gap: 8px;
 }
 .competition-panel :is(label, input, textarea) {
   min-width: 0;
   width: 100%;
 }
-.mobile-game-switcher {
-  display: none;
+.competition-panel :is(input, textarea) {
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  padding: 8px;
+  background: #fff;
 }
-
+.competition-panel button:not(.button, .icon-button) {
+  min-height: 44px;
+  border: 1px solid;
+  border-radius: 10px;
+  padding: 7px;
+  background: #fff;
+}
+.competition-panel button[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 3px var(--leaf);
+}
+.competition-panel__qr-image {
+  width: min(220px, 100%);
+  margin: auto;
+}
+.competition-panel__qr-image svg,
+.competition-panel video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.competition-panel__scanner {
+  z-index: 11;
+}
 .illustrated-story-premise {
   display: none;
 }
 
 @media (max-width: 540px) {
-  .competition-panel__profile,
-  .competition-panel__columns {
-    grid-template-columns: 1fr;
-  }
   .game-screen .game-header {
     min-height: 44px;
     margin-bottom: 2px;
@@ -1810,38 +1912,8 @@ summary:focus-visible {
     min-width: 38px;
     font-size: 0.78rem;
   }
-  .mobile-game-switcher {
-    position: sticky;
-    z-index: 5;
-    top: 8px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 5px;
-    margin: 0 0 10px;
-    border: 2px solid var(--ink);
-    border-radius: 13px;
-    padding: 5px;
-    background: var(--paper);
-    box-shadow: 3px 3px 0 var(--ink);
-  }
-  .mobile-game-switcher button {
-    min-height: 38px;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--ink-soft);
-    font-weight: 900;
-  }
-  .mobile-game-switcher button[aria-pressed='true'] {
-    background: var(--leaf-dark);
-    color: #fff;
-  }
   .game-layout {
     gap: 0;
-  }
-  .game-layout--board .clue-area,
-  .game-layout--clues .map-area {
-    display: none;
   }
   .game-screen .map-area__heading {
     margin: 0 2px 4px;

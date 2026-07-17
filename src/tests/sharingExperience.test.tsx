@@ -108,4 +108,63 @@ describe('shared challenge experience', () => {
     expect(screen.getByText(/Has superat la marca/u)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Torna el repte' })).toBeInTheDocument()
   })
+
+  it('shows who is still playing in a group round', () => {
+    render(
+      <ResultDialog
+        title="Misteri resolt"
+        message="Molt bé!"
+        elapsed="01:20"
+        moves={8}
+        hintsUsed={0}
+        competitionSummary={{
+          roundId: 'round-1',
+          participants: [
+            {
+              id: 'player-1',
+              name: 'Roure A1',
+              avatar: '🌳',
+              role: 'master',
+              connected: true,
+              cumulativeSeconds: 80,
+              roundsFinished: 1,
+            },
+            {
+              id: 'player-2',
+              name: 'Lluna B2',
+              avatar: '🌙',
+              role: 'participant',
+              connected: true,
+              cumulativeSeconds: 0,
+              roundsFinished: 0,
+            },
+          ],
+          results: [
+            {
+              roundId: 'round-1',
+              participantId: 'player-1',
+              elapsedSeconds: 80,
+              moves: 8,
+              hintsUsed: 0,
+              finishedAt: 100,
+            },
+          ],
+        }}
+        onNewGame={vi.fn()}
+        onChangeDifficulty={vi.fn()}
+        onShare={vi.fn()}
+        newGameLabel="Tornar a la sala"
+        changeDifficultyLabel="Canvia el nivell"
+        shareLabel="Compartir"
+        timeLabel="temps"
+        movesLabel="moviments"
+        hintsLabel="pistes"
+      />,
+    )
+
+    expect(screen.getByText('Esperant la resta del grup…')).toBeInTheDocument()
+    expect(screen.getByText('1:20')).toBeInTheDocument()
+    expect(screen.getByText('Encara juga')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Canvia el nivell' })).not.toBeInTheDocument()
+  })
 })
