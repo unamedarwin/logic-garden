@@ -27,6 +27,7 @@
 - On narrow setup screens the journey path is sticky below the safe area and above the scrolling
   decision. The first-arrival browser journey scrolls the first selector and checks that the active
   step, previous/next controls, and full path remain in the viewport without horizontal overflow.
+  Its opaque paper surface stays light in every collection, including the adolescent 2D palette.
 
 ## Deduction grading: implemented
 
@@ -100,15 +101,18 @@
 - Tablet orientation regression is now covered in Playwright for portrait and landscape viewports:
   the suite fits and centers placements on a `16 x 16` 2D board and a 10-floor 3D building without
   horizontal document overflow.
+- Sticky setup navigation and the fixed action rail use opaque surfaces without backdrop blur. This
+  avoids WebKit compositing flicker while browser chrome expands or contracts during vertical scroll.
+- Programmatic setup focus uses `preventScroll`, and changing a 3D floor scrolls only the horizontal
+  elevator rail. Selecting a placed person must never call a whole-page `scrollIntoView` or change
+  `window.scrollY` while bringing that person's floor into view.
+- Crossed destinations in 2D and 3D keep the room texture visible and outline only the red cross
+  strokes with a one-pixel white edge, preserving contrast without whitening the complete cell.
 - The contextual clue rail no longer performs vertical page corrections when the selected person
   changes or when a clue card is paged horizontally. It may center content only inside its own
   horizontal rails. Unit tests reject `window.scrollBy` from the rail, and the iPhone 16e E2E check
-  asserts that selecting another rail person does not move `window.scrollY`.
-- Open follow-up before the next release: the focused iPhone 16e Playwright run confirmed that
-  removing the vertical auto-scroll avoids the jump, but the selected person's contextual clue can
-  still sit too close to, or partly under, the fixed action rail. Fix this with CSS layout reserve
-  or scroll margin around the lower workspace, not by reintroducing JavaScript `window.scrollBy`
-  corrections from the clue rail.
+  verifies that a deliberate scroll can place the complete contextual clue above the fixed action
+  rail while selecting another person leaves `window.scrollY` unchanged.
 
 ## Local competitive mode: P2P QR baseline
 
@@ -132,6 +136,10 @@
 - Compatibility limits: this is intended for nearby devices and works best on the same Wi-Fi. With
   no STUN/TURN server and no relay, restrictive routers or client-isolated networks can prevent
   direct connection. The UI keeps copy/paste as a fallback when camera scanning is unavailable.
+- The setup panel constrains every signaling field to its column and collapses master/participant
+  controls to one column on phones, preventing the local mode from widening the document viewport.
+- A permanent `Joc en grup` entry appears immediately below the setup journey and links to the local
+  QR connection panel, which is placed before completed-game history rather than hidden below it.
 - Open hardening: add a two-browser Playwright flow with mocked camera/QR input, reconnection
   behavior, participant removal when someone leaves, and a compact mobile lobby layout review before
   treating group play as release-polished.

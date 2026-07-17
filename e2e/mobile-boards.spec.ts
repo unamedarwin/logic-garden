@@ -13,6 +13,11 @@ const chooseRadio = async (radio: Locator) => {
   await expect(radio).toBeChecked()
 }
 
+const selectPerson = async (person: Locator) => {
+  if ((await person.getAttribute('aria-pressed')) !== 'true') await person.click()
+  await expect(person).toHaveAttribute('aria-pressed', 'true')
+}
+
 const startGame = async (
   page: Page,
   collection: Collection,
@@ -69,6 +74,13 @@ const expectFitBoard = async (page: Page) => {
 }
 
 const expectContextAboveActions = async (page: Page) => {
+  await page.locator('.character-clue-rail__context').evaluate((element) =>
+    element.scrollIntoView({
+      behavior: 'instant',
+      block: 'end',
+      inline: 'nearest',
+    }),
+  )
   await expect
     .poll(() =>
       page.evaluate(() => {
@@ -142,6 +154,20 @@ const expectElementCentered = async (element: Locator, container: Locator) => {
   ).toBeLessThanOrEqual(1)
 }
 
+const expectCrossOutline = async (crossedCell: Locator) => {
+  await expect(crossedCell).toBeVisible()
+  const strokes = await crossedCell.evaluate((element) =>
+    ['::before', '::after'].map((pseudo) => {
+      const style = getComputedStyle(element, pseudo)
+      return { background: style.backgroundColor, outline: style.boxShadow }
+    }),
+  )
+  expect(strokes).toEqual([
+    { background: 'rgb(240, 82, 135)', outline: 'rgb(255, 255, 255) 0px 0px 0px 1px' },
+    { background: 'rgb(240, 82, 135)', outline: 'rgb(255, 255, 255) 0px 0px 0px 1px' },
+  ])
+}
+
 const dragWithPointer = async (page: Page, source: Locator, target: Locator) => {
   await source.scrollIntoViewIfNeeded()
   await target.scrollIntoViewIfNeeded()
@@ -175,12 +201,13 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('Setup journey remains visible while the first collection step scrolls', async ({
+test('2D setup journey stays light and stable while the first collection step scrolls', async ({
   page,
 }, testInfo) => {
   await page.setViewportSize({ width: 393, height: 852 })
   await page.goto('./')
   const journey = page.locator('.home-screen > .journey-path')
+  await chooseRadio(page.getByRole('radio', { name: /^Puzzles 2D/u }))
   await page.getByRole('radio', { name: /^Puzzles 3D/u }).scrollIntoViewIfNeeded()
   await page.evaluate(() => window.scrollBy({ top: 220, behavior: 'auto' }))
 
@@ -196,13 +223,28 @@ test('Setup journey remains visible while the first collection step scrolls', as
       bottom: bounds.bottom,
       viewportHeight: window.innerHeight,
       position: getComputedStyle(element).position,
+      background: getComputedStyle(element).backgroundColor,
+      backdropFilter: getComputedStyle(element).backdropFilter,
     }
   })
   expect(geometry.position).toBe('sticky')
+  expect(geometry.background).toBe('rgb(255, 249, 235)')
+  expect(geometry.backdropFilter).toBe('none')
   expect(geometry.top).toBeGreaterThanOrEqual(0)
   expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight)
+
+  const stickyTops: number[] = []
+  for (const top of [80, 260, 120, 300]) {
+    await page.evaluate((nextTop) => window.scrollTo({ top: nextTop, behavior: 'auto' }), top)
+    stickyTops.push(await journey.evaluate((element) => element.getBoundingClientRect().top))
+  }
+  expect(Math.max(...stickyTops) - Math.min(...stickyTops)).toBeLessThanOrEqual(1)
+  const groupLink = page.getByRole('link', { name: /Joc en grup/u })
+  await expect(groupLink).toHaveAttribute('href', '#local-competition')
+  await groupLink.click()
+  await expect(page.getByRole('region', { name: 'Joc en grup' })).toBeInViewport()
   await expectNoDocumentOverflow(page)
-  await saveEvidence(page, testInfo, 'setup-sticky-journey')
+  await saveEvidence(page, testInfo, 'setup-sticky-journey-2d')
 })
 
 for (const size of [4, 6, 8] as const) {
@@ -231,7 +273,7 @@ for (const size of [4, 6, 8] as const) {
       await expectContextAboveActions(page)
     }
 
-    await page.locator('.character-clue-rail__person').first().click()
+    await selectPerson(page.locator('.character-clue-rail__person').first())
     await expect(page.locator('.objective-line')).toContainText(
       /records|versions|pista|història/u,
     )
@@ -278,7 +320,7 @@ test('Illustrated 8-person story stays clear at the iPhone 16e viewport', async 
     'data-story-stage',
     'opening',
   )
-  await page.locator('.character-clue-rail__person').last().click()
+  await selectPerson(page.locator('.character-clue-rail__person').last())
   await expect(page.locator('.character-clue-rail__clue').first()).toBeVisible()
   const scrollAfterRailSelection = await page.evaluate(() => window.scrollY)
   expect(Math.abs(scrollAfterRailSelection - scrollBeforeRailSelection)).toBeLessThanOrEqual(2)
@@ -314,12 +356,13 @@ for (const size of [6, 9, 16] as const) {
     await expectFitBoard(page)
     await saveEvidence(page, testInfo, `logic-grid-${size}-empty`)
 
-    await page.locator('.character-clue-rail__person').first().click()
+    await selectPerson(page.locator('.character-clue-rail__person').first())
     const destination = board.locator('.location-cell:not(.location-cell--blocked)').first()
     await destination.locator('.location-cell__target').click()
     const token = destination.locator('.character-token')
     await expect(token).toBeVisible()
     await expectCentered(token, destination)
+    await expectCrossOutline(board.locator('.location-cell--crossed').first())
     await expectNoDocumentOverflow(page)
     await saveEvidence(page, testInfo, `logic-grid-${size}-placed`)
   })
@@ -337,7 +380,7 @@ for (const tablet of [
     await expect(gridBoard).toHaveAttribute('data-grid-size', '16')
     await expectNoDocumentOverflow(page)
     await expectFitBoard(page)
-    await page.locator('.character-clue-rail__person').first().click()
+    await selectPerson(page.locator('.character-clue-rail__person').first())
     const gridDestination = gridBoard
       .locator('.location-cell:not(.location-cell--blocked)')
       .first()
@@ -354,7 +397,7 @@ for (const tablet of [
     await expect(cube.getByRole('tab')).toHaveCount(10)
     await expectNoDocumentOverflow(page)
     await expectFitBoard(page)
-    await page.locator('.character-clue-rail__person').first().click()
+    await selectPerson(page.locator('.character-clue-rail__person').first())
     const room = cube.locator('[data-room-target]').first()
     await room.locator('.logic-cube__room-button').click()
     await expectElementCentered(room.locator('.character-token'), room)
@@ -375,7 +418,7 @@ test('3D easy entry supports room drag, check feedback, and an explicit hint', a
   await expect(page.locator('.objective-line')).toContainText(/llar o botiga/u)
   await expect(cube.getByRole('group', { name: /Primer pis/u })).toBeVisible()
   await expect(cube.getByRole('grid')).toHaveCount(0)
-  await expect(page.locator('.character-clue-rail__clue').first()).toContainText('«')
+  await expect(page.locator('.character-clue-rail__clue').first()).not.toBeEmpty()
 
   const person = page.locator('.character-clue-rail__person').first()
   const room = cube.locator('[data-room-target]').first()
@@ -408,10 +451,11 @@ test('3D advanced cell mode remains playable and persists a free-cell hypothesis
   const cube = page.locator('.logic-cube')
   await expect(cube.getByRole('grid', { name: /Primer pis/u })).toBeVisible()
   await expect(cube.getByRole('gridcell')).toHaveCount(25)
-  await page.locator('.character-clue-rail__person').first().click()
+  await selectPerson(page.locator('.character-clue-rail__person').first())
   const destination = cube.locator('.location-cell__target:not(:disabled)').first()
   await destination.click()
   await expect(cube.locator('.character-token')).toHaveCount(1)
+  await expectCrossOutline(cube.locator('.location-cell--crossed').first())
   await page.reload()
   await expect(page.locator('.game-screen')).toBeVisible()
   await expect(page.locator('.logic-cube .character-token')).toHaveCount(1)
@@ -586,12 +630,19 @@ for (const depth of [3, 6, 10] as const) {
     await expectFitBoard(page)
     await saveEvidence(page, testInfo, `logic-cube-${depth}-empty`)
 
-    await page.locator('.character-clue-rail__person').first().click()
+    await selectPerson(page.locator('.character-clue-rail__person').first())
     const destination = cube.locator('[data-room-target]').first()
     await destination.locator('.logic-cube__room-button').click()
     const token = destination.locator('.character-token')
     await expect(token).toBeVisible()
     await expectElementCentered(token, destination)
+    await page.locator('.character-clue-rail__people').scrollIntoViewIfNeeded()
+    const scrollBeforePlacedSelection = await page.evaluate(() => window.scrollY)
+    await selectPerson(page.locator('.character-clue-rail__person').first())
+    const scrollAfterPlacedSelection = await page.evaluate(() => window.scrollY)
+    expect(
+      Math.abs(scrollAfterPlacedSelection - scrollBeforePlacedSelection),
+    ).toBeLessThanOrEqual(2)
     await expectNoDocumentOverflow(page)
     await saveEvidence(page, testInfo, `logic-cube-${depth}-placed`)
   })

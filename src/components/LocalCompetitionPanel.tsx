@@ -225,14 +225,14 @@ export const LocalCompetitionPanel = ({
     )
 
   return (
-    <section className="competition-panel" aria-label="Competir en local">
+    <section id="local-competition" className="competition-panel" aria-label="Joc en grup">
       <div className="competition-panel__header">
         <span aria-hidden="true">
           <Users />
         </span>
         <div>
           <p className="eyebrow">Mode grup sense servidor</p>
-          <h2>Competir en local</h2>
+          <h2>Joc en grup</h2>
           <p>
             Connecta dispositius amb QR i WebRTC. Tothom resol el mateix puzzle i el master
             espera que acabin els participants connectats.

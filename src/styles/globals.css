@@ -1516,9 +1516,8 @@ summary:focus-visible {
     padding: 6px 4px;
     border: 1px solid var(--line);
     border-radius: 999px;
-    background: color-mix(in srgb, var(--cream) 96%, transparent);
+    background: var(--paper);
     box-shadow: 0 5px 14px color-mix(in srgb, var(--ink) 15%, transparent);
-    backdrop-filter: blur(8px);
   }
   .home-screen .setup-step {
     scroll-margin-top: calc(68px + env(safe-area-inset-top));
@@ -1690,6 +1689,10 @@ summary:focus-visible {
 .competition-panel__columns {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+.competition-panel :is(label, input, textarea) {
+  min-width: 0;
+  width: 100%;
+}
 .mobile-game-switcher {
   display: none;
 }
@@ -1699,6 +1702,10 @@ summary:focus-visible {
 }
 
 @media (max-width: 540px) {
+  .competition-panel__profile,
+  .competition-panel__columns {
+    grid-template-columns: 1fr;
+  }
   .game-screen .game-header {
     min-height: 44px;
     margin-bottom: 2px;
@@ -2799,8 +2806,8 @@ summary:focus-visible {
 .game-board--logic-grid .location-cell--blocked .location-cell__target {
   cursor: not-allowed;
 }
-.game-board--logic-grid .location-cell--crossed::before,
-.game-board--logic-grid .location-cell--crossed::after {
+.location-cell--crossed::before,
+.location-cell--crossed::after {
   position: absolute;
   z-index: 4;
   top: 50%;
@@ -2809,6 +2816,7 @@ summary:focus-visible {
   height: max(1px, 0.055em);
   border-radius: 999px;
   background: #f05287;
+  box-shadow: 0 0 0 1px #fff;
   content: '';
   opacity: 0.66;
   pointer-events: none;
@@ -2900,6 +2908,7 @@ summary:focus-visible {
   }
   .game-screen .character-clue-rail__context {
     padding-top: 5px;
+    scroll-margin: 0 0 8em;
   }
   .game-screen .character-clue-rail__navigation {
     min-height: 44px;
@@ -2948,9 +2957,8 @@ summary:focus-visible {
     border: 2px solid var(--ink);
     border-radius: 15px;
     padding: 6px;
-    background: color-mix(in srgb, var(--paper) 94%, transparent);
+    background: var(--paper);
     box-shadow: 0 4px 18px rgba(18, 32, 38, 0.24);
-    backdrop-filter: blur(10px);
   }
   .game-screen .game-actions__secondary,
   .game-screen .game-actions__primary {

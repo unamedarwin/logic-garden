@@ -355,6 +355,7 @@ export const LogicCubeBoard = ({
     ? positions.find((position) => position.id === assignments[requestedCharacterId])
     : undefined
   const buildingDepth = buildingDepthForPositions(positions)
+  const layerRailRef = useRef<HTMLDivElement>(null)
   const layerButtonRefs = useRef(new Map<number, HTMLButtonElement>())
   const [activeLayer, setActiveLayer] = useState(
     Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1),
@@ -381,10 +382,12 @@ export const LogicCubeBoard = ({
   }, [spotlightCharacterId])
 
   useEffect(() => {
-    layerButtonRefs.current.get(activeLayer)?.scrollIntoView({
+    const rail = layerRailRef.current
+    const button = layerButtonRefs.current.get(activeLayer)
+    if (!rail || !button) return
+    rail.scrollTo({
+      left: button.offsetLeft - (rail.clientWidth - button.offsetWidth) / 2,
       behavior: motionSafeScrollBehavior(),
-      block: 'nearest',
-      inline: 'center',
     })
   }, [activeLayer, buildingDepth])
 
@@ -552,7 +555,9 @@ export const LogicCubeBoard = ({
     const nextLayer = boundaryLayer ?? Math.min(buildingDepth - 1, Math.max(0, layer + offset))
     if (nextLayer === layer) return
     setActiveLayer(nextLayer)
-    requestAnimationFrame(() => layerButtonRefs.current.get(nextLayer)?.focus())
+    requestAnimationFrame(() =>
+      layerButtonRefs.current.get(nextLayer)?.focus({ preventScroll: true }),
+    )
   }
 
   return (
@@ -588,6 +593,7 @@ export const LogicCubeBoard = ({
           <ChevronDown aria-hidden="true" />
         </button>
         <div
+          ref={layerRailRef}
           className="logic-cube__layers"
           role="tablist"
           aria-label={boardLabel}

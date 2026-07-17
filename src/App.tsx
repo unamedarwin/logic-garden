@@ -369,7 +369,9 @@ export default function App() {
 
   useEffect(() => {
     if (!ready || view !== 'home') return
-    const frame = window.requestAnimationFrame(() => setupStepRef.current?.focus())
+    const frame = window.requestAnimationFrame(() =>
+      setupStepRef.current?.focus({ preventScroll: true }),
+    )
     return () => window.cancelAnimationFrame(frame)
   }, [homeJourneyStep, ready, view])
 
@@ -838,6 +840,11 @@ export default function App() {
           }}
           onStepChange={openJourneyStep}
         />
+        <p>
+          <a className="button" href="#local-competition">
+            Joc en grup · connecta amb QR
+          </a>
+        </p>
         <section
           className={`home-hero ${normalizedJourneyStep === 'collection' ? '' : 'home-hero--setup'}`}
         >
@@ -946,14 +953,6 @@ export default function App() {
           </div>
           <HomeScene collection={preferences.collection} />
         </section>
-        <CompletedGames
-          games={statistics.history}
-          locale={preferences.locale}
-          title={t(preferences.locale, 'completedGames')}
-          shareLabel={t(preferences.locale, 'challengeSomeone')}
-          movesLabel={t(preferences.locale, 'moves').toLowerCase()}
-          onShare={shareCompletedGame}
-        />
         <LocalCompetitionPanel
           state={localCompetition.state}
           canStartRound={
@@ -973,6 +972,14 @@ export default function App() {
             localCompetition.reset()
             setActiveCompetitionRoundId(null)
           }}
+        />
+        <CompletedGames
+          games={statistics.history}
+          locale={preferences.locale}
+          title={t(preferences.locale, 'completedGames')}
+          shareLabel={t(preferences.locale, 'challengeSomeone')}
+          movesLabel={t(preferences.locale, 'moves').toLowerCase()}
+          onShare={shareCompletedGame}
         />
         <InstallPrompt
           label={t(preferences.locale, 'install')}
