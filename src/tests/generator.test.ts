@@ -372,6 +372,41 @@ describe('seeded puzzle generator', () => {
     }
   })
 
+  it('keeps the requested Catalan names available in advanced character pools', () => {
+    const requestedNames = [
+      'Arnau',
+      'Clàudia',
+      'Jordi',
+      'Anna',
+      'Dídac',
+      'Laia',
+      'Núria',
+      'Marina',
+      'Pili',
+      'Marc',
+      'Gabriel',
+      'Marta',
+      'Carles',
+      'Judith',
+      'Ciscu',
+      'Montserrat',
+      'Pere',
+      'Mercè',
+      'Júlia',
+      'Pau',
+      'Susana',
+      'Aina',
+      'Sònia',
+    ]
+    const advancedNames = new Set(
+      themes
+        .filter((theme) => theme.audience)
+        .flatMap((theme) => theme.characters.map((character) => character.name)),
+    )
+
+    expect(requestedNames.filter((name) => !advancedNames.has(name))).toEqual([])
+  })
+
   it('uses only curated child avatars for every child theme', () => {
     const childAvatars = new Set(['👧🏻', '👦🏼', '🧒🏽', '👧🏾', '👦🏿', '🧒🏻', '👧🏼', '👦🏽'])
     for (const theme of themes.filter((candidate) => !candidate.audience)) {

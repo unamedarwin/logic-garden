@@ -208,14 +208,16 @@ describe('room-based building placement', () => {
       'rooms',
     )
     const first = puzzle.characters[0]!
+    const roomPosition = placementDestinations(puzzle).find((position) => position.layer === 1)
     const onMoveToPosition = vi.fn()
+    if (!roomPosition) throw new Error('Expected one visible first-floor room target.')
     const { container } = render(
       <LogicCubeBoard
         positions={puzzle.positions}
         characters={puzzle.characters}
         items={puzzle.items}
         buildingPlacement="rooms"
-        assignments={{}}
+        assignments={{ [first.id]: roomPosition.id }}
         selectedCharacterId={first.id}
         locale="ca"
         themeId={puzzle.theme}
@@ -233,6 +235,9 @@ describe('room-based building placement', () => {
     )
 
     expect(container.querySelectorAll('[data-room-target]')).toHaveLength(4)
+    const placedRoomToken = container.querySelector('.logic-cube__room-token')
+    expect(placedRoomToken).not.toBeNull()
+    await waitFor(() => expect(placedRoomToken).toHaveClass('token-spotlight'))
     expect(screen.getByRole('group', { name: 'Edifici: Primer pis' })).toBeInTheDocument()
     expect(screen.queryByRole('grid')).not.toBeInTheDocument()
     expect(

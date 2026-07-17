@@ -318,6 +318,43 @@ for (const size of [6, 9, 16] as const) {
   })
 }
 
+for (const tablet of [
+  { name: 'portrait', width: 820, height: 1180 },
+  { name: 'landscape', width: 1180, height: 820 },
+] as const) {
+  test(`Tablet ${tablet.name} keeps 2D placements centered`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: tablet.width, height: tablet.height })
+
+    await startGame(page, 'Puzzles 2D', /16×16/u)
+    const gridBoard = page.locator('.game-board--logic-grid')
+    await expect(gridBoard).toHaveAttribute('data-grid-size', '16')
+    await expectNoDocumentOverflow(page)
+    await expectFitBoard(page)
+    await page.locator('.character-clue-rail__person').first().click()
+    const gridDestination = gridBoard
+      .locator('.location-cell:not(.location-cell--blocked)')
+      .first()
+    await gridDestination.locator('.location-cell__target').click()
+    await expectCentered(gridDestination.locator('.character-token'), gridDestination)
+    await saveEvidence(page, testInfo, `tablet-${tablet.name}-2d-placed`)
+  })
+
+  test(`Tablet ${tablet.name} keeps 3D placements centered`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: tablet.width, height: tablet.height })
+    await startGame(page, 'Puzzles 3D', /^10 plantes/u)
+    const cube = page.locator('.logic-cube')
+    await expect(cube).toHaveAttribute('data-grid-depth', '10')
+    await expect(cube.getByRole('tab')).toHaveCount(10)
+    await expectNoDocumentOverflow(page)
+    await expectFitBoard(page)
+    await page.locator('.character-clue-rail__person').first().click()
+    const room = cube.locator('[data-room-target]').first()
+    await room.locator('.logic-cube__room-button').click()
+    await expectElementCentered(room.locator('.character-token'), room)
+    await saveEvidence(page, testInfo, `tablet-${tablet.name}-3d-placed`)
+  })
+}
+
 test('3D easy entry supports room drag, check feedback, and an explicit hint', async ({
   page,
 }, testInfo) => {

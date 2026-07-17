@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { LogicCubeBoard } from '../components/LogicCubeBoard'
 import {
@@ -225,6 +225,41 @@ describe('variable-height 5x5 building board', () => {
 
     // The same row/column coordinate is projected through the depth axis.
     expect(container.querySelectorAll('.location-cell--crossed')).toHaveLength(1)
+  }, 15_000)
+
+  it('spotlights a selected character already placed in a cell', async () => {
+    const puzzle = generatePuzzle('hard', 'cube-cell-spotlight', 'teens', 'cube')
+    const character = puzzle.characters[0]!
+    const position = puzzle.positions.find(
+      (candidate) => !candidate.blocked && candidate.layer === 1,
+    )!
+    const { container } = render(
+      <LogicCubeBoard
+        positions={puzzle.positions}
+        characters={puzzle.characters}
+        items={puzzle.items}
+        assignments={{ [character.id]: position.id }}
+        selectedCharacterId={character.id}
+        locale="ca"
+        themeId={puzzle.theme}
+        puzzleSeed={puzzle.seed}
+        boardLabel="Edifici"
+        elevatorLabel="Ascensor"
+        floorUpLabel="Puja un pis"
+        floorDownLabel="Baixa un pis"
+        returnLabel="Torna"
+        moveToPositionLabel={(label) => `Mou a ${label}`}
+        selectPositionLabel={(label) => `Tria ${label}`}
+        onMoveToPosition={vi.fn()}
+        onRemoveCharacter={vi.fn()}
+      />,
+    )
+
+    await waitFor(() =>
+      expect(
+        container.querySelector('.location-cell__token.token-spotlight'),
+      ).toBeInTheDocument(),
+    )
   }, 15_000)
 
   it('keeps a visually free non-solution cell interactive', () => {

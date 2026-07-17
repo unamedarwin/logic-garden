@@ -99,6 +99,7 @@ interface CubeCellProps {
   readonly character?: Character
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacter?: Character
+  readonly highlighted: boolean
   readonly decorativeEmoji?: string
   readonly crossed: boolean
   readonly disabled: boolean
@@ -120,6 +121,7 @@ const CubeCell = ({
   character,
   selectedCharacterId,
   draggedCharacter,
+  highlighted,
   decorativeEmoji,
   crossed,
   disabled,
@@ -191,7 +193,7 @@ const CubeCell = ({
         </span>
       )}
       {character && (
-        <div className="location-cell__token">
+        <div className={`location-cell__token ${highlighted ? 'token-spotlight' : ''}`}>
           <CharacterToken
             character={character}
             selected={false}
@@ -215,6 +217,7 @@ interface RoomTargetProps {
   readonly character?: Character
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacter?: Character
+  readonly highlighted: boolean
   readonly tabIndex: number
   readonly locale: Locale
   readonly returnLabel: string
@@ -232,6 +235,7 @@ const RoomTarget = ({
   character,
   selectedCharacterId,
   draggedCharacter,
+  highlighted,
   tabIndex,
   locale,
   returnLabel,
@@ -283,7 +287,7 @@ const RoomTarget = ({
         <span className="sr-only">{label}</span>
       </button>
       {character && (
-        <div className="logic-cube__room-token">
+        <div className={`logic-cube__room-token ${highlighted ? 'token-spotlight' : ''}`}>
           <CharacterToken
             character={character}
             selected={false}
@@ -355,10 +359,23 @@ export const LogicCubeBoard = ({
   const [activeLayer, setActiveLayer] = useState(
     Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1),
   )
+  const [spotlightCharacterId, setSpotlightCharacterId] = useState<CharacterId | undefined>()
 
   useEffect(() => {
-    setActiveLayer(Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1))
-  }, [buildingDepth, puzzleSeed, requestedPosition?.layer])
+    if (!requestedCharacterId || !requestedPosition) {
+      setSpotlightCharacterId(undefined)
+      setActiveLayer(Math.min(buildingDepth - 1, requestedPosition?.layer ?? 1))
+      return
+    }
+    setSpotlightCharacterId(requestedCharacterId)
+    setActiveLayer(Math.min(buildingDepth - 1, requestedPosition.layer ?? 1))
+  }, [buildingDepth, puzzleSeed, requestedCharacterId, requestedPosition])
+
+  useEffect(() => {
+    if (!spotlightCharacterId) return undefined
+    const timeout = window.setTimeout(() => setSpotlightCharacterId(undefined), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [spotlightCharacterId])
 
   useEffect(() => {
     layerButtonRefs.current.get(activeLayer)?.scrollIntoView({
@@ -699,6 +716,7 @@ export const LogicCubeBoard = ({
                         character={character}
                         selectedCharacterId={selectedCharacterId}
                         draggedCharacter={draggedCharacter}
+                        highlighted={character?.id === spotlightCharacterId}
                         decorativeEmoji={zoneAnchor ? undefined : decorativeFurniture(position)}
                         crossed={
                           !roomPlacement &&
@@ -740,6 +758,7 @@ export const LogicCubeBoard = ({
                     character={character}
                     selectedCharacterId={selectedCharacterId}
                     draggedCharacter={draggedCharacter}
+                    highlighted={character?.id === spotlightCharacterId}
                     tabIndex={focusTargetId === position.id ? 0 : -1}
                     locale={locale}
                     returnLabel={returnLabel}

@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import type {
   Audience,
   BoardMode,
@@ -28,6 +28,7 @@ interface LocationCellProps {
   readonly character?: Character
   readonly selectedCharacterId?: CharacterId
   readonly draggedCharacter?: Character
+  readonly highlighted: boolean
   readonly onMoveToPosition: (positionId: PositionId) => void
   readonly onRemoveCharacter: (characterId: CharacterId) => void
   readonly emptyLabel: string
@@ -50,6 +51,7 @@ const LocationCell = ({
   character,
   selectedCharacterId,
   draggedCharacter,
+  highlighted,
   onMoveToPosition,
   onRemoveCharacter,
   emptyLabel,
@@ -118,7 +120,7 @@ const LocationCell = ({
         {!character && !logicGrid && <span className="location-cell__empty">{emptyLabel}</span>}
       </button>
       {character && (
-        <div className="location-cell__token">
+        <div className={`location-cell__token ${highlighted ? 'token-spotlight' : ''}`}>
           <CharacterToken
             character={character}
             selected={false}
@@ -207,12 +209,26 @@ export const GameBoard = ({
   const [focusedPositionId, setFocusedPositionId] = useState<PositionId | undefined>(
     firstFocusablePosition?.id,
   )
+  const [spotlightCharacterId, setSpotlightCharacterId] = useState<CharacterId | undefined>()
   const focusedPosition = positions.find((position) => position.id === focusedPositionId)
   const activeFocusedPositionId =
     focusedPosition && !positionIsUnavailable(focusedPosition)
       ? focusedPosition.id
       : firstFocusablePosition?.id
   const draggedCharacter = characters.find((character) => character.id === draggedCharacterId)
+  const selectedPlacedPositionId = selectedCharacterId
+    ? assignments[selectedCharacterId]
+    : undefined
+
+  useEffect(() => {
+    if (!selectedCharacterId || !selectedPlacedPositionId) {
+      setSpotlightCharacterId(undefined)
+      return undefined
+    }
+    setSpotlightCharacterId(selectedCharacterId)
+    const timeout = window.setTimeout(() => setSpotlightCharacterId(undefined), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [selectedCharacterId, selectedPlacedPositionId])
 
   const moveGridFocus = (position: Position, event: KeyboardEvent<HTMLButtonElement>) => {
     const direction = {
@@ -295,6 +311,7 @@ export const GameBoard = ({
                       character={character}
                       selectedCharacterId={selectedCharacterId}
                       draggedCharacter={draggedCharacter}
+                      highlighted={character?.id === spotlightCharacterId}
                       onMoveToPosition={onMoveToPosition}
                       onRemoveCharacter={onRemoveCharacter}
                       emptyLabel={emptyLabel}

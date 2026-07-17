@@ -87,3 +87,17 @@
 - V8 coverage runs serially and excludes only this exhaustive corpus file because it repeats already
   instrumented branches hundreds of times. The release `verify` command still runs the corpus in
   full, while coverage retains its independent statement, branch, function, and line thresholds.
+
+## Touch gestures: open quality issue
+
+- A mobile report found that page scrolling and zoom gestures can trap the app after dragging the
+  screen downward and then attempting to zoom the board. Add a dedicated gesture controller so
+  two-finger pinch zoom is captured only on the board surface, one-finger document scrolling remains
+  normal outside the board, and returning to fitted mode clears any pan offsets and restores the
+  page scroll path.
+- Verification should cover iOS-sized viewports with: normal page scroll, pinch-to-zoom on the map,
+  no pinch handling over the action rail or clue rail, fit-mode recovery after zoom, and no state
+  where the page cannot scroll back upward.
+- Tablet orientation regression is now covered in Playwright for portrait and landscape viewports:
+  the suite fits and centers placements on a `16 x 16` 2D board and a 10-floor 3D building without
+  horizontal document overflow.
