@@ -64,4 +64,40 @@ describe('multiplayer protocol', () => {
       ),
     ).toBeNull()
   })
+
+  it('round-trips a safe setup preview without a seed or solution', () => {
+    const encoded = encodePeerCompetitionMessage({
+      type: 'setup-selected',
+      lobbyId: 'lobby-1',
+      setup: {
+        collection: 'three-dimensional',
+        difficulty: 'hard',
+        themeId: 'city-garden',
+        size: 8,
+        buildingPlacement: 'rooms',
+      },
+    })
+    const decoded = decodePeerCompetitionMessage(encoded)
+
+    expect(decoded?.type).toBe('setup-selected')
+    expect(encoded).not.toContain('seed')
+    expect(encoded).not.toContain('solution')
+  })
+
+  it('accepts an explicit peer departure only with a safe profile id', () => {
+    expect(
+      decodePeerCompetitionMessage(
+        encodePeerCompetitionMessage({
+          type: 'peer-left',
+          lobbyId: 'lobby-1',
+          profileId: 'player-2',
+        }),
+      )?.type,
+    ).toBe('peer-left')
+    expect(
+      decodePeerCompetitionMessage(
+        JSON.stringify({ type: 'peer-left', lobbyId: 'lobby-1', profileId: '../bad' }),
+      ),
+    ).toBeNull()
+  })
 })

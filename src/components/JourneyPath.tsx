@@ -15,6 +15,7 @@ interface JourneyPathProps {
   readonly onPrevious: () => void
   readonly onNext: () => void
   readonly onStepChange: (step: JourneyStep) => void
+  readonly locked?: boolean
 }
 
 export const JourneyPath = ({
@@ -30,6 +31,7 @@ export const JourneyPath = ({
   onPrevious,
   onNext,
   onStepChange,
+  locked = false,
 }: JourneyPathProps) => {
   const furthestIndex = stepOrder.indexOf(furthestStep)
 
@@ -39,7 +41,7 @@ export const JourneyPath = ({
         type="button"
         className="journey-path__direction"
         aria-label={previousLabel}
-        disabled={!canGoPrevious}
+        disabled={locked || !canGoPrevious}
         onClick={onPrevious}
       >
         <ChevronLeft aria-hidden="true" />
@@ -51,7 +53,7 @@ export const JourneyPath = ({
               type="button"
               className={step === currentStep ? 'journey-path__step--current' : undefined}
               aria-current={step === currentStep ? 'step' : undefined}
-              disabled={index > furthestIndex}
+              disabled={locked || index > furthestIndex}
               onClick={() => onStepChange(step)}
             >
               <span aria-hidden="true">{index + 1}</span>
@@ -64,7 +66,7 @@ export const JourneyPath = ({
         type="button"
         className="journey-path__direction"
         aria-label={nextLabel}
-        disabled={!canGoNext}
+        disabled={locked || !canGoNext}
         onClick={onNext}
       >
         <ChevronRight aria-hidden="true" />

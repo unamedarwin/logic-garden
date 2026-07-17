@@ -6,6 +6,7 @@ import {
   type CompetitionProfile,
   type CompetitionRound,
   type CompetitionRoundResult,
+  type CompetitionSetup,
   type PeerCompetitionMessage,
 } from './protocol'
 import { decodeSignalEnvelope, encodeSignalEnvelope, type SignalEnvelope } from './signaling'
@@ -29,6 +30,7 @@ export interface LocalCompetitionState {
   readonly participants: readonly CompetitionParticipant[]
   readonly results: readonly CompetitionRoundResult[]
   readonly activeRound?: CompetitionRound
+  readonly selectedSetup?: CompetitionSetup
   readonly offerCode: string
   readonly answerCode: string
   readonly error: string
@@ -38,14 +40,36 @@ const iceTimeoutMs = 8000
 const connectionTimeoutMs = 30_000
 
 const temporaryProfiles = [
-  { name: 'Roure', avatar: '🌳' },
-  { name: 'Lluna', avatar: '🌙' },
-  { name: 'Corall', avatar: '🪸' },
-  { name: 'Brúixola', avatar: '🧭' },
-  { name: 'Estel', avatar: '⭐' },
-  { name: 'Menta', avatar: '🌿' },
-  { name: 'Cometa', avatar: '☄️' },
-  { name: 'Onada', avatar: '🌊' },
+  { names: ['Roure alegre', 'Roure valent', 'Roure serè', 'Roure curiós'], avatar: '🌳' },
+  { names: ['Lluna clara', 'Lluna riallera', 'Lluna serena', 'Lluna curiosa'], avatar: '🌙' },
+  { names: ['Corall curiós', 'Corall viu', 'Corall amable', 'Corall valent'], avatar: '🪸' },
+  {
+    names: ['Brúixola viva', 'Brúixola curiosa', 'Brúixola valenta', 'Brúixola alegre'],
+    avatar: '🧭',
+  },
+  { names: ['Estel brillant', 'Estel veloç', 'Estel serè', 'Estel juganer'], avatar: '⭐' },
+  { names: ['Menta fresca', 'Menta alegre', 'Menta viva', 'Menta curiosa'], avatar: '🌿' },
+  {
+    names: ['Cometa veloç', 'Cometa brillant', 'Cometa valent', 'Cometa curiós'],
+    avatar: '☄️',
+  },
+  {
+    names: ['Onada tranquil·la', 'Onada alegre', 'Onada valenta', 'Onada curiosa'],
+    avatar: '🌊',
+  },
+  { names: ['Gla juganera', 'Gla valenta', 'Gla alegre', 'Gla curiosa'], avatar: '🌰' },
+  { names: ['Núvol serè', 'Núvol alegre', 'Núvol valent', 'Núvol curiós'], avatar: '☁️' },
+  { names: ['Far brillant', 'Far amable', 'Far valent', 'Far serè'], avatar: '🗼' },
+  { names: ['Còdol rodó', 'Còdol alegre', 'Còdol valent', 'Còdol curiós'], avatar: '🪨' },
+] as const
+
+const temporaryOrigins = [
+  'del bosc',
+  'de la costa',
+  'del jardí',
+  'de la plaça',
+  'del cel',
+  'del camí',
 ] as const
 
 const createId = () =>
@@ -54,11 +78,20 @@ const createId = () =>
 
 const defaultProfile = (): CompetitionProfile => {
   const id = createId()
-  const index = [...id].reduce((total, character) => total + character.charCodeAt(0), 0)
-  const preset = temporaryProfiles[index % temporaryProfiles.length] ?? temporaryProfiles[0]
+  const hash = [...id].reduce(
+    (total, character) => Math.imul(total ^ character.charCodeAt(0), 16_777_619) >>> 0,
+    2_166_136_261,
+  )
+  const preset = temporaryProfiles[hash % temporaryProfiles.length] ?? temporaryProfiles[0]
+  const name = preset.names[Math.floor(hash / temporaryProfiles.length) % preset.names.length]
+  const origin =
+    temporaryOrigins[
+      Math.floor(hash / (temporaryProfiles.length * preset.names.length)) %
+        temporaryOrigins.length
+    ] ?? temporaryOrigins[0]
   return {
     id,
-    name: `${preset.name} ${id.slice(0, 2).toUpperCase()}`,
+    name: `${name ?? preset.names[0]} ${origin}`,
     avatar: preset.avatar,
   }
 }
@@ -134,6 +167,8 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
   const channelsRef = useRef(new Map<string, RTCDataChannel>())
   const peerProfilesRef = useRef(new Map<string, CompetitionProfile>())
   const connectionTimersRef = useRef(new Map<string, number>())
+  const pendingPeerIdRef = useRef<string | null>(null)
+  const sessionVersionRef = useRef(0)
   const onRoundReceivedRef = useRef(onRoundReceived)
 
   useEffect(() => {
@@ -153,25 +188,26 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     [],
   )
 
-  const broadcastStandings = () => {
-    const current = stateRef.current
-    if (!current.lobbyId) return
-    const message: PeerCompetitionMessage = {
-      type: 'standings',
-      lobbyId: current.lobbyId,
-      participants: current.participants,
-      results: current.results,
-    }
-    for (const channel of channelsRef.current.values()) {
-      if (channel.readyState === 'open') channel.send(encodePeerCompetitionMessage(message))
-    }
-  }
-
   const sendToPeers = (message: PeerCompetitionMessage) => {
     for (const channel of channelsRef.current.values()) {
       if (channel.readyState === 'open') channel.send(encodePeerCompetitionMessage(message))
     }
   }
+
+  useEffect(() => {
+    if (state.role !== 'master' || !state.lobbyId) return
+    const snapshot: PeerCompetitionMessage = {
+      type: 'standings',
+      lobbyId: state.lobbyId,
+      participants: state.participants,
+      results: state.results,
+      ...(state.selectedSetup ? { selectedSetup: state.selectedSetup } : {}),
+    }
+    const encoded = encodePeerCompetitionMessage(snapshot)
+    for (const channel of channelsRef.current.values()) {
+      if (channel.readyState === 'open') channel.send(encoded)
+    }
+  }, [state.lobbyId, state.participants, state.results, state.role, state.selectedSetup])
 
   const handlePeerMessage = (message: PeerCompetitionMessage, peerId: string) => {
     const current = stateRef.current
@@ -186,23 +222,10 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         true,
         current.results,
       )
-      const nextParticipants = mergeParticipants(current.participants, nextParticipant)
       setState((previous) => ({
         ...previous,
         participants: mergeParticipants(previous.participants, nextParticipant),
       }))
-      if (current.role === 'master') {
-        const standings: PeerCompetitionMessage = {
-          type: 'standings',
-          lobbyId: message.lobbyId,
-          participants: nextParticipants,
-          results: current.results,
-        }
-        const encoded = encodePeerCompetitionMessage(standings)
-        for (const peerChannel of channelsRef.current.values()) {
-          if (peerChannel.readyState === 'open') peerChannel.send(encoded)
-        }
-      }
       return
     }
     if (message.type === 'round-started') {
@@ -213,6 +236,32 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         connectionState: 'connected',
       }))
       onRoundReceivedRef.current(message.round)
+      return
+    }
+    if (message.type === 'setup-selected') {
+      if (current.role !== 'participant') return
+      setState((previous) => ({ ...previous, selectedSetup: message.setup }))
+      return
+    }
+    if (message.type === 'peer-left') {
+      if (!peerProfile || message.profileId !== peerProfile.id) return
+      if (current.role === 'participant') {
+        sessionVersionRef.current += 1
+        for (const channel of channelsRef.current.values()) channel.close()
+        for (const connection of connectionsRef.current.values()) connection.close()
+        channelsRef.current.clear()
+        connectionsRef.current.clear()
+        peerProfilesRef.current.clear()
+        setState((previous) => ({
+          ...previous,
+          connectionState: 'error',
+          participants: previous.participants.map((participant) => ({
+            ...participant,
+            connected: participant.id === previous.profile.id,
+          })),
+          error: 'El creador ha tancat la sala.',
+        }))
+      }
       return
     }
     if (message.type === 'round-finished') {
@@ -240,7 +289,6 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         )
         return { ...previous, results, participants }
       })
-      if (current.role === 'master') window.setTimeout(broadcastStandings, 0)
       return
     }
     if (message.type === 'standings') {
@@ -249,16 +297,19 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
         ...previous,
         participants: message.participants,
         results: message.results,
+        selectedSetup: message.selectedSetup,
       }))
     }
   }
 
   const attachChannel = (peerId: string, channel: RTCDataChannel) => {
+    const sessionVersion = sessionVersionRef.current
     channelsRef.current.set(peerId, channel)
     channel.addEventListener('open', () => {
       const connectionTimer = connectionTimersRef.current.get(peerId)
       if (connectionTimer !== undefined) window.clearTimeout(connectionTimer)
       connectionTimersRef.current.delete(peerId)
+      if (pendingPeerIdRef.current === peerId) pendingPeerIdRef.current = null
       const current = stateRef.current
       if (!current.lobbyId) return
       const peerProfile = peerProfilesRef.current.get(peerId)
@@ -272,6 +323,8 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       setState((previous) => ({
         ...previous,
         connectionState: 'connected',
+        offerCode: '',
+        answerCode: '',
         error: '',
         participants: peerProfile
           ? mergeParticipants(
@@ -287,6 +340,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       }))
     })
     channel.addEventListener('close', () => {
+      if (sessionVersion !== sessionVersionRef.current) return
       channelsRef.current.delete(peerId)
       const peerProfile = peerProfilesRef.current.get(peerId)
       if (!peerProfile) return
@@ -328,6 +382,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     const continuingLobby = current.role === 'master' && current.lobbyId !== null
     const lobbyId = continuingLobby ? current.lobbyId : createId()
     const peerId = createId()
+    pendingPeerIdRef.current = peerId
     const connection = createConnection()
     const channel = connection.createDataChannel('logic-garden')
     attachChannel(peerId, channel)
@@ -382,6 +437,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       return
     }
     const peerId = envelope.peerId
+    pendingPeerIdRef.current = peerId
     peerProfilesRef.current.set(peerId, envelope.profile)
     const connection = createConnection()
     connection.addEventListener('datachannel', (event) => attachChannel(peerId, event.channel))
@@ -395,7 +451,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       answerCode: '',
       error: '',
       participants: [
-        participantFromProfile(envelope.profile, 'master', true, previous.results),
+        participantFromProfile(envelope.profile, 'master', false, previous.results),
         participantFromProfile(previous.profile, 'participant', true, previous.results),
       ],
     }))
@@ -483,7 +539,23 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       round,
     }
     sendToPeers(message)
-    setState((previous) => ({ ...previous, activeRound: round }))
+    setState((previous) => ({
+      ...previous,
+      activeRound: round,
+      selectedSetup: {
+        collection: round.collection,
+        difficulty: round.metadata.difficulty,
+        themeId: round.themeId,
+        size:
+          round.metadata.childMapSize ??
+          round.metadata.gridSize ??
+          round.metadata.buildingDepth ??
+          0,
+        ...(round.metadata.buildingPlacement
+          ? { buildingPlacement: round.metadata.buildingPlacement }
+          : {}),
+      },
+    }))
     onRoundReceivedRef.current(round)
   }
 
@@ -522,10 +594,10 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       }
     })
     sendToPeers(message)
-    if (current.role === 'master') window.setTimeout(broadcastStandings, 0)
   }
 
   const reset = () => {
+    sessionVersionRef.current += 1
     for (const channel of channelsRef.current.values()) channel.close()
     for (const connection of connectionsRef.current.values()) connection.close()
     for (const timer of connectionTimersRef.current.values()) window.clearTimeout(timer)
@@ -533,6 +605,7 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     peerProfilesRef.current.clear()
     connectionTimersRef.current.clear()
     connectionsRef.current.clear()
+    pendingPeerIdRef.current = null
     setState((previous) => ({
       ...previous,
       role: null,
@@ -543,8 +616,58 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
       offerCode: '',
       answerCode: '',
       activeRound: undefined,
+      selectedSetup: undefined,
       error: '',
     }))
+  }
+
+  const cancelPairing = () => {
+    const peerId = pendingPeerIdRef.current
+    if (!peerId) return
+    const channel = channelsRef.current.get(peerId)
+    const connection = connectionsRef.current.get(peerId)
+    channel?.close()
+    connection?.close()
+    channelsRef.current.delete(peerId)
+    connectionsRef.current.delete(peerId)
+    peerProfilesRef.current.delete(peerId)
+    const timer = connectionTimersRef.current.get(peerId)
+    if (timer !== undefined) window.clearTimeout(timer)
+    connectionTimersRef.current.delete(peerId)
+    pendingPeerIdRef.current = null
+    const hasOpenChannel = [...channelsRef.current.values()].some(
+      (candidate) => candidate.readyState === 'open',
+    )
+    if (!hasOpenChannel && stateRef.current.role === 'participant') {
+      reset()
+      return
+    }
+    setState((previous) => ({
+      ...previous,
+      connectionState: hasOpenChannel ? 'connected' : 'idle',
+      offerCode: '',
+      answerCode: '',
+      error: '',
+    }))
+  }
+
+  const disconnect = () => {
+    const current = stateRef.current
+    if (current.lobbyId) {
+      sendToPeers({
+        type: 'peer-left',
+        lobbyId: current.lobbyId,
+        profileId: current.profile.id,
+      })
+    }
+    reset()
+  }
+
+  const updateSetup = (setup: CompetitionSetup) => {
+    const current = stateRef.current
+    if (current.role !== 'master' || !current.lobbyId) return
+    setState((previous) => ({ ...previous, selectedSetup: setup }))
+    sendToPeers({ type: 'setup-selected', lobbyId: current.lobbyId, setup })
   }
 
   return {
@@ -554,6 +677,9 @@ export const useLocalCompetition = (onRoundReceived: (round: CompetitionRound) =
     acceptAnswer,
     startRound,
     submitResult,
+    cancelPairing,
+    disconnect,
+    updateSetup,
     reset,
   }
 }

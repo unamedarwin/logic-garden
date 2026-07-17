@@ -1,3 +1,5 @@
+import { Users } from 'lucide-react'
+
 interface GameHeaderProps {
   readonly online: boolean
   readonly connectionLabel: string
@@ -5,6 +7,13 @@ interface GameHeaderProps {
   readonly settingsLabel: string
   readonly onOpenSettings: () => void
   readonly onGoHome?: () => void
+  readonly groupConnection?: {
+    readonly label: string
+    readonly accessibilityLabel: string
+    readonly state: 'connected' | 'disconnected'
+    readonly count?: number
+    readonly onOpen: () => void
+  }
 }
 
 export const GameHeader = ({
@@ -14,8 +23,9 @@ export const GameHeader = ({
   settingsLabel,
   onOpenSettings,
   onGoHome,
+  groupConnection,
 }: GameHeaderProps) => (
-  <header className="game-header">
+  <header className={`game-header ${groupConnection ? 'game-header--group' : ''}`}>
     {onGoHome ? (
       <button
         type="button"
@@ -37,6 +47,18 @@ export const GameHeader = ({
       </a>
     )}
     <div className="game-header__tools">
+      {groupConnection && (
+        <button
+          type="button"
+          className={`connection-pill connection-pill--group connection-pill--${groupConnection.state}`}
+          aria-label={groupConnection.accessibilityLabel}
+          onClick={groupConnection.onOpen}
+        >
+          <Users aria-hidden="true" />
+          <span>{groupConnection.label}</span>
+          {groupConnection.count !== undefined && <strong>{groupConnection.count}</strong>}
+        </button>
+      )}
       {!online && (
         <span className="connection-pill connection-pill--offline">
           <span aria-hidden="true">○</span> {connectionLabel}

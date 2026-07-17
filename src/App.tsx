@@ -98,7 +98,7 @@ import {
   type CompletedGame,
   type Statistics,
 } from './storage/statistics'
-import type { CompetitionRound } from './multiplayer/protocol'
+import type { CompetitionRound, CompetitionSetup } from './multiplayer/protocol'
 import { useLocalCompetition } from './multiplayer/useLocalCompetition'
 
 const resetPageScroll = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
@@ -409,6 +409,7 @@ export default function App() {
       setGame(nextGame)
       setSelectedThemeId(nextGame.puzzle.theme)
       setView('game')
+      setShowCompetition(false)
       setSharedChallenge(null)
       setShowChallengeIntro(false)
       setShowHintPicker(false)
@@ -425,6 +426,37 @@ export default function App() {
   }
 
   const localCompetition = useLocalCompetition(startCompetitionRoundGame)
+  const syncCompetitionSetup = useEffectEvent(() => {
+    const setup: CompetitionSetup = {
+      collection: preferences.collection,
+      difficulty: preferences.difficulty,
+      themeId: selectedThemeId,
+      size:
+        preferences.collection === 'children'
+          ? preferences.childMapSize
+          : preferences.collection === 'two-dimensional'
+            ? preferences.advancedGridSize
+            : preferences.buildingDepth,
+      ...(preferences.collection === 'three-dimensional'
+        ? { buildingPlacement: preferences.buildingPlacement }
+        : {}),
+    }
+    localCompetition.updateSetup(setup)
+  })
+  useEffect(() => {
+    if (localCompetition.state.role !== 'master' || !localCompetition.state.lobbyId) return
+    syncCompetitionSetup()
+  }, [
+    localCompetition.state.lobbyId,
+    localCompetition.state.role,
+    preferences.advancedGridSize,
+    preferences.buildingDepth,
+    preferences.buildingPlacement,
+    preferences.childMapSize,
+    preferences.collection,
+    preferences.difficulty,
+    selectedThemeId,
+  ])
   const activeRoundParticipants = localCompetition.state.participants.filter(
     (participant) => participant.connected,
   )
@@ -439,6 +471,40 @@ export default function App() {
       activeRoundParticipants.every((participant) =>
         activeRoundResults.some((result) => result.participantId === participant.id),
       ))
+  const connectedCompetitionParticipants = localCompetition.state.participants.filter(
+    (participant) => participant.connected,
+  )
+  const hasConnectedCompetition = connectedCompetitionParticipants.length > 1
+  const hasDisconnectedCompetition =
+    !hasConnectedCompetition &&
+    localCompetition.state.lobbyId !== null &&
+    (localCompetition.state.connectionState === 'error' ||
+      localCompetition.state.participants.some(
+        (participant) =>
+          participant.id !== localCompetition.state.profile.id && !participant.connected,
+      ))
+  const isCompetitionParticipant =
+    hasConnectedCompetition && localCompetition.state.role === 'participant'
+  const selectedCompetitionSetup = localCompetition.state.selectedSetup
+  const selectedCompetitionSetupLabel = selectedCompetitionSetup
+    ? `${themeCopy(preferences.locale, selectedCompetitionSetup.themeId).title} · ${
+        selectedCompetitionSetup.collection === 'children'
+          ? `${selectedCompetitionSetup.size} amics`
+          : selectedCompetitionSetup.collection === 'two-dimensional'
+            ? `${selectedCompetitionSetup.size} × ${selectedCompetitionSetup.size}`
+            : `${selectedCompetitionSetup.size} plantes · ${
+                selectedCompetitionSetup.buildingPlacement === 'rooms'
+                  ? 'per estances'
+                  : 'per caselles'
+              }`
+      } · ${
+        selectedCompetitionSetup.difficulty === 'easy'
+          ? 'fàcil'
+          : selectedCompetitionSetup.difficulty === 'medium'
+            ? 'mitjà'
+            : 'difícil'
+      }`
+    : undefined
 
   const createCompetitionRound = (): CompetitionRound => {
     const source = seed(createSeed())
@@ -854,14 +920,23 @@ export default function App() {
             if (next) openHomeJourneyStep(next)
           }}
           onStepChange={openJourneyStep}
+          locked={isCompetitionParticipant}
         />
-        <p>
+        <p className="competition-entry">
           <button
             type="button"
-            className="button button--secondary"
+            className={`button ${hasConnectedCompetition ? '' : 'button--secondary'}`}
             onClick={() => setShowCompetition(true)}
           >
-            Joc en grup
+            {hasConnectedCompetition
+              ? `Connectat · ${connectedCompetitionParticipants.length}`
+              : hasDisconnectedCompetition
+                ? 'Connexió perduda'
+                : localCompetition.state.role &&
+                    localCompetition.state.connectionState !== 'idle' &&
+                    localCompetition.state.connectionState !== 'error'
+                  ? 'Connectant…'
+                  : 'Joc en grup'}
           </button>
         </p>
         <section
@@ -878,90 +953,119 @@ export default function App() {
               role="group"
               aria-label={journeySteps[normalizedJourneyStep]}
             >
-              {normalizedJourneyStep === 'collection' && (
-                <PuzzleCollectionSelector
-                  value={preferences.collection}
-                  locale={preferences.locale}
-                  label={t(preferences.locale, 'puzzleCollection')}
-                  onChange={(collection) => {
-                    setPreferences({ ...preferences, collection })
-                    setSelectedThemeId(themesForPuzzleCollection(collection)[0]!.id)
-                  }}
-                />
-              )}
-              {normalizedJourneyStep === 'mode' && (
-                <BuildingPlacementSelector
-                  value={preferences.buildingPlacement}
-                  locale={preferences.locale}
-                  onChange={(buildingPlacement) =>
-                    setPreferences({ ...preferences, buildingPlacement })
-                  }
-                />
-              )}
-              {normalizedJourneyStep === 'size' &&
-                (preferences.collection === 'children' ? (
-                  <ChildMapSizeSelector
-                    value={preferences.childMapSize}
-                    locale={preferences.locale}
-                    label={t(preferences.locale, 'childMapSize')}
-                    onChange={(childMapSize) =>
-                      setPreferences({ ...preferences, childMapSize })
-                    }
-                  />
-                ) : preferences.collection === 'two-dimensional' ? (
-                  <BoardSizeSelector
-                    value={preferences.advancedGridSize}
-                    locale={preferences.locale}
-                    label={t(preferences.locale, 'boardSize')}
-                    onChange={(advancedGridSize) =>
-                      setPreferences({ ...preferences, advancedGridSize })
-                    }
-                  />
-                ) : (
-                  <BuildingSizeSelector
-                    value={preferences.buildingDepth}
-                    locale={preferences.locale}
-                    label={t(preferences.locale, 'buildingSize')}
-                    onChange={(buildingDepth) =>
-                      setPreferences({ ...preferences, buildingDepth })
-                    }
-                  />
-                ))}
-              {normalizedJourneyStep === 'difficulty' && (
-                <DifficultySelector
-                  value={preferences.difficulty}
-                  locale={preferences.locale}
-                  collection={preferences.collection}
-                  label={t(preferences.locale, 'difficulty')}
-                  onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
-                />
-              )}
-              {normalizedJourneyStep === 'adventure' && (
+              {isCompetitionParticipant ? (
+                <section className="competition-waiting-card" aria-live="polite">
+                  <p className="eyebrow">Selecció del creador</p>
+                  <h2>{selectedCompetitionSetupLabel ?? 'Preparant el següent puzzle…'}</h2>
+                  <p>Quan el creador iniciï la ronda, el mateix puzzle s’obrirà aquí.</p>
+                  <button
+                    type="button"
+                    className="button button--secondary"
+                    onClick={() => setShowCompetition(true)}
+                  >
+                    Veure la sala o desconnectar-me
+                  </button>
+                </section>
+              ) : (
                 <>
-                  <AdventureSelector
-                    value={selectedThemeId}
-                    collection={preferences.collection}
-                    locale={preferences.locale}
-                    label={t(preferences.locale, 'chooseAdventure')}
-                    onChange={setSelectedThemeId}
-                  />
-                  <div className="home-hero__actions">
-                    <button
-                      type="button"
-                      className="button button--large"
-                      disabled={generating}
-                      onClick={() => (canResumeCurrentSetup ? resumeGame() : startGame())}
-                    >
-                      <span aria-hidden="true">✦</span>{' '}
-                      {generating
-                        ? '…'
-                        : t(preferences.locale, canResumeCurrentSetup ? 'resumeGame' : 'play')}
-                    </button>
-                    <p className="home-stat">
-                      <strong>{statistics.completed}</strong>{' '}
-                      {t(preferences.locale, 'adventuresCompleted')}
-                    </p>
-                  </div>
+                  {normalizedJourneyStep === 'collection' && (
+                    <PuzzleCollectionSelector
+                      value={preferences.collection}
+                      locale={preferences.locale}
+                      label={t(preferences.locale, 'puzzleCollection')}
+                      onChange={(collection) => {
+                        setPreferences({ ...preferences, collection })
+                        setSelectedThemeId(themesForPuzzleCollection(collection)[0]!.id)
+                      }}
+                    />
+                  )}
+                  {normalizedJourneyStep === 'mode' && (
+                    <BuildingPlacementSelector
+                      value={preferences.buildingPlacement}
+                      locale={preferences.locale}
+                      onChange={(buildingPlacement) =>
+                        setPreferences({ ...preferences, buildingPlacement })
+                      }
+                    />
+                  )}
+                  {normalizedJourneyStep === 'size' &&
+                    (preferences.collection === 'children' ? (
+                      <ChildMapSizeSelector
+                        value={preferences.childMapSize}
+                        locale={preferences.locale}
+                        label={t(preferences.locale, 'childMapSize')}
+                        onChange={(childMapSize) =>
+                          setPreferences({ ...preferences, childMapSize })
+                        }
+                      />
+                    ) : preferences.collection === 'two-dimensional' ? (
+                      <BoardSizeSelector
+                        value={preferences.advancedGridSize}
+                        locale={preferences.locale}
+                        label={t(preferences.locale, 'boardSize')}
+                        onChange={(advancedGridSize) =>
+                          setPreferences({ ...preferences, advancedGridSize })
+                        }
+                      />
+                    ) : (
+                      <BuildingSizeSelector
+                        value={preferences.buildingDepth}
+                        locale={preferences.locale}
+                        label={t(preferences.locale, 'buildingSize')}
+                        onChange={(buildingDepth) =>
+                          setPreferences({ ...preferences, buildingDepth })
+                        }
+                      />
+                    ))}
+                  {normalizedJourneyStep === 'difficulty' && (
+                    <DifficultySelector
+                      value={preferences.difficulty}
+                      locale={preferences.locale}
+                      collection={preferences.collection}
+                      label={t(preferences.locale, 'difficulty')}
+                      onChange={(difficulty) => setPreferences({ ...preferences, difficulty })}
+                    />
+                  )}
+                  {normalizedJourneyStep === 'adventure' && (
+                    <>
+                      <AdventureSelector
+                        value={selectedThemeId}
+                        collection={preferences.collection}
+                        locale={preferences.locale}
+                        label={t(preferences.locale, 'chooseAdventure')}
+                        onChange={setSelectedThemeId}
+                      />
+                      <div className="home-hero__actions">
+                        <button
+                          type="button"
+                          className="button button--large"
+                          disabled={generating}
+                          onClick={() =>
+                            hasConnectedCompetition && localCompetition.state.role === 'master'
+                              ? setShowCompetition(true)
+                              : canResumeCurrentSetup
+                                ? resumeGame()
+                                : startGame()
+                          }
+                        >
+                          <span aria-hidden="true">✦</span>{' '}
+                          {generating
+                            ? '…'
+                            : hasConnectedCompetition &&
+                                localCompetition.state.role === 'master'
+                              ? 'Preparar ronda en grup'
+                              : t(
+                                  preferences.locale,
+                                  canResumeCurrentSetup ? 'resumeGame' : 'play',
+                                )}
+                        </button>
+                        <p className="home-stat">
+                          <strong>{statistics.completed}</strong>{' '}
+                          {t(preferences.locale, 'adventuresCompleted')}
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -991,12 +1095,14 @@ export default function App() {
             canStartRound={
               !generating &&
               localCompetition.state.role === 'master' &&
-              localCompetition.state.connectionState === 'connected' &&
+              hasConnectedCompetition &&
               competitionRoundFinished &&
               localCompetition.state.participants.some(
                 (participant) => participant.role === 'participant' && participant.connected,
               )
             }
+            roundInProgress={activeCompetitionRoundId !== null && !competitionRoundFinished}
+            selectedSetupLabel={selectedCompetitionSetupLabel}
             onClose={() => setShowCompetition(false)}
             onCreateOffer={() => void localCompetition.createOffer()}
             onAcceptOffer={(code) => void localCompetition.acceptOffer(code)}
@@ -1005,8 +1111,13 @@ export default function App() {
               setShowCompetition(false)
               localCompetition.startRound(createCompetitionRound())
             }}
-            onReset={() => {
-              localCompetition.reset()
+            onConfigureGame={() => {
+              setShowCompetition(false)
+              openHomeJourneyStep('collection')
+            }}
+            onCancelPairing={localCompetition.cancelPairing}
+            onDisconnect={() => {
+              localCompetition.disconnect()
               setActiveCompetitionRoundId(null)
             }}
           />
@@ -1110,6 +1221,24 @@ export default function App() {
         settingsLabel={t(preferences.locale, 'settings')}
         onOpenSettings={() => setShowSettings(true)}
         onGoHome={returnToHome}
+        groupConnection={
+          hasConnectedCompetition
+            ? {
+                label: 'Connectat ·',
+                accessibilityLabel: `Connectat al joc en grup amb ${connectedCompetitionParticipants.length} participants`,
+                state: 'connected',
+                count: connectedCompetitionParticipants.length,
+                onOpen: () => setShowCompetition(true),
+              }
+            : hasDisconnectedCompetition
+              ? {
+                  label: 'Connexió perduda',
+                  accessibilityLabel: 'Connexió perduda amb el joc en grup',
+                  state: 'disconnected',
+                  onOpen: () => setShowCompetition(true),
+                }
+              : undefined
+        }
       />
       <JourneyPath
         label={t(preferences.locale, 'journeyPath')}
@@ -1425,6 +1554,29 @@ export default function App() {
         </p>
       )}
       <InstallPrompt label={t(preferences.locale, 'install')} locale={preferences.locale} />
+      {showCompetition && (
+        <LocalCompetitionPanel
+          state={localCompetition.state}
+          canStartRound={false}
+          roundInProgress={activeCompetitionRoundId !== null && !competitionRoundFinished}
+          selectedSetupLabel={selectedCompetitionSetupLabel}
+          onClose={() => setShowCompetition(false)}
+          onCreateOffer={() => void localCompetition.createOffer()}
+          onAcceptOffer={(code) => void localCompetition.acceptOffer(code)}
+          onAcceptAnswer={(code) => void localCompetition.acceptAnswer(code)}
+          onStartRound={() => undefined}
+          onConfigureGame={() => {
+            setShowCompetition(false)
+            openHomeJourneyStep('collection')
+          }}
+          onCancelPairing={localCompetition.cancelPairing}
+          onDisconnect={() => {
+            localCompetition.disconnect()
+            setActiveCompetitionRoundId(null)
+            setShowCompetition(false)
+          }}
+        />
+      )}
       {showSettings && (
         <SettingsDialog
           preferences={preferences}

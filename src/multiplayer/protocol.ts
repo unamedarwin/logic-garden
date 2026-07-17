@@ -1,6 +1,8 @@
 import {
   isChallengeMetadata,
   type ChallengeMetadata,
+  type BuildingPlacement,
+  type Difficulty,
   type PuzzleCollection,
   type ThemeId,
 } from '../domain/types'
@@ -36,6 +38,14 @@ export interface CompetitionRoundResult {
   readonly moves: number
   readonly hintsUsed: number
   readonly finishedAt: number
+}
+
+export interface CompetitionSetup {
+  readonly collection: PuzzleCollection
+  readonly difficulty: Difficulty
+  readonly themeId: ThemeId
+  readonly size: number
+  readonly buildingPlacement?: BuildingPlacement
 }
 
 export type ClientCompetitionMessage =
@@ -84,7 +94,14 @@ export type PeerCompetitionMessage =
       readonly lobbyId: string
       readonly participants: readonly CompetitionParticipant[]
       readonly results: readonly CompetitionRoundResult[]
+      readonly selectedSetup?: CompetitionSetup
     }
+  | {
+      readonly type: 'setup-selected'
+      readonly lobbyId: string
+      readonly setup: CompetitionSetup
+    }
+  | { readonly type: 'peer-left'; readonly lobbyId: string; readonly profileId: string }
 
 const isSafeId = (value: unknown): value is string =>
   typeof value === 'string' && /^[A-Za-z0-9._~-]{1,64}$/u.test(value)
@@ -148,6 +165,27 @@ export const isCompetitionRoundResult = (value: unknown): value is CompetitionRo
   )
 }
 
+export const isCompetitionSetup = (value: unknown): value is CompetitionSetup => {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  const validSize =
+    (candidate.collection === 'children' && [4, 6, 8].includes(Number(candidate.size))) ||
+    (candidate.collection === 'two-dimensional' &&
+      [6, 9, 16].includes(Number(candidate.size))) ||
+    (candidate.collection === 'three-dimensional' &&
+      [3, 4, 5, 6, 7, 8, 9, 10].includes(Number(candidate.size)))
+  return (
+    validSize &&
+    (candidate.difficulty === 'easy' ||
+      candidate.difficulty === 'medium' ||
+      candidate.difficulty === 'hard') &&
+    isThemeId(candidate.themeId) &&
+    (candidate.collection !== 'three-dimensional' ||
+      candidate.buildingPlacement === 'rooms' ||
+      candidate.buildingPlacement === 'cells')
+  )
+}
+
 export const isClientCompetitionMessage = (
   value: unknown,
 ): value is ClientCompetitionMessage => {
@@ -177,6 +215,8 @@ export const isPeerCompetitionMessage = (value: unknown): value is PeerCompetiti
   if (candidate.type === 'round-finished') {
     return isCompetitionRoundResult(candidate.result)
   }
+  if (candidate.type === 'setup-selected') return isCompetitionSetup(candidate.setup)
+  if (candidate.type === 'peer-left') return isSafeId(candidate.profileId)
   if (candidate.type !== 'standings' || !Array.isArray(candidate.participants)) return false
   return (
     candidate.participants.every((participant) => {
@@ -192,7 +232,8 @@ export const isPeerCompetitionMessage = (value: unknown): value is PeerCompetiti
       )
     }) &&
     Array.isArray(candidate.results) &&
-    candidate.results.every(isCompetitionRoundResult)
+    candidate.results.every(isCompetitionRoundResult) &&
+    (candidate.selectedSetup === undefined || isCompetitionSetup(candidate.selectedSetup))
   )
 }
 

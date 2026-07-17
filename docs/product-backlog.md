@@ -116,6 +116,10 @@
 
 ## Local competitive mode: P2P QR baseline
 
+- The visible session state and authority rules are specified in
+  [`group-play-state-model.md`](group-play-state-model.md). Pairing is a temporary lobby action;
+  closing the modal or navigating the setup never disconnects an established room.
+
 - Implemented network shape: the PWA does not start a server, relay, websocket listener, LAN
   discovery process, Bluetooth exchange, or NFC exchange. Nearby devices pair explicitly with a
   QR/copy/share flow carrying a compressed WebRTC offer and answer. Once paired, game events travel
@@ -145,8 +149,14 @@
 - The camera path uses a local, lazy-loaded QR scanner when the browser has no native barcode API,
   including Safari. It requests camera access only after the explicit scan action and destroys the
   stream when the scanner closes.
-- The compact modal presents one role and one connection action at a time. Once connected, it shows
-  the temporary aliases, an `Afegir participant` action for the master, and the single start action.
+- The compact modal presents one role and one connection action at a time. Once connected, every
+  screen exposes `Connectat · N`, the shared setup and the same participant roles. Only the master
+  can configure or start a puzzle; participants get a read-only waiting view. Closing the modal is
+  non-destructive, while leaving or closing the room requires explicit confirmation. Adding a peer
+  preserves the visible established room, and a lost master channel exposes `Connexió perduda`.
+- Session aliases are generated locally from a broad adjective, place and icon catalog. They contain
+  no numeric suffix that could be mistaken for latency, are never requested from the player and are
+  never persisted.
 - Automated evidence connects three isolated browser contexts, verifies ICE candidates in both
   signaling payloads, waits for actual DataChannel `open`, and confirms all devices receive the same
   puzzle in Chromium and Firefox. The camera fallback has a regression test without

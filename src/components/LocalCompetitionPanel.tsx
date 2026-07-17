@@ -1,6 +1,6 @@
 import { Camera, Copy, QrCode, Share2, Users, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-// cspell:ignore qrcode
+// cspell:ignore qrcode testid emparellament
 import type { CompetitionParticipant } from '../multiplayer/protocol'
 import { cameraSupported } from '../multiplayer/signaling'
 import type { LocalCompetitionState } from '../multiplayer/useLocalCompetition'
@@ -9,19 +9,28 @@ import { useDialogFocus } from './useDialogFocus'
 interface LocalCompetitionPanelProps {
   readonly state: LocalCompetitionState
   readonly canStartRound: boolean
+  readonly roundInProgress: boolean
+  readonly selectedSetupLabel?: string
   readonly onClose: () => void
   readonly onCreateOffer: () => void
   readonly onAcceptOffer: (code: string) => void
   readonly onAcceptAnswer: (code: string) => void
   readonly onStartRound: () => void
-  readonly onReset: () => void
+  readonly onConfigureGame: () => void
+  readonly onCancelPairing: () => void
+  readonly onDisconnect: () => void
 }
 
 type CompetitionScreen = 'choose' | 'master' | 'participant'
 type ScanTarget = 'offer' | 'answer'
 
-const connectionCopy = (state: LocalCompetitionState) => {
+const connectionCopy = (state: LocalCompetitionState, connectedCount: number) => {
   if (!state.supported) return 'Aquest navegador no permet el joc en grup.'
+  if (connectedCount > 1 && state.connectionState !== 'error') {
+    return state.connectionState === 'connected'
+      ? 'Sala connectada. Podeu continuar encara que tanquis aquesta finestra.'
+      : 'La sala continua connectada mentre preparem una altra invitació.'
+  }
   if (state.connectionState === 'creating-offer') return 'Preparant la invitació…'
   if (state.connectionState === 'waiting-answer')
     return 'Esperant la resposta de l’altre dispositiu.'
@@ -173,18 +182,23 @@ const Scanner = ({
 export const LocalCompetitionPanel = ({
   state,
   canStartRound,
+  roundInProgress,
+  selectedSetupLabel,
   onClose,
   onCreateOffer,
   onAcceptOffer,
   onAcceptAnswer,
   onStartRound,
-  onReset,
+  onConfigureGame,
+  onCancelPairing,
+  onDisconnect,
 }: LocalCompetitionPanelProps) => {
   const dialogRef = useDialogFocus(onClose)
   const [screen, setScreen] = useState<CompetitionScreen>(state.role ?? 'choose')
   const [offerInput, setOfferInput] = useState('')
   const [answerInput, setAnswerInput] = useState('')
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null)
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const standings = sortedParticipants(state.participants)
   const activeScreen = state.role ?? screen
   const connectedParticipants = state.participants.filter(
@@ -193,18 +207,13 @@ export const LocalCompetitionPanel = ({
   const isPairing =
     state.connectionState === 'creating-offer' ||
     state.connectionState === 'waiting-answer' ||
-    state.connectionState === 'creating-answer'
+    state.connectionState === 'creating-answer' ||
+    state.connectionState === 'waiting-master'
+  const hasConnectedRoom = connectedParticipants.length > 1
 
   useEffect(() => {
     if (state.role) setScreen(state.role)
   }, [state.role])
-
-  const resetAndChoose = () => {
-    onReset()
-    setScreen('choose')
-    setOfferInput('')
-    setAnswerInput('')
-  }
 
   const createInvitation = () => {
     setAnswerInput('')
@@ -223,7 +232,9 @@ export const LocalCompetitionPanel = ({
         <div className="dialog-heading">
           <div>
             <p className="eyebrow">Dos dispositius, un mateix misteri</p>
-            <h2 id="competition-title">Joc en grup</h2>
+            <h2 id="competition-title">
+              {hasConnectedRoom ? `Connectat · ${connectedParticipants.length}` : 'Joc en grup'}
+            </h2>
           </div>
           <button type="button" className="icon-button" aria-label="Tancar" onClick={onClose}>
             <X aria-hidden="true" />
@@ -254,7 +265,7 @@ export const LocalCompetitionPanel = ({
             <ol className="competition-panel__progress" aria-label="Progrés de la connexió">
               <li>Paper triat</li>
               <li aria-current="step">
-                {state.connectionState === 'connected' ? 'Dispositius connectats' : 'Connecta'}
+                {hasConnectedRoom ? 'Dispositius connectats' : 'Connecta'}
               </li>
               <li>Jugueu</li>
             </ol>
@@ -265,7 +276,7 @@ export const LocalCompetitionPanel = ({
               </span>
             </p>
             <p className="competition-panel__status" role="status">
-              {connectionCopy(state)}
+              {connectionCopy(state, connectedParticipants.length)}
             </p>
 
             {activeScreen === 'master' && state.connectionState === 'idle' && (
@@ -334,7 +345,7 @@ export const LocalCompetitionPanel = ({
                   <QrPayload label="Resposta al creador" value={state.answerCode} />
                 </>
               )}
-            {state.connectionState === 'connected' && (
+            {hasConnectedRoom && (
               <div className="competition-panel__connected">
                 <p>
                   <Users aria-hidden="true" />
@@ -344,11 +355,32 @@ export const LocalCompetitionPanel = ({
                   {connectedParticipants.map((participant) => (
                     <li key={participant.id}>
                       <span aria-hidden="true">{participant.avatar}</span> {participant.name}
+                      <small>
+                        {participant.role === 'master' ? 'Creador' : 'Participant'}
+                        {participant.id === state.profile.id ? ' · Tu' : ''}
+                      </small>
                     </li>
                   ))}
                 </ul>
-                {state.role === 'master' && (
+                <div className="competition-panel__selection" data-testid="group-setup-summary">
+                  <span>{roundInProgress ? 'Ronda en curs' : 'Puzzle seleccionat'}</span>
+                  <strong>
+                    {state.activeRound?.title ??
+                      selectedSetupLabel ??
+                      (state.role === 'master'
+                        ? 'Encara no has triat el puzzle'
+                        : 'El creador està triant el puzzle')}
+                  </strong>
+                </div>
+                {state.role === 'master' && !roundInProgress && !isPairing && (
                   <div className="competition-panel__lobby-actions">
+                    <button
+                      type="button"
+                      className="button button--secondary"
+                      onClick={onConfigureGame}
+                    >
+                      Escollir o canviar el puzzle
+                    </button>
                     <button
                       type="button"
                       className="button button--secondary"
@@ -362,10 +394,14 @@ export const LocalCompetitionPanel = ({
                       disabled={!canStartRound}
                       onClick={onStartRound}
                     >
-                      Començar el mateix puzzle
+                      Jugar amb aquesta selecció
                     </button>
                   </div>
                 )}
+                {state.role === 'participant' && !roundInProgress && (
+                  <p>El creador triarà el puzzle i iniciarà la ronda per a tothom.</p>
+                )}
+                {roundInProgress && <p>La sala queda oberta mentre completeu la ronda.</p>}
               </div>
             )}
             {standings.some((participant) => participant.roundsFinished > 0) && (
@@ -378,9 +414,47 @@ export const LocalCompetitionPanel = ({
               </ol>
             )}
             {state.error && <p role="alert">{state.error}</p>}
-            <button type="button" onClick={resetAndChoose}>
-              Tornar a triar
-            </button>
+            {isPairing && (
+              <button type="button" onClick={onCancelPairing}>
+                Cancel·lar l’emparellament
+              </button>
+            )}
+            {!hasConnectedRoom && !isPairing && state.role && (
+              <button type="button" onClick={() => setConfirmDisconnect(true)}>
+                Canviar de paper
+              </button>
+            )}
+            {hasConnectedRoom && (
+              <button type="button" onClick={() => setConfirmDisconnect(true)}>
+                {state.role === 'master' ? 'Tancar la sala' : 'Desconnectar-me'}
+              </button>
+            )}
+            {confirmDisconnect && (
+              <div className="competition-panel__confirmation" role="alertdialog">
+                <strong>
+                  {state.role === 'master'
+                    ? 'Vols tancar la sala per a tothom?'
+                    : 'Vols desconnectar-te de la sala?'}
+                </strong>
+                <p>Aquesta acció sí que tancarà la connexió directa.</p>
+                <div className="competition-panel__inline-actions">
+                  <button type="button" onClick={() => setConfirmDisconnect(false)}>
+                    Continuar connectat
+                  </button>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => {
+                      onDisconnect()
+                      setScreen('choose')
+                      setConfirmDisconnect(false)
+                    }}
+                  >
+                    {state.role === 'master' ? 'Sí, tancar la sala' : 'Sí, desconnectar-me'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {scanTarget && (
